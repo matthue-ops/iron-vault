@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">Staff & Admin Management</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -42,12 +42,13 @@
         :root {
             --brand-primary: #10b981;
             --bg-base: #090d16;
-            --card-bg: rgba(17, 24, 39, 0.75);
+            --card-bg: rgba(17, 24, 39, 0.85);
         }
 
         body {
             background-color: var(--bg-base);
             font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .glass-card {
@@ -58,68 +59,72 @@
         }
 
         .glass-input {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.12);
         }
         .glass-input:focus {
             border-color: var(--brand-primary);
             box-shadow: 0 0 0 2px var(--brand-primary-glow, rgba(16, 185, 129, 0.2));
         }
+
+        .touch-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
     <!-- TOP HEADER / NAV BAR -->
-    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div id="header-logo-container" class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 overflow-hidden transition-all duration-300">
-                    <i id="header-logo-icon" class="fa-solid fa-shield-halved text-lg"></i>
+    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur-md px-3 py-3 sm:px-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div id="header-logo-container" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 overflow-hidden flex-shrink-0 transition-all duration-300">
+                    <i id="header-logo-icon" class="fa-solid fa-shield-halved text-base sm:text-lg"></i>
                     <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
                 </div>
-                <div>
-                    <span id="header-gym-title" class="font-black text-white text-base tracking-wider uppercase block">ADMIN & DATA PORTAL</span>
-                    <span id="header-subtitle" class="text-[10px] text-slate-400 font-mono">Iron Vault Gym Access Engine</span>
+                <div class="truncate">
+                    <span id="header-gym-title" class="font-black text-white text-xs sm:text-base tracking-wider uppercase block truncate">ADMIN & DATA PORTAL</span>
+                    <span id="header-subtitle" class="text-[9px] sm:text-[10px] text-slate-400 font-mono block truncate">Iron Vault Gym Access Engine</span>
                 </div>
             </div>
 
             <!-- ADMIN / STAFF HEADER CONTROLS -->
-            <div class="flex items-center gap-2">
-                <button id="btn-reports-analytics" onclick="adminApp.openReportsPage()" class="hidden px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-semibold text-emerald-300 transition items-center gap-2">
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button id="btn-reports-analytics" onclick="adminApp.openReportsPage()" class="hidden px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-semibold text-emerald-300 transition items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie"></i>
-                    <span>Reports & Analytics</span>
+                    <span class="hidden md:inline">Reports & Analytics</span>
                 </button>
-                <button id="btn-staff-management" onclick="adminApp.openStaffSignupModal()" class="hidden px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-semibold text-amber-300 transition items-center gap-2">
+                <button id="btn-staff-management" onclick="adminApp.openStaffSignupModal()" class="hidden px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-semibold text-amber-300 transition items-center gap-1.5">
                     <i class="fa-solid fa-users-gear"></i>
-                    <span>Staff Management</span>
+                    <span class="hidden md:inline">Staff Management</span>
                 </button>
 
                 <!-- LOGOUT BUTTON -->
-                <button id="btn-admin-logout" onclick="adminApp.logoutAdmin()" class="hidden px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                <button id="btn-admin-logout" onclick="adminApp.logoutAdmin()" class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
-                    <span>Sign Out</span>
+                    <span class="hidden sm:inline">Sign Out</span>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- MAIN BODY CONTAINER -->
-    <main class="relative z-10 flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+    <main class="relative z-10 flex-grow p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-4 sm:space-y-6">
 
         <!-- ADMIN LOGIN SCREEN -->
-        <div id="admin-auth-card" class="max-w-md mx-auto my-12">
-            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <div id="admin-auth-card" class="max-w-md mx-auto my-6 sm:my-12 px-2">
+            <div class="glass-card rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
                 <div class="text-center space-y-2">
-                    <div id="login-logo-container" class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 mb-1 overflow-hidden transition-all duration-300">
-                        <i id="login-logo-icon" class="fa-solid fa-lock text-xl"></i>
+                    <div id="login-logo-container" class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 mb-1 overflow-hidden transition-all duration-300">
+                        <i id="login-logo-icon" class="fa-solid fa-lock text-lg sm:text-xl"></i>
                         <img id="login-logo-img" src="" alt="Logo" class="w-full h-full object-cover hidden">
                     </div>
-                    <h2 id="login-heading" class="text-xl font-bold text-white">Staff or Admin Credentials Required</h2>
+                    <h2 id="login-heading" class="text-lg sm:text-xl font-bold text-white">Staff or Admin Credentials Required</h2>
                     <p id="login-subtitle" class="text-xs text-slate-400">Enter administrator or staff email & password to access management controls</p>
                 </div>
 
-                <div id="no-tenant-banner" class="hidden bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl text-center space-y-2">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-400 text-xl"></i>
+                <div id="no-tenant-banner" class="hidden bg-rose-500/10 border border-rose-500/30 p-3 sm:p-4 rounded-2xl text-center space-y-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg"></i>
                     <h4 class="text-xs font-bold text-rose-300">No Active Key Selected</h4>
                     <p class="text-[11px] text-slate-300 leading-relaxed">
                         Please open this Admin Portal using a valid access link generated from the <a href="index.html" class="text-amber-400 underline font-semibold">Super Admin Master Control Tower</a>.
@@ -129,15 +134,15 @@
                 <form onsubmit="adminApp.handleAdminLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
-                        <input type="email" id="admin-email" placeholder="owner@gym.com or staff@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="email" id="admin-email" placeholder="owner@gym.com or staff@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-3 focus:outline-none">
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
-                        <input type="password" id="admin-password" placeholder="••••••••" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="password" id="admin-password" placeholder="••••••••" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-3 focus:outline-none">
                     </div>
 
-                    <button type="submit" id="login-btn" class="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg">
+                    <button type="submit" id="login-btn" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg">
                         Unlock Portal
                     </button>
                 </form>
@@ -145,121 +150,119 @@
         </div>
 
         <!-- ADMIN DASHBOARD -->
-        <div id="admin-dashboard" class="space-y-6 hidden">
+        <div id="admin-dashboard" class="space-y-4 sm:space-y-6 hidden">
             
-            <!-- QUICK METRICS ROW -->
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xl">
+            <!-- QUICK METRICS ROW (2x2 on Mobile, 4x1 on Desktop) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+                <div class="glass-card rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-base sm:text-xl flex-shrink-0">
                         <i class="fa-solid fa-users"></i>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-400">Total Members</span>
-                        <h3 id="stat-total" class="text-xl font-black text-white">0</h3>
+                    <div class="min-w-0">
+                        <span class="text-[10px] sm:text-xs text-slate-400 block truncate">Total Members</span>
+                        <h3 id="stat-total" class="text-base sm:text-xl font-black text-white truncate">0</h3>
                     </div>
                 </div>
 
-                <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xl">
+                <div class="glass-card rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-base sm:text-xl flex-shrink-0">
                         <i class="fa-solid fa-user-check"></i>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-400">Active Passes</span>
-                        <h3 id="stat-active" class="text-xl font-black text-white">0</h3>
+                    <div class="min-w-0">
+                        <span class="text-[10px] sm:text-xs text-slate-400 block truncate">Active Passes</span>
+                        <h3 id="stat-active" class="text-base sm:text-xl font-black text-white truncate">0</h3>
                     </div>
                 </div>
 
-                <div class="glass-card rounded-2xl p-4 flex items-center gap-4 border border-amber-500/30">
-                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-xl">
+                <div class="glass-card rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4 border border-amber-500/30">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-base sm:text-xl flex-shrink-0">
                         <i class="fa-solid fa-user-clock"></i>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-400">Pending Approvals</span>
-                        <h3 id="stat-pending" class="text-xl font-black text-amber-400">0</h3>
+                    <div class="min-w-0">
+                        <span class="text-[10px] sm:text-xs text-slate-400 block truncate">Pending Approvals</span>
+                        <h3 id="stat-pending" class="text-base sm:text-xl font-black text-amber-400 truncate">0</h3>
                     </div>
                 </div>
 
-                <div id="revenue-metric-card" class="glass-card rounded-2xl p-4 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-xl">
+                <div id="revenue-metric-card" class="glass-card rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-base sm:text-xl flex-shrink-0">
                         <i class="fa-solid fa-receipt"></i>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-400">Est. Revenue</span>
-                        <h3 id="stat-revenue" class="text-xl font-black text-white">₱0</h3>
+                    <div class="min-w-0">
+                        <span class="text-[10px] sm:text-xs text-slate-400 block truncate">Est. Revenue</span>
+                        <h3 id="stat-revenue" class="text-base sm:text-xl font-black text-white truncate">₱0</h3>
                     </div>
                 </div>
             </div>
 
             <!-- ACTION BAR -->
-            <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-id-card-clip text-emerald-400"></i> Member Access & Desk Entry Suite
-                        </h3>
-                        <p class="text-xs text-slate-400">Accommodate phone-less walk-ins, log manual desk check-ins, or use live QR pass camera verification.</p>
-                    </div>
+            <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-3 sm:space-y-4">
+                <div>
+                    <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-id-card-clip text-emerald-400"></i> Member Access & Desk Entry Suite
+                    </h3>
+                    <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">Accommodate phone-less walk-ins, log manual desk check-ins, or use live QR pass camera verification.</p>
+                </div>
 
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <button onclick="adminApp.openManualCheckInModal()" class="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-hand-pointer"></i>
-                            <span>Manual Desk Check-In</span>
-                        </button>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                    <button onclick="adminApp.openManualCheckInModal()" class="w-full py-3 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-hand-pointer text-base"></i>
+                        <span>Manual Desk Check-In</span>
+                    </button>
 
-                        <button onclick="adminApp.openAddMemberModal()" class="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-user-plus"></i>
-                            <span>Express Walk-In Reg</span>
-                        </button>
+                    <button onclick="adminApp.openAddMemberModal()" class="w-full py-3 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-user-plus text-base"></i>
+                        <span>Express Walk-In Reg</span>
+                    </button>
 
-                        <button onclick="adminApp.openScannerModal()" class="px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-qrcode"></i>
-                            <span>Scan Member QR Pass</span>
-                        </button>
-                    </div>
+                    <button onclick="adminApp.openScannerModal()" class="w-full py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-qrcode text-base"></i>
+                        <span>Scan Member QR Pass</span>
+                    </button>
                 </div>
             </div>
 
             <!-- MEMBERSHIP PRICING SETTINGS CARD -->
-            <div id="pricing-settings-card" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div id="pricing-settings-card" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-3 sm:space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
                     <div>
-                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                        <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
                             <i class="fa-solid fa-tags text-emerald-400"></i> Membership Pricing & Default Discounts
                         </h3>
-                        <p class="text-xs text-slate-400">Configure base rates and default percentage discounts for Student and Senior classifications.</p>
+                        <p class="text-[11px] sm:text-xs text-slate-400">Configure base rates and default percentage discounts for Student and Senior classifications.</p>
                     </div>
-                    <button onclick="adminApp.openPricingModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs transition flex items-center gap-1.5">
+                    <button onclick="adminApp.openPricingModal()" class="px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-[11px] sm:text-xs transition flex items-center gap-1.5 flex-shrink-0">
                         <i class="fa-solid fa-pen-to-square"></i>
-                        <span>Edit Pricing & Discounts</span>
+                        <span class="hidden sm:inline">Edit Pricing & Discounts</span>
                     </button>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
-                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">1-Day Pass</span>
-                        <h4 id="display-price-day" class="text-base font-black text-emerald-400">₱150</h4>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 pt-1">
+                    <div class="bg-slate-900/60 p-2.5 sm:p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
+                        <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider block font-medium">1-Day Pass</span>
+                        <h4 id="display-price-day" class="text-sm sm:text-base font-black text-emerald-400">₱150</h4>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
-                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">1-Week Pass</span>
-                        <h4 id="display-price-week" class="text-base font-black text-emerald-400">₱700</h4>
+                    <div class="bg-slate-900/60 p-2.5 sm:p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
+                        <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider block font-medium">1-Week Pass</span>
+                        <h4 id="display-price-week" class="text-sm sm:text-base font-black text-emerald-400">₱700</h4>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
-                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">1-Month Unlimited</span>
-                        <h4 id="display-price-month" class="text-base font-black text-emerald-400">₱2,500</h4>
+                    <div class="bg-slate-900/60 p-2.5 sm:p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
+                        <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider block font-medium">1-Month Unlimited</span>
+                        <h4 id="display-price-month" class="text-sm sm:text-base font-black text-emerald-400">₱2,500</h4>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
-                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Student Discount</span>
-                        <h4 id="display-discount-student" class="text-base font-black text-amber-400">20%</h4>
+                    <div class="bg-slate-900/60 p-2.5 sm:p-3 rounded-xl border border-slate-800/80 text-center space-y-1">
+                        <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Student Discount</span>
+                        <h4 id="display-discount-student" class="text-sm sm:text-base font-black text-amber-400">20%</h4>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-center space-y-1 col-span-2 sm:col-span-1">
-                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Senior Discount</span>
-                        <h4 id="display-discount-senior" class="text-base font-black text-amber-400">20%</h4>
+                    <div class="bg-slate-900/60 p-2.5 sm:p-3 rounded-xl border border-slate-800/80 text-center space-y-1 col-span-2 sm:col-span-1">
+                        <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Senior Discount</span>
+                        <h4 id="display-discount-senior" class="text-sm sm:text-base font-black text-amber-400">20%</h4>
                     </div>
                 </div>
             </div>
 
             <!-- SEGREGATED PENDING ONLINE REGISTRATIONS CARD -->
-            <div id="pending-section" class="glass-card rounded-2xl p-5 border border-amber-500/40 space-y-3 bg-amber-500/5 hidden">
+            <div id="pending-section" class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-500/40 space-y-3 bg-amber-500/5 hidden">
                 <div class="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
                     <h3 class="font-bold text-amber-300 text-xs flex items-center gap-2">
                         <i class="fa-solid fa-user-clock text-amber-400 text-sm"></i> Pending Online Registrations Requiring Desk Approval
@@ -269,8 +272,8 @@
                     </span>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
+                <div class="overflow-x-auto touch-scroll">
+                    <table class="w-full text-left text-xs min-w-[650px]">
                         <thead class="text-amber-400/80 border-b border-amber-500/20 uppercase font-semibold">
                             <tr>
                                 <th class="p-2.5">Member ID</th>
@@ -283,24 +286,22 @@
                             </tr>
                         </thead>
                         <tbody id="pending-tbody" class="divide-y divide-amber-500/10 text-slate-200">
-                            <!-- Dynamic Pending Rows -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <!-- MEMBER ROSTER TABLE CONTAINER -->
-            <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <div class="flex items-center gap-3 w-full sm:w-auto flex-grow">
+            <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto flex-grow">
                         <div class="relative w-full sm:w-72">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
                             </span>
-                            <input type="text" id="roster-search" oninput="adminApp.filterRoster()" placeholder="Search active member name, ID, email..." class="w-full glass-input text-white text-xs rounded-xl pl-9 pr-3 py-2 focus:outline-none">
+                            <input type="text" id="roster-search" oninput="adminApp.filterRoster()" placeholder="Search active member name, ID, email..." class="w-full glass-input text-white text-xs rounded-xl pl-9 pr-3 py-2.5 focus:outline-none">
                         </div>
 
-                        <!-- Two toggle buttons beside search bar -->
                         <div class="flex items-center gap-1.5 flex-shrink-0">
                             <button id="filter-btn-logged" onclick="adminApp.toggleRosterFilter('logged')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
                                 <i class="fa-solid fa-user-check text-emerald-400"></i>
@@ -313,13 +314,13 @@
                         </div>
                     </div>
 
-                    <div class="text-xs text-slate-400 flex-shrink-0">
+                    <div class="text-xs text-slate-400 flex-shrink-0 sm:text-right">
                         Active Members: <span id="showing-count" class="font-bold text-white">0</span>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
+                <div class="overflow-x-auto touch-scroll">
+                    <table class="w-full text-left text-xs min-w-[850px]">
                         <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
                             <tr>
                                 <th class="p-3">Member ID</th>
@@ -334,7 +335,6 @@
                             </tr>
                         </thead>
                         <tbody id="roster-tbody" class="divide-y divide-slate-800/60 text-slate-300">
-                            <!-- Dynamic Active Member Rows -->
                         </tbody>
                     </table>
                 </div>
@@ -345,9 +345,9 @@
     </main>
 
     <!-- MANUAL DESK CHECK-IN MODAL -->
-    <div id="manual-checkin-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-8">
-            <button onclick="adminApp.closeManualCheckInModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+    <div id="manual-checkin-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto touch-scroll">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-5 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+            <button onclick="adminApp.closeManualCheckInModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg p-2">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -363,13 +363,13 @@
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" id="manual-search-input" oninput="adminApp.searchManualCheckIn()" placeholder="Type member name, phone number, or Member ID..." class="w-full glass-input text-white text-xs rounded-xl pl-9 pr-3 py-2.5 focus:outline-none">
+                <input type="text" id="manual-search-input" oninput="adminApp.searchManualCheckIn()" placeholder="Type member name, phone number, or Member ID..." class="w-full glass-input text-white text-xs rounded-xl pl-9 pr-3 py-3 focus:outline-none">
             </div>
 
-            <div id="manual-search-results" class="max-h-64 overflow-y-auto space-y-2 pr-1"></div>
+            <div id="manual-search-results" class="max-h-64 overflow-y-auto space-y-2 pr-1 touch-scroll"></div>
 
             <div class="flex justify-end pt-2">
-                <button onclick="adminApp.closeManualCheckInModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                <button onclick="adminApp.closeManualCheckInModal()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
                     Close
                 </button>
             </div>
@@ -377,7 +377,7 @@
     </div>
 
     <!-- PLAN SELECTION BUTTON MODAL -->
-    <div id="plan-selection-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div id="plan-selection-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden">
         <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative">
             <div class="text-center space-y-1">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 mb-1">
@@ -422,9 +422,9 @@
     </div>
 
     <!-- PRICING & DISCOUNTS SETTINGS MODAL -->
-    <div id="pricing-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-8">
-            <button onclick="adminApp.closePricingModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+    <div id="pricing-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto touch-scroll">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-auto max-h-[92vh]">
+            <button onclick="adminApp.closePricingModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg p-2">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -459,7 +459,7 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-slate-300 mb-1">Default Senior Discount (%)</label>
-                    <input type="number" id="input-discount-senior" min="0" max="100" step="1" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono font-mono">
+                    <input type="number" id="input-discount-senior" min="0" max="100" step="1" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
                 </div>
 
                 <div class="flex gap-2 pt-2">
@@ -475,9 +475,9 @@
     </div>
 
     <!-- EXPRESS WALK-IN & ADD MEMBER MODAL -->
-    <div id="add-member-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-8">
-            <button onclick="adminApp.closeAddMemberModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+    <div id="add-member-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto touch-scroll">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-auto max-h-[92vh]">
+            <button onclick="adminApp.closeAddMemberModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg p-2">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -556,9 +556,9 @@
     </div>
 
     <!-- QR SCANNER MODAL -->
-    <div id="scanner-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 space-y-4 border border-slate-800 shadow-2xl relative">
-            <button onclick="adminApp.closeScannerModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+    <div id="scanner-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden">
+        <div class="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 space-y-4 border border-slate-800 shadow-2xl relative max-h-[92vh] overflow-y-auto touch-scroll">
+            <button onclick="adminApp.closeScannerModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg p-2">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -571,8 +571,8 @@
             </div>
 
             <!-- LIVE CAMERA VIEW -->
-            <div class="relative overflow-hidden rounded-2xl bg-slate-950 border border-slate-800">
-                <video id="qr-video" class="w-full aspect-video object-cover hidden" autoplay playsinline muted></video>
+            <div class="relative overflow-hidden rounded-2xl bg-slate-950 border border-slate-800 aspect-video flex items-center justify-center">
+                <video id="qr-video" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
                 <canvas id="qr-canvas" class="hidden"></canvas>
                 <div id="camera-placeholder" class="p-6 text-center text-slate-500 text-xs">
                     <i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i>
@@ -603,9 +603,9 @@
     </div>
 
     <!-- MEMBER PROFILE MODAL -->
-    <div id="member-profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-8">
-            <button onclick="adminApp.closeProfileModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg z-10">
+    <div id="member-profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto touch-scroll">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-auto max-h-[92vh]">
+            <button onclick="adminApp.closeProfileModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg z-10 p-2">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -614,8 +614,8 @@
                     <img id="modal-avatar-img" src="" alt="Avatar" class="w-full h-full object-cover hidden">
                     <i id="modal-avatar-icon" class="fa-solid fa-user text-2xl"></i>
                 </div>
-                <div>
-                    <h3 id="modal-member-name" class="text-lg font-black text-white">Member Name</h3>
+                <div class="min-w-0">
+                    <h3 id="modal-member-name" class="text-lg font-black text-white truncate">Member Name</h3>
                     <div class="flex items-center gap-2 mt-0.5">
                         <span id="modal-member-id" class="text-xs font-mono font-bold text-emerald-400">MEM-0000</span>
                         <span id="modal-member-status-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ACTIVE</span>
@@ -623,12 +623,12 @@
                 </div>
             </div>
 
-            <div id="modal-pending-banner" class="hidden bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between">
+            <div id="modal-pending-banner" class="hidden bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between gap-2">
                 <div>
                     <h4 class="text-xs font-bold text-amber-300">Pending Online Registration</h4>
                     <p class="text-[10px] text-slate-400">Member is present at counter. Approve to enable door access.</p>
                 </div>
-                <button onclick="adminApp.approvePendingMember()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow-md">
+                <button onclick="adminApp.approvePendingMember()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow-md flex-shrink-0">
                     Approve Account
                 </button>
             </div>
@@ -654,7 +654,7 @@
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">₱</span>
                             <input type="number" id="modal-topup-input" min="1" placeholder="Custom top-up amount..." class="w-full glass-input text-white text-xs rounded-xl pl-7 pr-3 py-2 focus:outline-none">
                         </div>
-                        <button onclick="adminApp.handleCustomModalTopUp()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition">Add Funds</button>
+                        <button onclick="adminApp.handleCustomModalTopUp()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition flex-shrink-0">Add Funds</button>
                     </div>
                 </div>
             </div>
@@ -767,9 +767,9 @@
     </div>
 
     <!-- STAFF SIGNUP MODAL -->
-    <div id="staff-signup-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-8">
-            <button onclick="adminApp.closeStaffSignupModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+    <div id="staff-signup-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto touch-scroll">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-auto max-h-[92vh]">
+            <button onclick="adminApp.closeStaffSignupModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg p-2">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -809,13 +809,13 @@
 
             <div class="pt-4 border-t border-slate-800 space-y-2">
                 <h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Registered Staff</h4>
-                <div id="existing-staff-list" class="max-h-48 overflow-y-auto space-y-2 text-xs"></div>
+                <div id="existing-staff-list" class="max-h-48 overflow-y-auto space-y-2 text-xs touch-scroll"></div>
             </div>
         </div>
     </div>
 
     <!-- FOOTER -->
-    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900">
+    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900 px-2">
         <p>© 2026 Iron Vault Gym Access System • Staff Administration Interface</p>
     </footer>
 
@@ -1576,7 +1576,6 @@
                 const activeId = this.currentTenantId;
                 this.members = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') === activeId || (this.matchedOwnerRecord && m.tenantToken === this.matchedOwnerRecord.token));
 
-                // Expiry check: Check and reset expired daily/weekly/monthly scans
                 const now = new Date();
                 now.setHours(0,0,0,0);
                 let dataChanged = false;
@@ -1711,57 +1710,6 @@
                 }).join('');
             },
 
-            toggleRosterFilter: function(type) {
-                if (this.rosterActiveFilter === type) {
-                    this.rosterActiveFilter = 'all';
-                } else {
-                    this.rosterActiveFilter = type;
-                }
-
-                const loggedBtn = document.getElementById('filter-btn-logged');
-                const notEnteredBtn = document.getElementById('filter-btn-not-entered');
-
-                if (this.rosterActiveFilter === 'logged') {
-                    loggedBtn.classList.add('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
-                    notEnteredBtn.classList.remove('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
-                } else if (this.rosterActiveFilter === 'not_entered') {
-                    notEnteredBtn.classList.add('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
-                    loggedBtn.classList.remove('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
-                } else {
-                    loggedBtn.classList.remove('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
-                    notEnteredBtn.classList.remove('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
-                }
-
-                this.filterRoster();
-            },
-
-            filterRoster: function() {
-                const query = document.getElementById('roster-search').value.toLowerCase().trim();
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-                let filtered = this.members.filter(m => {
-                    const matchesSearch = (m.name || '').toLowerCase().includes(query) ||
-                        (m.id || '').toLowerCase().includes(query) ||
-                        (m.email || '').toLowerCase().includes(query) ||
-                        (m.cardBarcode || '').toLowerCase().includes(query);
-
-                    if (!matchesSearch) return false;
-
-                    const isCheckedInToday = (m.lastScannedDate === todayStr);
-
-                    if (this.rosterActiveFilter === 'logged') {
-                        return isCheckedInToday;
-                    } else if (this.rosterActiveFilter === 'not_entered') {
-                        return !isCheckedInToday;
-                    }
-
-                    return true;
-                });
-
-                this.renderRoster(filtered);
-            },
-
             renderRoster: function(list) {
                 const tbody = document.getElementById('roster-tbody');
                 const activeList = list.filter(m => m.status !== 'PENDING');
@@ -1844,8 +1792,8 @@
                 const container = document.getElementById('manual-search-results');
 
                 const filtered = this.members.filter(m => 
-                    (m.name || '').toLowerCase().includes(query) ||
-                    (m.id || '').toLowerCase().includes(query) ||
+                    m.name.toLowerCase().includes(query) ||
+                    m.id.toLowerCase().includes(query) ||
                     (m.phone && m.phone.toLowerCase().includes(query)) ||
                     (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
                 );
@@ -1969,47 +1917,72 @@
                 else if (selectedPlanName === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
                 else if (selectedPlanName === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
 
-                const discountPct = Number(member.discountPercentage || 0);
-                const finalCost = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
+                const discountPct = member.discountPercentage !== undefined ? Number(member.discountPercentage) : 0;
+                const collectedAmount = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
+                const currentBalance = member.walletBalance || 0;
 
-                const currentBalance = Number(member.walletBalance || 0);
+                let cashToCollect = 0;
+                let creditsUsed = 0;
 
-                if (currentBalance < finalCost) {
-                    const diff = finalCost - currentBalance;
-                    if (confirm(`${member.name} has insufficient credit balance (Current: ₱${currentBalance.toLocaleString()}, Cost: ₱${finalCost.toLocaleString()}).\n\nWould you like to auto top-up ₱${diff.toLocaleString()} cash collected at desk?`)) {
-                        member.walletBalance = currentBalance + diff;
-                        member.amount = (Number(member.amount) || 0) + diff;
-                        this.logAudit('Desk Top-Up', `Desk collected ₱${diff} cash for ${member.name} (${member.id})`);
-                    } else {
-                        alert("Check-in cancelled due to insufficient funds.");
+                if (currentBalance >= collectedAmount) {
+                    member.walletBalance = currentBalance - collectedAmount;
+                    creditsUsed = collectedAmount;
+                    alert(`Deducted ₱${collectedAmount.toLocaleString()} from ${member.name}'s wallet credits for ${selectedPlanName}.\nRemaining Balance: ₱${member.walletBalance.toLocaleString()}`);
+                } else {
+                    creditsUsed = currentBalance;
+                    cashToCollect = collectedAmount - currentBalance;
+
+                    const payPartial = confirm(
+                        `INSUFFICIENT CREDITS!\n\n` +
+                        `Required Plan Cost (${selectedPlanName}): ₱${collectedAmount.toLocaleString()}\n` +
+                        `Member Wallet Balance: ₱${currentBalance.toLocaleString()} (Will be fully used)\n` +
+                        `Remaining Balance to Collect in Cash: ₱${cashToCollect.toLocaleString()}\n\n` +
+                        `Deduct all credits and collect ₱${cashToCollect.toLocaleString()} CASH at desk to admit member?`
+                    );
+
+                    if (!payPartial) {
+                        alert(`ENTRY BLOCKED: ${member.name} was NOT admitted due to insufficient funds.`);
                         return;
                     }
+
+                    member.walletBalance = 0;
                 }
 
-                member.walletBalance = (Number(member.walletBalance) || 0) - finalCost;
-                member.amount = (Number(member.amount) || 0) + finalCost;
+                let planDays = 0;
+                if (selectedPlanName === '1-Week Pass') planDays = 7;
+                else if (selectedPlanName === '1-Month Unlimited') planDays = 30;
 
                 const now = new Date();
-                let expiry = new Date();
-                if (selectedPlanName === '1-Day Pass') {
-                    expiry.setDate(now.getDate());
-                } else if (selectedPlanName === '1-Week Pass') {
-                    expiry.setDate(now.getDate() + 7);
-                } else if (selectedPlanName === '1-Month Unlimited') {
-                    expiry.setDate(now.getDate() + 30);
+                let expiryDate = new Date();
+                if (planDays > 0) {
+                    expiryDate.setDate(now.getDate() + planDays);
+                } else {
+                    expiryDate.setDate(now.getDate());
                 }
 
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                
                 member.plan = selectedPlanName;
-                member.expirationDate = expiry.toISOString().split('T')[0];
-                member.scansUsed = 0;
+                member.amount = (member.amount || 0) + collectedAmount;
+                member.dateJoined = todayStr;
+                member.expirationDate = expiryDate.toISOString().split('T')[0];
+                member.scansUsed = (member.scansUsed || 0) + 1;
+                member.lastScannedDate = todayStr;
 
                 await this.saveMembers();
-                this.finalizeDeskCheckIn(memberId, selectedPlanName);
+                await this.loadMembers();
+
+                const daysLeft = this.calculateDaysLeft(member.expirationDate);
+                this.logAudit('Desk Entry & Plan Subscription', `Manual desk check-in & ${member.plan} subscription (Credits used: ₱${creditsUsed}, Cash collected: ₱${cashToCollect}) for ${member.name} (${member.id})`);
+                this.closeManualCheckInModal();
+                this.searchManualCheckIn();
+
+                alert(`SUCCESS: Subscribed to ${member.plan}!\nCredits Deducted: ₱${creditsUsed}\nCash Collected: ₱${cashToCollect}\nEntry Logged for ${member.name}!`);
             },
 
             cancelPlanSelection: function() {
-                this.activeCheckInMemberId = null;
                 document.getElementById('plan-selection-modal').classList.add('hidden');
+                this.activeCheckInMemberId = null;
             },
 
             finalizeDeskCheckIn: async function(memberId, planName) {
@@ -2019,16 +1992,22 @@
                 const now = new Date();
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+                if (member.lastScannedDate === todayStr) {
+                    alert(`${member.name} has already been admitted today.`);
+                    return;
+                }
+
+                member.scansUsed = (member.scansUsed || 0) + 1;
                 member.lastScannedDate = todayStr;
-                member.scansUsed = (Number(member.scansUsed) || 0) + 1;
-
                 await this.saveMembers();
-                this.logAudit('Manual Desk Check-In', `Desk check-in logged for ${member.name} (${member.id}) under ${planName}`);
+                await this.loadMembers();
 
-                alert(`SUCCESS! Door Access Granted.\n\nMember: ${member.name}\nPlan: ${planName}\nStatus: Checked In Today`);
-
+                const daysLeft = this.calculateDaysLeft(member.expirationDate);
+                this.logAudit('Desk Entry (Active Pass)', `Manual desk check-in for ${member.name} (${member.id}) - Plan: ${member.plan} (${daysLeft})`);
+                this.closeManualCheckInModal();
                 this.searchManualCheckIn();
-                this.filterRoster();
+
+                alert(`SUCCESS: Entry logged for ${member.name}!\nPlan: ${member.plan}\nStatus: Active (${daysLeft})`);
             },
 
             openAddMemberModal: function() {
@@ -2051,117 +2030,307 @@
 
             handleAdminAddMember: async function(e) {
                 e.preventDefault();
-                if (!this.currentTenantId) return;
+                await this.loadMembers();
 
                 const name = document.getElementById('new-member-name').value.trim();
                 const phone = document.getElementById('new-member-phone').value.trim();
                 let email = document.getElementById('new-member-email').value.trim();
                 const classification = document.getElementById('new-member-classification').value;
-                const discountPct = parseFloat(document.getElementById('new-member-discount').value) || 0;
+                const discountPercentage = parseFloat(document.getElementById('new-member-discount').value) || 0;
                 const plan = document.getElementById('new-member-plan').value;
                 const cardBarcode = document.getElementById('new-member-barcode').value.trim();
-                const password = document.getElementById('new-member-password').value || 'gym12345';
-
-                const nextNum = this.allMembersSystem.length + 1;
-                const newId = `MEM-${String(nextNum).padStart(4, '0')}`;
+                const password = document.getElementById('new-member-password').value.trim() || 'gym12345';
 
                 if (!email) {
-                    email = `walkin.${newId.toLowerCase()}@gym.local`;
+                    const sanitizedPhone = phone.replace(/\D/g, '') || Math.floor(1000 + Math.random() * 9000);
+                    email = `walkin_${sanitizedPhone}@ironvault.com`;
                 }
 
-                if (this.allMembersSystem.some(m => m.email.toLowerCase() === email.toLowerCase())) {
-                    alert("A member with this email address already exists!");
+                if (this.allMembersSystem.some(m => m.email.toLowerCase() === email.toLowerCase() && (m.tenantId || 'GYM-001') === this.currentTenantId)) {
+                    alert("A member with this email or phone record already exists!");
                     return;
                 }
 
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
                 const pricing = this.matchedOwnerRecord?.pricing || { day: 150, week: 700, month: 2500 };
                 let baseCost = 0;
-                let expiryStr = null;
+                if (plan === '1-Day Pass') baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
+                else if (plan === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
+                else if (plan === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
 
-                if (plan === '1-Day Pass') {
-                    baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
-                    expiryStr = todayStr;
-                } else if (plan === '1-Week Pass') {
-                    baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
-                    const exp = new Date();
-                    exp.setDate(now.getDate() + 7);
-                    expiryStr = exp.toISOString().split('T')[0];
-                } else if (plan === '1-Month Unlimited') {
-                    baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
-                    const exp = new Date();
-                    exp.setDate(now.getDate() + 30);
-                    expiryStr = exp.toISOString().split('T')[0];
-                }
+                const collectedAmount = (plan === 'Not Selected') ? 0 : (discountPercentage > 0 ? Math.round(baseCost * (1 - (discountPercentage / 100))) : baseCost);
 
-                const finalCost = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
+                const now = new Date();
+                let expiryDate = new Date();
+                if (plan === '1-Day Pass') expiryDate.setDate(now.getDate());
+                else if (plan === '1-Week Pass') expiryDate.setDate(now.getDate() + 7);
+                else if (plan === '1-Month Unlimited') expiryDate.setDate(now.getDate() + 30);
+                else expiryDate = null;
+
+                const todayStr = now.toISOString().split('T')[0];
 
                 const newMember = {
-                    id: newId,
+                    id: 'MEM-' + Math.floor(1000 + Math.random() * 9000),
                     tenantId: this.currentTenantId,
                     tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
-                    name,
-                    email,
-                    phone,
-                    password,
-                    classification,
-                    discountPercentage: discountPct,
-                    plan,
-                    cardBarcode: cardBarcode || newId,
+                    name, email, phone, password, classification, discountPercentage, plan, cardBarcode,
                     walletBalance: 0,
-                    amount: finalCost,
-                    scansUsed: plan !== 'Not Selected' ? 1 : 0,
-                    lastScannedDate: plan !== 'Not Selected' ? todayStr : null,
-                    expirationDate: expiryStr,
+                    amount: collectedAmount,
+                    scansUsed: plan === 'Not Selected' ? 0 : 1,
+                    lastScannedDate: plan === 'Not Selected' ? null : todayStr,
+                    expirationDate: expiryDate ? expiryDate.toISOString().split('T')[0] : null,
                     status: 'ACTIVE',
-                    dateJoined: todayStr,
-                    avatar: ''
+                    dateJoined: plan === 'Not Selected' ? null : todayStr
                 };
 
+                this.allMembersSystem.push(newMember);
                 this.members.push(newMember);
                 await this.saveMembers();
-
-                this.logAudit('Express Walk-In Reg', `Registered & admitted member ${name} (${newId}) under plan ${plan}`);
-                alert(`Member ${name} registered & admitted successfully!\n\nMember ID: ${newId}\nPassword: ${password}`);
-
+                
                 this.closeAddMemberModal();
-                this.filterRoster();
+                await this.loadMembers();
+                this.logAudit('Express Walk-In', `Registered & admitted walk-in ${name} (${newMember.id}) - Collected ₱${collectedAmount}`);
+                alert(`EXPRESS ENTRY SUCCESS!\n\nRegistered ${name} (${newMember.id})\nPlan: ${plan}\nPayment: ₱${collectedAmount}\nStatus: ACTIVE & Admitted Today!`);
             },
 
-            openProfileModal: function(memberId) {
+            quickApproveMember: async function(id) {
+                const member = this.members.find(m => m.id === id);
+                if (member) {
+                    member.status = 'ACTIVE';
+                    await this.saveMembers();
+                    await this.loadMembers();
+                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
+                    alert(`Member ${member.name} (${member.id}) has been approved and is now ACTIVE!`);
+                }
+            },
+
+            openScannerModal: function() {
+                document.getElementById('scan-result-container').classList.add('hidden');
+                document.getElementById('scanner-modal').classList.remove('hidden');
+                this.startCamera();
+            },
+
+            closeScannerModal: function() {
+                this.stopCamera();
+                document.getElementById('scanner-modal').classList.add('hidden');
+            },
+
+            startCamera: async function() {
+                const videoElement = document.getElementById('qr-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                if (!videoElement) return;
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    this.cameraStream = stream;
+                    videoElement.srcObject = stream;
+                    videoElement.classList.remove('hidden');
+                    if (placeholder) placeholder.classList.add('hidden');
+                    videoElement.play();
+                    this.scanTimer = setInterval(() => this.tickCameraScan(), 250);
+                } catch (err) {
+                    console.warn("Camera access failed or denied, file upload fallback is available:", err);
+                    if (placeholder) placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 block"></i>Camera permission denied or unavailable.<br>Please use the file upload option below.`;
+                }
+            },
+
+            stopCamera: function() {
+                if (this.scanTimer) {
+                    clearInterval(this.scanTimer);
+                    this.scanTimer = null;
+                }
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                    this.cameraStream = null;
+                }
+                const videoElement = document.getElementById('qr-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                if (videoElement) {
+                    videoElement.srcObject = null;
+                    videoElement.classList.add('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.remove('hidden');
+                    placeholder.innerHTML = `<i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i>Initializing camera stream...`;
+                }
+            },
+
+            tickCameraScan: function() {
+                const video = document.getElementById('qr-video');
+                const canvas = document.getElementById('qr-canvas');
+                if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+                if (code && code.data) {
+                    if (this.lastScannedCodePayload === code.data) return;
+                    this.lastScannedCodePayload = code.data;
+                    setTimeout(() => { this.lastScannedCodePayload = null; }, 3000);
+
+                    this.processScannedCode(code.data);
+                }
+            },
+
+            handleQRScanUpload: function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const executeScan = () => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.crossOrigin = "anonymous";
+                        img.onload = () => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d', { willReadFrequently: true });
+                                let width = img.width;
+                                let height = img.height;
+                                const targetSize = 600;
+
+                                if (width > targetSize || height > targetSize) {
+                                    if (width > height) {
+                                        height = Math.round((height * targetSize) / width);
+                                        width = targetSize;
+                                    } else {
+                                        width = Math.round((width * targetSize) / height);
+                                        height = targetSize;
+                                    }
+                                }
+
+                                canvas.width = width;
+                                canvas.height = height;
+                                context.fillStyle = "#FFFFFF";
+                                context.fillRect(0, 0, width, height);
+                                context.drawImage(img, 0, 0, width, height);
+
+                                let imageData = context.getImageData(0, 0, width, height);
+                                let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+
+                                if (!code) {
+                                    const data = imageData.data;
+                                    for (let i = 0; i < data.length; i += 4) {
+                                        const v = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) < 150 ? 0 : 255;
+                                        data[i] = v; data[i + 1] = v; data[i + 2] = v;
+                                    }
+                                    context.putImageData(imageData, 0, 0);
+                                    imageData = context.getImageData(0, 0, width, height);
+                                    code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+                                }
+
+                                if (code && code.data) {
+                                    this.processScannedCode(code.data);
+                                } else {
+                                    this.showScanResult(false, "Invalid QR Pass", "Could not detect a valid QR code in this image.");
+                                    this.logAudit('QR Scan Denied', 'Invalid QR code image uploaded');
+                                }
+                            } catch (err) {
+                                this.showScanResult(false, "Scan Error", err.message);
+                            }
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                };
+
+                if (typeof jsQR === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+                    script.onload = () => executeScan();
+                    document.head.appendChild(script);
+                } else {
+                    executeScan();
+                }
+            },
+
+            processScannedCode: async function(qrData) {
+                const parts = qrData.split('|');
+                if (parts.length !== 2) {
+                    this.showScanResult(false, "ACCESS DENIED", "Malformed QR code payload structure.");
+                    return;
+                }
+
+                const memberId = parts[0];
+                const qrDate = parts[1];
+                const todayStr = new Date().toISOString().split('T')[0];
+
                 const member = this.members.find(m => m.id === memberId);
+                if (!member) {
+                    this.showScanResult(false, "ACCESS DENIED", `Member ID ${memberId} not found.`);
+                    return;
+                }
+
+                if (member.status !== 'ACTIVE') {
+                    this.showScanResult(false, "ACCESS DENIED", `${member.name}'s account is not ACTIVE.`);
+                    return;
+                }
+
+                if (qrDate !== todayStr) {
+                    this.showScanResult(false, "ACCESS DENIED", `QR Pass is outdated! Generated for ${qrDate}.`);
+                    return;
+                }
+
+                if (member.expirationDate && todayStr > member.expirationDate) {
+                    this.showScanResult(false, "ACCESS DENIED", `Membership expired on ${member.expirationDate}.`);
+                    return;
+                }
+
+                if (member.lastScannedDate === todayStr) {
+                    this.showScanResult(false, "ACCESS DENIED", `ALERT: QR code for today has ALREADY been scanned!`);
+                    return;
+                }
+
+                member.scansUsed = (member.scansUsed || 0) + 1;
+                member.lastScannedDate = todayStr;
+                await this.saveMembers();
+                await this.loadMembers();
+
+                this.showScanResult(true, "ACCESS GRANTED", `Welcome, ${member.name}!\nScan #${member.scansUsed}`);
+                this.logAudit('QR Scan Success', `Access granted for ${member.name} (${member.id})`);
+            },
+
+            showScanResult: function(isSuccess, title, desc) {
+                const container = document.getElementById('scan-result-container');
+                const icon = document.getElementById('scan-result-icon');
+                const titleElem = document.getElementById('scan-result-title');
+                const descElem = document.getElementById('scan-result-desc');
+
+                container.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+                if (isSuccess) {
+                    container.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+                    icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+                } else {
+                    container.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+                    icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-400"></i>';
+                }
+                titleElem.innerText = title;
+                descElem.innerText = desc;
+            },
+
+            openProfileModal: function(id) {
+                const member = this.members.find(m => m.id === id);
                 if (!member) return;
 
-                this.activeModalMemberId = memberId;
+                this.activeModalMemberId = id;
                 this.isPasswordVisible = false;
 
                 document.getElementById('modal-member-name').innerText = member.name;
                 document.getElementById('modal-member-id').innerText = member.id;
                 document.getElementById('modal-member-status-badge').innerText = member.status || 'ACTIVE';
-                document.getElementById('modal-member-balance').innerText = `₱${(member.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-
-                const avatarImg = document.getElementById('modal-avatar-img');
-                const avatarIcon = document.getElementById('modal-avatar-icon');
-                if (member.avatar) {
-                    avatarImg.src = member.avatar;
-                    avatarImg.classList.remove('hidden');
-                    avatarIcon.classList.add('hidden');
-                } else {
-                    avatarImg.classList.add('hidden');
-                    avatarIcon.classList.remove('hidden');
-                }
 
                 const pendingBanner = document.getElementById('modal-pending-banner');
-                if (member.status === 'PENDING') {
-                    pendingBanner.classList.remove('hidden');
-                } else {
-                    pendingBanner.classList.add('hidden');
-                }
+                if (member.status === 'PENDING') pendingBanner.classList.remove('hidden');
+                else pendingBanner.classList.add('hidden');
 
-                document.getElementById('edit-member-name').value = member.name || '';
-                document.getElementById('edit-member-email').value = member.email || '';
+                document.getElementById('modal-member-balance').innerText = `₱${(member.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+                document.getElementById('edit-member-name').value = member.name;
+                document.getElementById('edit-member-email').value = member.email;
                 document.getElementById('edit-member-phone').value = member.phone || '';
                 document.getElementById('edit-member-plan').value = member.plan || 'Not Selected';
                 document.getElementById('edit-member-classification').value = member.classification || 'Regular';
@@ -2170,11 +2339,7 @@
                 document.getElementById('edit-member-expiry').value = member.expirationDate || '';
                 document.getElementById('edit-member-status').value = member.status || 'ACTIVE';
 
-                document.getElementById('modal-password-text').innerText = '••••••••';
-                document.getElementById('eye-label').innerText = 'Show Password';
-                document.getElementById('eye-icon').className = 'fa-solid fa-eye';
-                document.getElementById('modal-reset-pass-input').value = '';
-
+                this.updatePasswordDisplay(member.password);
                 document.getElementById('member-profile-modal').classList.remove('hidden');
             },
 
@@ -2183,24 +2348,62 @@
                 document.getElementById('member-profile-modal').classList.add('hidden');
             },
 
-            togglePasswordVisibility: function() {
+            approvePendingMember: async function() {
+                if (!this.activeModalMemberId) return;
+                const member = this.members.find(m => m.id === this.activeModalMemberId);
+                if (member) {
+                    member.status = 'ACTIVE';
+                    await this.saveMembers();
+                    await this.loadMembers();
+                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
+                    this.openProfileModal(this.activeModalMemberId);
+                    alert(`Member ${member.name} has been approved successfully!`);
+                }
+            },
+
+            handleSaveMemberDetails: async function(e) {
+                e.preventDefault();
                 if (!this.activeModalMemberId) return;
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
                 if (!member) return;
 
+                member.name = document.getElementById('edit-member-name').value.trim();
+                member.email = document.getElementById('edit-member-email').value.trim();
+                member.phone = document.getElementById('edit-member-phone').value.trim();
+                member.plan = document.getElementById('edit-member-plan').value;
+                member.classification = document.getElementById('edit-member-classification').value;
+                member.discountPercentage = parseFloat(document.getElementById('edit-member-discount').value) || 0;
+                member.cardBarcode = document.getElementById('edit-member-barcode').value.trim();
+                member.expirationDate = document.getElementById('edit-member-expiry').value;
+                member.status = document.getElementById('edit-member-status').value;
+
+                await this.saveMembers();
+                await this.loadMembers();
+                this.logAudit('Member Updated', `Updated profile details for ${member.name} (${member.id})`);
+                alert(`Member details updated successfully!`);
+            },
+
+            togglePasswordVisibility: function() {
+                if (!this.activeModalMemberId) return;
+                const member = this.members.find(m => m.id === this.activeModalMemberId);
+                if (!member) return;
                 this.isPasswordVisible = !this.isPasswordVisible;
-                const passText = document.getElementById('modal-password-text');
-                const eyeLabel = document.getElementById('eye-label');
+                this.updatePasswordDisplay(member.password);
+            },
+
+            updatePasswordDisplay: function(actualPassword) {
+                const passTextElem = document.getElementById('modal-password-text');
                 const eyeIcon = document.getElementById('eye-icon');
+                const eyeLabel = document.getElementById('eye-label');
 
                 if (this.isPasswordVisible) {
-                    passText.innerText = member.password || 'No password set';
-                    eyeLabel.innerText = 'Hide Password';
+                    passTextElem.innerText = actualPassword || 'No Password Set';
                     eyeIcon.className = 'fa-solid fa-eye-slash';
+                    eyeLabel.innerText = 'Hide Password';
                 } else {
-                    passText.innerText = '••••••••';
-                    eyeLabel.innerText = 'Show Password';
+                    passTextElem.innerText = '••••••••';
                     eyeIcon.className = 'fa-solid fa-eye';
+                    eyeLabel.innerText = 'Show Password';
                 }
             },
 
@@ -2209,21 +2412,19 @@
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
                 if (!member) return;
 
-                const newPass = document.getElementById('modal-reset-pass-input').value.trim();
-                if (!newPass) {
-                    alert("Please enter a new password.");
+                const inputPass = document.getElementById('modal-reset-pass-input').value.trim();
+                if (!inputPass || inputPass.length < 6) {
+                    alert("Please enter a new password of at least 6 characters.");
                     return;
                 }
 
-                member.password = newPass;
-                await this.saveMembers();
-
-                this.logAudit('Password Reset', `Reset password for member ${member.name} (${member.id})`);
-                alert(`Password for ${member.name} reset successfully!`);
-                document.getElementById('modal-reset-pass-input').value = '';
-
-                if (this.isPasswordVisible) {
-                    document.getElementById('modal-password-text').innerText = newPass;
+                if (confirm(`Reset password for ${member.name}?`)) {
+                    member.password = inputPass;
+                    await this.saveMembers();
+                    this.updatePasswordDisplay(member.password);
+                    document.getElementById('modal-reset-pass-input').value = '';
+                    this.logAudit('Password Reset', `Reset password for member ${member.name} (${member.id})`);
+                    alert(`Password updated successfully!`);
                 }
             },
 
@@ -2232,289 +2433,94 @@
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
                 if (!member) return;
 
-                member.walletBalance = (Number(member.walletBalance) || 0) + amount;
-                member.amount = (Number(member.amount) || 0) + amount;
+                if (!confirm(`Add ₱${amount.toLocaleString()} to ${member.name}'s account credits?`)) return;
 
+                member.walletBalance = (member.walletBalance || 0) + amount;
                 await this.saveMembers();
-                this.logAudit('Cash Credit Top-Up', `Added ₱${amount} credit to member ${member.name} (${member.id})`);
+                await this.loadMembers();
 
-                document.getElementById('modal-member-balance').innerText = `₱${member.walletBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-                alert(`Added ₱${amount} credits to ${member.name}'s account.`);
-                this.filterRoster();
+                this.logAudit('Credit Top-up', `Added ₱${amount.toLocaleString()} to ${member.name} (${member.id})`);
+                this.openProfileModal(this.activeModalMemberId);
+                alert(`Successfully added ₱${amount.toLocaleString()} to account credits!`);
             },
 
-            handleCustomModalTopUp: async function() {
-                if (!this.activeModalMemberId) return;
+            handleCustomModalTopUp: function() {
                 const input = document.getElementById('modal-topup-input');
                 const val = parseFloat(input.value);
-
                 if (isNaN(val) || val <= 0) {
-                    alert("Please enter a valid amount to top up.");
+                    alert("Please enter a valid top-up amount.");
                     return;
                 }
-
-                await this.addModalCredits(val);
+                this.addModalCredits(val);
                 input.value = '';
             },
 
-            approvePendingMember: async function() {
-                if (!this.activeModalMemberId) return;
-                this.quickApproveMember(this.activeModalMemberId);
-            },
-
-            quickApproveMember: async function(memberId) {
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) return;
-
-                member.status = 'ACTIVE';
-                await this.saveMembers();
-
-                this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
-                alert(`Account approved for ${member.name}! Member can now access desk check-in and QR passes.`);
-
-                if (this.activeModalMemberId === memberId) {
-                    this.openProfileModal(memberId);
+            toggleRosterFilter: function(filterType) {
+                if (this.rosterActiveFilter === filterType) {
+                    this.rosterActiveFilter = 'all';
+                } else {
+                    this.rosterActiveFilter = filterType;
                 }
 
-                this.renderPendingRequests();
+                const btnLogged = document.getElementById('filter-btn-logged');
+                const btnNotEntered = document.getElementById('filter-btn-not-entered');
+
+                btnLogged.className = "px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5";
+                btnNotEntered.className = "px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5";
+
+                if (this.rosterActiveFilter === 'logged') {
+                    btnLogged.className = "px-3 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow";
+                } else if (this.rosterActiveFilter === 'not_entered') {
+                    btnNotEntered.className = "px-3 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow";
+                }
+
                 this.filterRoster();
             },
 
-            handleSaveMemberDetails: async function(e) {
-                e.preventDefault();
-                if (!this.activeModalMemberId) return;
-
-                const member = this.members.find(m => m.id === this.activeModalMemberId);
-                if (!member) return;
-
-                const name = document.getElementById('edit-member-name').value.trim();
-                const email = document.getElementById('edit-member-email').value.trim();
-                const phone = document.getElementById('edit-member-phone').value.trim();
-                const plan = document.getElementById('edit-member-plan').value;
-                const classification = document.getElementById('edit-member-classification').value;
-                const discountPercentage = parseFloat(document.getElementById('edit-member-discount').value) || 0;
-                const cardBarcode = document.getElementById('edit-member-barcode').value.trim();
-                const expiry = document.getElementById('edit-member-expiry').value;
-                const status = document.getElementById('edit-member-status').value;
-
-                member.name = name;
-                member.email = email;
-                member.phone = phone;
-                member.plan = plan;
-                member.classification = classification;
-                member.discountPercentage = discountPercentage;
-                member.cardBarcode = cardBarcode;
-                member.expirationDate = expiry || null;
-                member.status = status;
-
-                await this.saveMembers();
-                this.logAudit('Member Profile Updated', `Updated details for member ${name} (${member.id})`);
-
-                alert("Member details saved successfully!");
-                this.closeProfileModal();
-                this.filterRoster();
-                this.renderPendingRequests();
-            },
-
-            deleteMember: async function(memberId) {
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) return;
-
-                if (confirm(`Are you sure you want to delete member profile for ${member.name} (${member.id})?`)) {
-                    this.members = this.members.filter(m => m.id !== memberId);
-                    await this.saveMembers();
-
-                    this.logAudit('Member Deleted', `Deleted member profile ${member.name} (${memberId})`);
-                    this.filterRoster();
-                    this.renderPendingRequests();
-                }
-            },
-
-            openScannerModal: function() {
-                document.getElementById('scan-result-container').classList.add('hidden');
-                document.getElementById('scanner-modal').classList.remove('hidden');
-                this.startCameraStream();
-            },
-
-            closeScannerModal: function() {
-                this.stopCameraStream();
-                document.getElementById('scanner-modal').classList.add('hidden');
-            },
-
-            startCameraStream: function() {
-                const video = document.getElementById('qr-video');
-                const placeholder = document.getElementById('camera-placeholder');
-
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                        .then(stream => {
-                            this.cameraStream = stream;
-                            video.srcObject = stream;
-                            video.classList.remove('hidden');
-                            placeholder.classList.add('hidden');
-
-                            this.scanTimer = requestAnimationFrame(this.tickScanner.bind(this));
-                        })
-                        .catch(err => {
-                            placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 block"></i> Camera access unavailable. You can upload a QR pass image below.`;
-                        });
-                }
-            },
-
-            stopCameraStream: function() {
-                if (this.scanTimer) {
-                    cancelAnimationFrame(this.scanTimer);
-                    this.scanTimer = null;
-                }
-
-                if (this.cameraStream) {
-                    this.cameraStream.getTracks().forEach(track => track.stop());
-                    this.cameraStream = null;
-                }
-
-                const video = document.getElementById('qr-video');
-                if (video) video.classList.add('hidden');
-
-                const placeholder = document.getElementById('camera-placeholder');
-                if (placeholder) {
-                    placeholder.classList.remove('hidden');
-                    placeholder.innerHTML = `<i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i> Initializing camera stream...`;
-                }
-            },
-
-            tickScanner: function() {
-                const video = document.getElementById('qr-video');
-                const canvas = document.getElementById('qr-canvas');
-
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.height = video.videoHeight;
-                    canvas.width = video.videoWidth;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
-
-                    if (code && code.data && code.data !== this.lastScannedCodePayload) {
-                        this.lastScannedCodePayload = code.data;
-                        this.processScannedQRPayload(code.data);
-                    }
-                }
-
-                if (!document.getElementById('scanner-modal').classList.contains('hidden')) {
-                    this.scanTimer = requestAnimationFrame(this.tickScanner.bind(this));
-                }
-            },
-
-            handleQRScanUpload: function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-                        if (code && code.data) {
-                            this.processScannedQRPayload(code.data);
-                        } else {
-                            this.showScanResult(false, "Invalid Image", "Could not detect a valid QR pass in the uploaded image.");
-                        }
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            },
-
-            processScannedQRPayload: function(payload) {
-                let memberId = null;
-                try {
-                    const parsed = JSON.parse(payload);
-                    memberId = parsed.memberId || parsed.id;
-                } catch(e) {
-                    memberId = payload.trim();
-                }
-
-                const member = this.members.find(m => m.id === memberId || (m.cardBarcode && m.cardBarcode === memberId));
-
-                if (!member) {
-                    this.showScanResult(false, "Unknown QR Pass", `No registered member matches Code: ${memberId}`);
-                    return;
-                }
-
-                if (member.status === 'PENDING') {
-                    this.showScanResult(false, "Account Pending", `${member.name}'s online registration is still pending approval.`);
-                    return;
-                }
-
-                if (member.status !== 'ACTIVE') {
-                    this.showScanResult(false, "Account Inactive", `${member.name}'s account is inactive or suspended.`);
-                    return;
-                }
-
+            filterRoster: function() {
+                const query = document.getElementById('roster-search').value.toLowerCase();
                 const now = new Date();
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                if (member.lastScannedDate === todayStr) {
-                    this.showScanResult(true, "Already Checked In", `${member.name} has already logged entry for today.`);
-                    return;
-                }
+                const filtered = this.members.filter(m => {
+                    const matchesSearch = (
+                        m.name.toLowerCase().includes(query) ||
+                        m.id.toLowerCase().includes(query) ||
+                        m.email.toLowerCase().includes(query) ||
+                        (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
+                    );
 
-                if (!member.plan || member.plan === 'Not Selected' || (member.expirationDate && todayStr > member.expirationDate)) {
-                    this.showScanResult(false, "Expired / No Plan", `${member.name} has no active plan. Please check in manually at desk.`);
-                    return;
-                }
+                    if (!matchesSearch) return false;
 
-                member.lastScannedDate = todayStr;
-                member.scansUsed = (Number(member.scansUsed) || 0) + 1;
-                this.saveMembers();
+                    const isLoggedToday = (m.lastScannedDate === todayStr);
+                    if (this.rosterActiveFilter === 'logged') {
+                        return isLoggedToday;
+                    } else if (this.rosterActiveFilter === 'not_entered') {
+                        return !isLoggedToday;
+                    }
 
-                this.logAudit('QR Door Access', `QR Pass verified for ${member.name} (${member.id})`);
-                this.showScanResult(true, "ACCESS GRANTED", `Welcome ${member.name}! Pass verified under ${member.plan}.`);
-                this.filterRoster();
+                    return true;
+                });
+
+                this.renderRoster(filtered);
             },
 
-            showScanResult: function(success, title, desc) {
-                const container = document.getElementById('scan-result-container');
-                const icon = document.getElementById('scan-result-icon');
-                const titleElem = document.getElementById('scan-result-title');
-                const descElem = document.getElementById('scan-result-desc');
-
-                container.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/30', 'bg-rose-500/10', 'border-rose-500/30');
-
-                if (success) {
-                    container.classList.add('bg-emerald-500/10', 'border-emerald-500/30');
-                    icon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
-                    titleElem.className = 'font-bold text-xs text-emerald-300';
-                } else {
-                    container.classList.add('bg-rose-500/10', 'border-rose-500/30');
-                    icon.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i>`;
-                    titleElem.className = 'font-bold text-xs text-rose-300';
+            deleteMember: async function(id) {
+                if (confirm(`Are you sure you want to delete member record ${id}?`)) {
+                    this.members = this.members.filter(m => m.id !== id);
+                    await this.saveMembers();
+                    await this.loadMembers();
+                    try {
+                        await supabaseClient.from('members').delete().eq('id', id);
+                    } catch(e) {}
+                    this.logAudit('Member Deleted', `Deleted member record ${id}`);
                 }
-
-                titleElem.innerText = title;
-                descElem.innerText = desc;
-                descElem.className = 'text-[11px] text-slate-300';
-
-                setTimeout(() => {
-                    this.lastScannedCodePayload = null;
-                }, 3000);
             }
         };
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = function() {
             adminApp.init();
-        });
+        };
     </script>
 </body>
 </html>
