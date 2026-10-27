@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="page-title">Member Access Portal</title>
+    <title id="page-title">Access Portal</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -93,7 +93,7 @@
                 </div>
                 <div>
                     <span id="header-gym-name" class="font-black text-white text-base tracking-wider uppercase block">GYM PORTAL</span>
-                    <span id="header-branch-badge" class="text-[10px] text-slate-400 font-mono">Member Access Portal</span>
+                    <span id="header-branch-badge" class="text-[10px] text-slate-400 font-mono">Access & Management Portal</span>
                 </div>
             </div>
         </div>
@@ -105,11 +105,11 @@
 
             <!-- LOGO & HEADING -->
             <div class="text-center space-y-2">
-                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
-                    MEMBERS PORTAL
+                <h1 id="portal-main-heading" class="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
+                    ACCESS PORTAL
                 </h1>
                 <p id="portal-subtitle" class="text-xs sm:text-sm font-medium text-slate-400">
-                    Sign in to view your Digital Door Pass & Account Details
+                    Sign in to your account or tenant dashboard
                 </p>
             </div>
 
@@ -119,10 +119,13 @@
                 <!-- TAB SWITCHER -->
                 <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/90 flex gap-1 mb-6 shadow-inner text-xs font-semibold">
                     <button id="tab-btn-signin" onclick="app.switchTab('SIGNIN')" class="flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 font-bold shadow-md">
-                        <i class="fa-solid fa-right-to-bracket"></i> Member Sign In
+                        <i class="fa-solid fa-user-check"></i> Member
+                    </button>
+                    <button id="tab-btn-admin" onclick="app.switchTab('ADMIN')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-user-shield"></i> Owner / Staff
                     </button>
                     <button id="tab-btn-signup" onclick="app.switchTab('SIGNUP')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-user-plus"></i> Join / Sign Up
+                        <i class="fa-solid fa-user-plus"></i> Join
                     </button>
                 </div>
 
@@ -132,7 +135,7 @@
                     <span id="form-alert-msg">Error processing request.</span>
                 </div>
 
-                <!-- 1. SIGN IN FORM -->
+                <!-- 1. MEMBER SIGN IN FORM -->
                 <form id="auth-signin-form" onsubmit="app.handleSignInSubmit(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Email or Member ID</label>
@@ -161,11 +164,41 @@
                     </div>
 
                     <button type="submit" id="btn-submit-signin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
-                        <span>Sign In to Profile</span>
+                        <span>Sign In as Member</span>
                     </button>
                 </form>
 
-                <!-- 2. SIGN UP FORM -->
+                <!-- 2. OWNER / STAFF ADMIN LOGIN FORM -->
+                <form id="auth-admin-form" onsubmit="app.handleAdminLoginSubmit(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Staff or Owner Email</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-envelope text-xs"></i>
+                            </span>
+                            <input type="email" id="admin-login-email" required placeholder="owner@gym.com or staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="admin-login-password" required placeholder="••••••••" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <button type="button" onclick="app.togglePasswordVisibility('admin-login-password', 'pwd-icon-3')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="pwd-icon-3" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-admin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Sign In to Admin Portal</span>
+                    </button>
+                </form>
+
+                <!-- 3. SIGN UP FORM -->
                 <form id="auth-signup-form" onsubmit="app.handleSignUpSubmit(event)" class="space-y-4 hidden">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
@@ -234,6 +267,9 @@
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
         const SESSION_KEY = 'ironvault_active_member';
+        const ACTIVE_TENANT_KEY = 'ironvault_active_tenant_id';
+        const ACTIVE_ROLE_KEY = 'ironvault_active_role';
+        const LOGGED_USER_KEY = 'ironvault_logged_user';
 
         function applyDynamicThemeFromLogo(logoBase64) {
             if (!logoBase64) return;
@@ -307,7 +343,7 @@
             detectTenantFromUrl: async function() {
                 const urlParams = new URLSearchParams(window.location.search);
                 const keyParam = urlParams.get('key');
-                const gymParam = urlParams.get('gym'); // backward compatibility fallback
+                const gymParam = urlParams.get('gym');
 
                 let loadedOwners = [];
                 try {
@@ -349,9 +385,9 @@
                     this.matchedOwnerRecord = matched;
                     
                     document.getElementById('header-gym-name').innerText = matched.gymName;
-                    document.getElementById('header-branch-badge').innerText = `Member Access Portal`;
-                    document.getElementById('page-title').innerText = `${matched.gymName} - Member Portal`;
-                    document.getElementById('portal-subtitle').innerText = `Sign in to your account at ${matched.gymName}`;
+                    document.getElementById('header-branch-badge').innerText = `Access & Management Portal`;
+                    document.getElementById('page-title').innerText = `${matched.gymName} - Access Portal`;
+                    document.getElementById('portal-subtitle').innerText = `Sign in to your account or tenant dashboard at ${matched.gymName}`;
 
                     if (matched.logo) {
                         const headerImg = document.getElementById('header-logo-img');
@@ -371,7 +407,7 @@
 
                 document.getElementById('header-gym-name').innerText = "INVALID LINK";
                 document.getElementById('header-branch-badge').innerText = "Invalid or Missing Link";
-                document.getElementById('page-title').innerText = "Member Portal - Invalid Link";
+                document.getElementById('page-title').innerText = "Portal - Invalid Link";
                 document.getElementById('portal-subtitle').innerText = "A valid gym portal URL is required to sign in or sign up.";
 
                 this.showAlert("A valid gym portal URL is required to sign in or sign up.");
@@ -381,6 +417,11 @@
                 document.getElementById('signin-password').disabled = true;
                 document.getElementById('btn-submit-signin').disabled = true;
                 document.getElementById('btn-submit-signin').classList.add('opacity-50', 'cursor-not-allowed');
+
+                document.getElementById('admin-login-email').disabled = true;
+                document.getElementById('admin-login-password').disabled = true;
+                document.getElementById('btn-submit-admin').disabled = true;
+                document.getElementById('btn-submit-admin').classList.add('opacity-50', 'cursor-not-allowed');
 
                 document.getElementById('signup-name').disabled = true;
                 document.getElementById('signup-email').disabled = true;
@@ -462,24 +503,34 @@
             switchTab: function(tab) {
                 this.currentTab = tab;
                 const btnSignIn = document.getElementById('tab-btn-signin');
+                const btnAdmin = document.getElementById('tab-btn-admin');
                 const btnSignUp = document.getElementById('tab-btn-signup');
+
                 const formSignIn = document.getElementById('auth-signin-form');
+                const formAdmin = document.getElementById('auth-admin-form');
                 const formSignUp = document.getElementById('auth-signup-form');
 
-                if (!this.currentTenantId) return; // Keep error alert active if unlinked
+                if (!this.currentTenantId) return;
 
                 document.getElementById('form-alert').classList.add('hidden');
 
+                btnSignIn.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+                btnAdmin.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+                btnSignUp.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+
+                formSignIn.classList.add('hidden');
+                formAdmin.classList.add('hidden');
+                formSignUp.classList.add('hidden');
+
                 if (tab === 'SIGNIN') {
                     btnSignIn.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
-                    btnSignUp.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
                     formSignIn.classList.remove('hidden');
-                    formSignUp.classList.add('hidden');
+                } else if (tab === 'ADMIN') {
+                    btnAdmin.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 font-bold shadow-md";
+                    formAdmin.classList.remove('hidden');
                 } else {
                     btnSignUp.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
-                    btnSignIn.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
                     formSignUp.classList.remove('hidden');
-                    formSignIn.classList.add('hidden');
                 }
             },
 
@@ -547,6 +598,47 @@
                 } else {
                     this.showAlert("Invalid Member ID/Email or Password.");
                 }
+            },
+
+            handleAdminLoginSubmit: async function(e) {
+                e.preventDefault();
+                if (!this.currentTenantId || !this.matchedOwnerRecord) {
+                    this.showAlert("A valid gym portal URL is required to sign in as Owner or Staff.");
+                    return;
+                }
+
+                const email = document.getElementById('admin-login-email').value.trim();
+                const password = document.getElementById('admin-login-password').value;
+
+                if (this.matchedOwnerRecord.email.toLowerCase() === email.toLowerCase() && this.matchedOwnerRecord.password === password) {
+                    if (this.matchedOwnerRecord.status === 'SUSPENDED') {
+                        this.showAlert("This gym account has been suspended by the super administrator.");
+                        return;
+                    }
+
+                    sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
+                    sessionStorage.setItem(ACTIVE_ROLE_KEY, 'admin');
+                    sessionStorage.setItem(LOGGED_USER_KEY, email);
+
+                    const targetToken = this.matchedOwnerRecord.token;
+                    window.location.href = `admin.html?key=${targetToken}`;
+                    return;
+                }
+
+                const staffList = this.matchedOwnerRecord.staff || [];
+                const matchedStaff = staffList.find(s => s.email.toLowerCase() === email.toLowerCase() && s.password === password);
+
+                if (matchedStaff) {
+                    sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
+                    sessionStorage.setItem(ACTIVE_ROLE_KEY, 'staff');
+                    sessionStorage.setItem(LOGGED_USER_KEY, email);
+
+                    const targetToken = this.matchedOwnerRecord.token;
+                    window.location.href = `admin.html?key=${targetToken}`;
+                    return;
+                }
+
+                this.showAlert("Invalid Owner or Staff credentials for this gym branch.");
             },
 
             handleSignUpSubmit: async function(e) {
