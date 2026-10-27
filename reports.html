@@ -1,697 +1,710 @@
-<script>
-    tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                colors: {
-                    brand: {
-                        50: '#ecfdf5',
-                        100: '#d1fae5',
-                        500: 'var(--brand-primary)',
-                        600: 'var(--brand-primary)',
-                        700: 'var(--brand-primary)',
-                        900: '#064e3b',
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Reports & Analytics</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: 'var(--brand-primary)',
+                            600: 'var(--brand-primary)',
+                            700: 'var(--brand-primary)',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
                     }
-                },
-                fontFamily: {
-                    sans: ['Inter', 'sans-serif'],
                 }
             }
         }
-    }
-</script>
+    </script>
 
-<style>
-    :root {
-        --brand-primary: #10b981;
-        --bg-base: #090d16;
-        --card-bg: rgba(17, 24, 39, 0.75);
-    }
+    <style>
+        :root {
+            --brand-primary: #10b981;
+            --bg-base: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.75);
+        }
 
-    body {
-        background-color: var(--bg-base);
-        font-family: 'Inter', sans-serif;
-    }
-
-    .glass-card {
-        background: var(--card-bg);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .glass-input {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-    .glass-input:focus {
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-    }
-
-    @media print {
         body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
+            background-color: var(--bg-base);
+            font-family: 'Inter', sans-serif;
         }
-        .no-print {
-            display: none !important;
-        }
+
         .glass-card {
-            background: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
-            color: #000000 !important;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        text, h1, h2, h3, h4, span, p, th, td {
-            color: #000000 !important;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid #cbd5e1 !important;
-            padding: 8px !important;
-        }
-    }
-</style>
 
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
 
-<!-- TOP HEADER / NAV BAR -->
-<header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-3 sm:px-4 py-3 no-print">
-    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-            <div id="header-logo-container" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 overflow-hidden transition-all duration-300 flex-shrink-0">
-                <i id="header-logo-icon" class="fa-solid fa-chart-pie text-base sm:text-lg"></i>
-                <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .glass-card {
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                backdrop-filter: none !important;
+                color: #000000 !important;
+            }
+            text, h1, h2, h3, h4, span, p, th, td {
+                color: #000000 !important;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            th, td {
+                border: 1px solid #cbd5e1 !important;
+                padding: 8px !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3 no-print">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="header-logo-container" class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 overflow-hidden transition-all duration-300">
+                    <i id="header-logo-icon" class="fa-solid fa-chart-pie text-lg"></i>
+                    <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
+                </div>
+                <div>
+                    <span id="header-gym-title" class="font-black text-white text-base tracking-wider uppercase block">REPORTS & ANALYTICS</span>
+                    <span id="header-branch-subtitle" class="text-[10px] text-slate-400 font-mono">Financial & Activity Reporting Engine</span>
+                </div>
             </div>
-            <div class="min-w-0">
-                <span id="header-gym-title" class="font-black text-white text-xs sm:text-base tracking-wider uppercase block truncate">REPORTS & ANALYTICS</span>
-                <span id="header-branch-subtitle" class="text-[9px] sm:text-[10px] text-slate-400 font-mono block truncate">Financial & Activity Reporting Engine</span>
+
+            <div class="flex items-center gap-2">
+                <button id="btn-back-portal" onclick="reportsApp.goBack()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left text-emerald-400"></i>
+                    <span id="back-btn-label">Back to Admin Portal</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="relative z-10 flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- REPORT TAB SELECTOR SWITCH -->
+        <div class="flex flex-wrap items-center justify-between gap-3 no-print">
+            <div class="flex items-center gap-2 flex-wrap">
+                <button id="tab-btn-financial" onclick="reportsApp.switchTab('financial')" class="px-4 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-lg">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Financial Revenue Report</span>
+                </button>
+                <button id="tab-btn-attendance" onclick="reportsApp.switchTab('attendance')" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span>Attendance & Utilization Log</span>
+                </button>
+                <button id="tab-btn-audit" onclick="reportsApp.switchTab('audit')" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>System Audit Logs</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="window.print()" class="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print Current View</span>
+                </button>
             </div>
         </div>
 
-        <div class="flex items-center gap-2 flex-shrink-0">
-            <button id="btn-back-portal" onclick="reportsApp.goBack()" class="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] sm:text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
-                <i class="fa-solid fa-arrow-left text-emerald-400"></i>
-                <span id="back-btn-label" class="hidden xs:inline sm:inline">Back to Admin Portal</span>
-                <span class="xs:hidden sm:hidden">Back</span>
-            </button>
-        </div>
-    </div>
-</header>
-
-<!-- MAIN CONTAINER -->
-<main class="relative z-10 flex-grow p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-4 sm:space-y-6">
-
-    <!-- REPORT TAB SELECTOR SWITCH -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 no-print">
-        <div class="grid grid-cols-1 xs:grid-cols-3 sm:flex items-center gap-2">
-            <button id="tab-btn-financial" onclick="reportsApp.switchTab('financial')" class="px-3 sm:px-4 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
-                <i class="fa-solid fa-receipt"></i>
-                <span class="truncate">Financial Revenue</span>
-            </button>
-            <button id="tab-btn-attendance" onclick="reportsApp.switchTab('attendance')" class="px-3 sm:px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700">
-                <i class="fa-solid fa-door-open"></i>
-                <span class="truncate">Attendance Log</span>
-            </button>
-            <button id="tab-btn-audit" onclick="reportsApp.switchTab('audit')" class="px-3 sm:px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700">
-                <i class="fa-solid fa-list-check"></i>
-                <span class="truncate">Audit Logs</span>
-            </button>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <button onclick="window.print()" class="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
-                <i class="fa-solid fa-print"></i>
-                <span>Print Current View</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- FILTER CONTROLS BAR -->
-    <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 no-print">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-slate-300 w-full">
-                <div class="flex items-center justify-between w-full sm:w-auto gap-2">
+        <!-- FILTER CONTROLS BAR -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-wrap items-center justify-between gap-4 no-print">
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2 text-xs text-slate-300 flex-wrap">
                     <span class="font-bold text-emerald-400">Start Date:</span>
-                    <input type="date" id="filter-date-start" onchange="reportsApp.onDateFilterChange()" class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono cursor-pointer w-full sm:w-auto">
-                </div>
-                
-                <div class="flex items-center justify-between w-full sm:w-auto gap-2 sm:ml-2 mt-2 sm:mt-0">
-                    <span class="font-bold text-emerald-400">End Date:</span>
-                    <input type="date" id="filter-date-end" onchange="reportsApp.onDateFilterChange()" class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono cursor-pointer w-full sm:w-auto">
+                    <input type="date" id="filter-date-start" onchange="reportsApp.onDateFilterChange()" class="glass-input text-white text-xs rounded-xl px-3.5 py-2 focus:outline-none font-mono cursor-pointer">
+                    
+                    <span class="font-bold text-emerald-400 ml-2">End Date:</span>
+                    <input type="date" id="filter-date-end" onchange="reportsApp.onDateFilterChange()" class="glass-input text-white text-xs rounded-xl px-3.5 py-2 focus:outline-none font-mono cursor-pointer">
                 </div>
             </div>
-        </div>
 
-        <div class="grid grid-cols-3 gap-2 sm:flex items-center">
-            <button onclick="reportsApp.setQuickRange('today')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow text-center">Today</button>
-            <button onclick="reportsApp.setQuickRange('week')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow text-center">Last 7 Days</button>
-            <button onclick="reportsApp.setQuickRange('all')" class="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition shadow text-center">All-Time</button>
-        </div>
-    </div>
-
-    <!-- REPORT HEADER METADATA -->
-    <div class="glass-card rounded-2xl p-4 sm:p-6 border border-slate-800 space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
-            <div class="min-w-0">
-                <h2 id="report-gym-name" class="text-lg sm:text-xl font-black text-white uppercase tracking-wider truncate">GYM ACCESS SYSTEM</h2>
-                <p id="report-range-subtitle" class="text-xs text-emerald-400 font-mono mt-0.5 truncate">Report Period: --</p>
-            </div>
-            <div class="text-left sm:text-right">
-                <span class="text-[10px] text-slate-400 block uppercase font-mono">Generated On</span>
-                <span id="report-generated-timestamp" class="text-xs font-bold text-slate-200">--</span>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="reportsApp.setQuickRange('today')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow">Today</button>
+                <button onclick="reportsApp.setQuickRange('week')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow">Last 7 Days</button>
+                <button onclick="reportsApp.setQuickRange('all')" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition shadow">All-Time View</button>
             </div>
         </div>
 
-        <!-- TAB 1 METRIC CARDS (FINANCIAL) -->
-        <div id="metrics-financial-row" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-2">
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Cash Revenue Collected</span>
-                <h3 id="metric-revenue" class="text-lg sm:text-xl font-black text-emerald-400">₱0.00</h3>
+        <!-- REPORT HEADER METADATA -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 id="report-gym-name" class="text-xl font-black text-white uppercase tracking-wider">GYM ACCESS SYSTEM</h2>
+                    <p id="report-range-subtitle" class="text-xs text-emerald-400 font-mono mt-0.5">Report Period: --</p>
+                </div>
+                <div class="text-left sm:text-right">
+                    <span class="text-[10px] text-slate-400 block uppercase font-mono">Generated On</span>
+                    <span id="report-generated-timestamp" class="text-xs font-bold text-slate-200">--</span>
+                </div>
             </div>
 
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Unearned Credit Balances</span>
-                <h3 id="metric-credits" class="text-lg sm:text-xl font-black text-cyan-400">₱0.00</h3>
+            <!-- TAB 1 METRIC CARDS (FINANCIAL) -->
+            <div id="metrics-financial-row" class="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Cash Revenue Collected</span>
+                    <h3 id="metric-revenue" class="text-xl font-black text-emerald-400">₱0.00</h3>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Unearned Credit Balances</span>
+                    <h3 id="metric-credits" class="text-xl font-black text-cyan-400">₱0.00</h3>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Passes Purchased</span>
+                    <h3 id="metric-registrations" class="text-xl font-black text-white">0</h3>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Active Subscriptions</span>
+                    <h3 id="metric-subscriptions" class="text-xl font-black text-amber-400">0</h3>
+                </div>
             </div>
 
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Passes Purchased</span>
-                <h3 id="metric-registrations" class="text-lg sm:text-xl font-black text-white">0</h3>
+            <!-- TAB 2 METRIC CARDS (ATTENDANCE) -->
+            <div id="metrics-attendance-row" class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 hidden">
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Door Check-Ins</span>
+                    <h3 id="metric-scans" class="text-xl font-black text-purple-400">0</h3>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Active Pass Visitors Today</span>
+                    <h3 id="metric-active-visitors" class="text-xl font-black text-emerald-400">0</h3>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Roster Members</span>
+                    <h3 id="metric-total-roster" class="text-xl font-black text-white">0</h3>
+                </div>
             </div>
 
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Active Subscriptions</span>
-                <h3 id="metric-subscriptions" class="text-lg sm:text-xl font-black text-amber-400">0</h3>
+            <!-- TAB 3 METRIC CARDS (AUDIT) -->
+            <div id="metrics-audit-row" class="grid grid-cols-1 sm:grid-cols-1 gap-4 pt-2 hidden">
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Recorded System Actions (Filtered)</span>
+                    <h3 id="metric-audit-count" class="text-xl font-black text-purple-300">0 Logs</h3>
+                </div>
             </div>
         </div>
 
-        <!-- TAB 2 METRIC CARDS (ATTENDANCE) -->
-        <div id="metrics-attendance-row" class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-2 hidden">
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Door Check-Ins</span>
-                <h3 id="metric-scans" class="text-lg sm:text-xl font-black text-purple-400">0</h3>
+        <!-- TABLE SECTION 1: FINANCIAL REVENUE LOG -->
+        <div id="section-financial-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+            <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
+                <i class="fa-solid fa-receipt text-emerald-400"></i> Financial Revenue & Member Wallet Balances Log
+            </h3>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold bg-slate-900/50">
+                        <tr>
+                            <th class="p-3">Member ID</th>
+                            <th class="p-3">Full Name</th>
+                            <th class="p-3">Classification</th>
+                            <th class="p-3">Pass Plan Purchased</th>
+                            <th class="p-3">Amount Collected</th>
+                            <th class="p-3">Credit Balance</th>
+                            <th class="p-3">Date Purchased</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financial-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+                </table>
             </div>
+        </div>
 
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Active Pass Visitors Today</span>
-                <h3 id="metric-active-visitors" class="text-lg sm:text-xl font-black text-emerald-400">0</h3>
+        <!-- TABLE SECTION 2: ATTENDANCE & UTILIZATION LOG -->
+        <div id="section-attendance-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
+            <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
+                <i class="fa-solid fa-door-open text-purple-400"></i> Attendance & Utilization Log (Door Entry & Scan History)
+            </h3>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold bg-slate-900/50">
+                        <tr>
+                            <th class="p-3">Member ID</th>
+                            <th class="p-3">Full Name</th>
+                            <th class="p-3">Plan Type</th>
+                            <th class="p-3">Last Check-In Date</th>
+                            <th class="p-3">Total Scans Used</th>
+                            <th class="p-3">Plan Expiry / Days Left</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+                </table>
             </div>
+        </div>
 
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Roster Members</span>
-                <h3 id="metric-total-roster" class="text-lg sm:text-xl font-black text-white">0</h3>
+        <!-- TABLE SECTION 3: SYSTEM AUDIT LOGS TAB -->
+        <div id="section-audit-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
+            <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
+                <i class="fa-solid fa-list-check text-purple-400"></i> System Audit & Activity Logs
+            </h3>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold bg-slate-900/50">
+                        <tr>
+                            <th class="p-3">Timestamp</th>
+                            <th class="p-3">User / Role</th>
+                            <th class="p-3">Action</th>
+                            <th class="p-3">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+                </table>
             </div>
         </div>
 
-        <!-- TAB 3 METRIC CARDS (AUDIT) -->
-        <div id="metrics-audit-row" class="grid grid-cols-1 sm:grid-cols-1 gap-3 sm:gap-4 pt-2 hidden">
-            <div class="bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-800/80 space-y-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Recorded System Actions (Filtered)</span>
-                <h3 id="metric-audit-count" class="text-lg sm:text-xl font-black text-purple-300">0 Logs</h3>
-            </div>
-        </div>
-    </div>
+    </main>
 
-    <!-- TABLE SECTION 1: FINANCIAL REVENUE LOG -->
-    <div id="section-financial-table" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
-        <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-            <i class="fa-solid fa-receipt text-emerald-400"></i> Financial Revenue & Member Wallet Balances Log
-        </h3>
+    <!-- FOOTER -->
+    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900 no-print">
+        <p>© 2026 Gym Access Management System • Reporting & Analytics Engine</p>
+    </footer>
 
-        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-            <table class="w-full text-left text-xs min-w-[700px]">
-                <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold bg-slate-900/50">
-                    <tr>
-                        <th class="p-3">Member ID</th>
-                        <th class="p-3">Full Name</th>
-                        <th class="p-3">Classification</th>
-                        <th class="p-3">Pass Plan Purchased</th>
-                        <th class="p-3">Amount Collected</th>
-                        <th class="p-3">Credit Balance</th>
-                        <th class="p-3">Date Purchased</th>
-                        <th class="p-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="financial-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
-            </table>
-        </div>
-    </div>
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    <!-- TABLE SECTION 2: ATTENDANCE & UTILIZATION LOG -->
-    <div id="section-attendance-table" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4 hidden">
-        <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-            <i class="fa-solid fa-door-open text-purple-400"></i> Attendance & Utilization Log (Door Entry & Scan History)
-        </h3>
+        const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
+        const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
+        const ACTIVE_TENANT_KEY = 'ironvault_active_tenant_id';
 
-        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-            <table class="w-full text-left text-xs min-w-[700px]">
-                <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold bg-slate-900/50">
-                    <tr>
-                        <th class="p-3">Member ID</th>
-                        <th class="p-3">Full Name</th>
-                        <th class="p-3">Plan Type</th>
-                        <th class="p-3">Last Check-In Date</th>
-                        <th class="p-3">Total Scans Used</th>
-                        <th class="p-3">Plan Expiry / Days Left</th>
-                        <th class="p-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="attendance-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
-            </table>
-        </div>
-    </div>
+        const reportsApp = {
+            allMembers: [],
+            branchMembers: [],
+            currentTenant: null,
+            isFromSuperAdmin: false,
+            currentTab: 'financial',
 
-    <!-- TABLE SECTION 3: SYSTEM AUDIT LOGS TAB -->
-    <div id="section-audit-table" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4 hidden">
-        <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-            <i class="fa-solid fa-list-check text-purple-400"></i> System Audit & Activity Logs
-        </h3>
+            init: async function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const keyParam = urlParams.get('key');
+                const fromParam = urlParams.get('from');
 
-        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-            <table class="w-full text-left text-xs min-w-[600px]">
-                <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold bg-slate-900/50">
-                    <tr>
-                        <th class="p-3">Timestamp</th>
-                        <th class="p-3">User / Role</th>
-                        <th class="p-3">Action</th>
-                        <th class="p-3">Details</th>
-                    </tr>
-                </thead>
-                <tbody id="audit-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
-            </table>
-        </div>
-    </div>
-
-</main>
-
-<!-- FOOTER -->
-<footer class="relative z-10 py-4 text-center text-[11px] sm:text-xs text-slate-500 border-t border-slate-900 no-print px-4">
-    <p>© 2026 Gym Access Management System • Reporting & Analytics Engine</p>
-</footer>
-
-<!-- SCRIPT LOGIC -->
-<script>
-    const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
-    const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
-    const ACTIVE_TENANT_KEY = 'ironvault_active_tenant_id';
-
-    const reportsApp = {
-        allMembers: [],
-        branchMembers: [],
-        currentTenant: null,
-        isFromSuperAdmin: false,
-        currentTab: 'financial',
-
-        init: async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const keyParam = urlParams.get('key');
-            const fromParam = urlParams.get('from');
-
-            if (fromParam === 'superadmin') {
-                this.isFromSuperAdmin = true;
-                const backLabel = document.getElementById('back-btn-label');
-                if (backLabel) backLabel.innerText = "Back to Master Control";
-            }
-
-            await this.loadTenantAndData(keyParam);
-
-            const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('filter-date-start').value = todayStr;
-            document.getElementById('filter-date-end').value = todayStr;
-
-            this.onDateFilterChange();
-        },
-
-        loadTenantAndData: async function(keyParam) {
-            const tenantId = sessionStorage.getItem(ACTIVE_TENANT_KEY);
-            let loadedOwners = [];
-
-            try {
-                const { data, error } = await supabaseClient.from('owners').select('*');
-                if (!error && data) {
-                    loadedOwners = data.map(o => ({
-                        id: o.id,
-                        gymName: o.gym_name,
-                        ownerName: o.owner_name,
-                        email: o.email,
-                        password: o.password,
-                        token: o.token,
-                        logo: o.logo,
-                        status: o.status,
-                        pricing: o.pricing,
-                        staff: o.staff,
-                        auditLogs: o.audit_logs,
-                        dateCreated: o.date_created
-                    }));
+                if (fromParam === 'superadmin') {
+                    this.isFromSuperAdmin = true;
+                    const backLabel = document.getElementById('back-btn-label');
+                    if (backLabel) backLabel.innerText = "Back to Master Control";
                 }
-            } catch(e) {}
 
-            if (loadedOwners.length === 0) {
-                const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                if (ownersData) {
-                    try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
-                }
-            }
+                await this.loadTenantAndData(keyParam);
 
-            if (loadedOwners.length > 0) {
-                if (keyParam) {
-                    this.currentTenant = loadedOwners.find(o => o.token === keyParam);
-                }
-                if (!this.currentTenant && tenantId) {
-                    this.currentTenant = loadedOwners.find(o => o.id === tenantId);
-                }
-                if (!this.currentTenant) {
-                    this.currentTenant = loadedOwners[0];
-                }
-            }
+                const todayStr = new Date().toISOString().split('T')[0];
+                document.getElementById('filter-date-start').value = todayStr;
+                document.getElementById('filter-date-end').value = todayStr;
 
-            if (this.currentTenant) {
-                const gymName = this.currentTenant.gymName || 'GYM';
-                document.getElementById('header-gym-title').innerText = `${gymName} REPORTS & ANALYTICS`;
-                document.getElementById('report-gym-name').innerText = gymName;
-                document.getElementById('page-title').innerText = `${gymName} - Reports`;
-                if (this.currentTenant.logo) {
-                    const img = document.getElementById('header-logo-img');
-                    const icon = document.getElementById('header-logo-icon');
-                    img.src = this.currentTenant.logo;
-                    img.classList.remove('hidden');
-                    icon.classList.add('hidden');
-                }
-            }
+                this.onDateFilterChange();
+            },
 
-            let loadedMembers = [];
-            try {
-                const { data, error } = await supabaseClient.from('members').select('*');
-                if (!error && data) {
-                    loadedMembers = data.map(m => ({
-                        id: m.id,
-                        tenantId: m.tenant_id,
-                        tenantToken: m.tenant_token,
-                        name: m.name,
-                        email: m.email,
-                        phone: m.phone,
-                        password: m.password,
-                        classification: m.classification,
-                        discountPercentage: m.discount_percentage,
-                        plan: m.plan,
-                        cardBarcode: m.card_barcode,
-                        walletBalance: m.wallet_balance,
-                        amount: m.amount,
-                        scansUsed: m.scans_used,
-                        lastScannedDate: m.last_scanned_date,
-                        expirationDate: m.expiration_date,
-                        status: m.status,
-                        dateJoined: m.date_joined,
-                        avatar: m.avatar
-                    }));
-                }
-            } catch(e) {}
+            loadTenantAndData: async function(keyParam) {
+                const tenantId = sessionStorage.getItem(ACTIVE_TENANT_KEY);
+                let loadedOwners = [];
 
-            if (loadedMembers.length === 0) {
-                const membersData = localStorage.getItem(MEMBERS_STORAGE_KEY);
-                if (membersData) {
-                    try { loadedMembers = JSON.parse(membersData); } catch(e) {}
-                }
-            }
-
-            this.allMembers = loadedMembers;
-
-            const activeTId = this.currentTenant ? this.currentTenant.id : null;
-            const activeToken = this.currentTenant ? this.currentTenant.token : null;
-
-            this.branchMembers = this.allMembers.filter(m => {
-                if (activeTId && m.tenantId === activeTId) return true;
-                if (activeToken && m.tenantToken === activeToken) return true;
-                if (!m.tenantId && !m.tenantToken) return true;
-                return false;
-            });
-
-            document.getElementById('report-generated-timestamp').innerText = new Date().toLocaleString();
-        },
-
-        switchTab: function(tabName) {
-            this.currentTab = tabName;
-            const finBtn = document.getElementById('tab-btn-financial');
-            const attBtn = document.getElementById('tab-btn-attendance');
-            const auditBtn = document.getElementById('tab-btn-audit');
-
-            const finMetrics = document.getElementById('metrics-financial-row');
-            const attMetrics = document.getElementById('metrics-attendance-row');
-            const auditMetrics = document.getElementById('metrics-audit-row');
-
-            const finTable = document.getElementById('section-financial-table');
-            const attTable = document.getElementById('section-attendance-table');
-            const auditTable = document.getElementById('section-audit-table');
-
-            finBtn.className = "px-3 sm:px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700";
-            attBtn.className = "px-3 sm:px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700";
-            auditBtn.className = "px-3 sm:px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700";
-
-            finMetrics.classList.add('hidden');
-            attMetrics.classList.add('hidden');
-            auditMetrics.classList.add('hidden');
-            finTable.classList.add('hidden');
-            attTable.classList.add('hidden');
-            auditTable.classList.add('hidden');
-
-            if (tabName === 'financial') {
-                finBtn.className = "px-3 sm:px-4 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg";
-                finMetrics.classList.remove('hidden');
-                finTable.classList.remove('hidden');
-            } else if (tabName === 'attendance') {
-                attBtn.className = "px-3 sm:px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg";
-                attMetrics.classList.remove('hidden');
-                attTable.classList.remove('hidden');
-            } else if (tabName === 'audit') {
-                auditBtn.className = "px-3 sm:px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg";
-                auditMetrics.classList.remove('hidden');
-                auditTable.classList.remove('hidden');
-            }
-
-            this.onDateFilterChange();
-        },
-
-        setQuickRange: function(type) {
-            const today = new Date();
-            const formatDate = (d) => d.toISOString().split('T')[0];
-            let startStr = formatDate(today);
-            let endStr = formatDate(today);
-
-            if (type === 'all') {
-                startStr = '2020-01-01';
-                endStr = '2030-12-31';
-            } else if (type === 'week') {
-                const lastWeek = new Date();
-                lastWeek.setDate(today.getDate() - 7);
-                startStr = formatDate(lastWeek);
-                endStr = formatDate(today);
-            }
-
-            document.getElementById('filter-date-start').value = startStr;
-            document.getElementById('filter-date-end').value = endStr;
-            this.onDateFilterChange();
-        },
-
-        onDateFilterChange: function() {
-            const startStr = document.getElementById('filter-date-start').value;
-            const endStr = document.getElementById('filter-date-end').value;
-            if (!startStr || !endStr) return;
-
-            document.getElementById('report-range-subtitle').innerText = `Report Period: ${startStr} to ${endStr}`;
-            this.filterAndRenderReport(startStr, endStr);
-        },
-
-        extractMemberAmount: function(m) {
-            if (!m.plan || m.plan === 'Not Selected') return 0;
-            if (m.amount !== undefined && !isNaN(m.amount)) return Number(m.amount);
-            if (m.price !== undefined && !isNaN(m.price)) return Number(m.price);
-            if (m.amountPaid !== undefined && !isNaN(m.amountPaid)) return Number(m.amountPaid);
-            return 0; 
-        },
-
-        filterAndRenderReport: function(startStr, endStr) {
-            const filtered = this.branchMembers.filter(m => {
-                if (!m.plan || m.plan === 'Not Selected') return false;
-                const recordDate = m.dateJoined ? m.dateJoined.split('T')[0] : '';
-                if (!recordDate) return false;
-                return recordDate >= startStr && recordDate <= endStr;
-            });
-
-            const totalRevenue = filtered.reduce((acc, curr) => acc + this.extractMemberAmount(curr), 0);
-            const totalCredits = this.branchMembers.reduce((acc, curr) => acc + (curr.walletBalance !== undefined && !isNaN(curr.walletBalance) ? Number(curr.walletBalance) : 0), 0);
-            const totalRegistrations = filtered.length;
-            const activeSubs = filtered.filter(m => m.status === 'ACTIVE' && m.plan && m.plan !== 'Not Selected').length;
-
-            document.getElementById('metric-revenue').innerText = `₱${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-            document.getElementById('metric-credits').innerText = `₱${totalCredits.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-            document.getElementById('metric-registrations').innerText = totalRegistrations;
-            document.getElementById('metric-subscriptions').innerText = activeSubs;
-
-            const attendanceFiltered = this.branchMembers.filter(m => {
-                if (!m.lastScannedDate) return false;
-                return m.lastScannedDate >= startStr && m.lastScannedDate <= endStr;
-            });
-
-            const totalScans = attendanceFiltered.reduce((acc, curr) => acc + (curr.scansUsed || 0), 0);
-            document.getElementById('metric-scans').innerText = totalScans;
-            document.getElementById('metric-active-visitors').innerText = attendanceFiltered.length;
-            document.getElementById('metric-total-roster').innerText = this.branchMembers.length;
-
-            const rawAuditLogs = this.currentTenant && this.currentTenant.auditLogs ? this.currentTenant.auditLogs : [];
-            const auditFiltered = rawAuditLogs.filter(l => {
-                if (!l.timestamp) return true;
                 try {
-                    const logDateObj = new Date(l.timestamp);
-                    if (isNaN(logDateObj.getTime())) return true;
-                    const logDateStr = logDateObj.toISOString().split('T')[0];
-                    return logDateStr >= startStr && logDateStr <= endStr;
-                } catch(e) {
-                    return true;
-                }
-            });
+                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    if (!error && data) {
+                        loadedOwners = data.map(o => ({
+                            id: o.id,
+                            gymName: o.gym_name,
+                            ownerName: o.owner_name,
+                            email: o.email,
+                            password: o.password,
+                            token: o.token,
+                            logo: o.logo,
+                            status: o.status,
+                            pricing: o.pricing,
+                            staff: o.staff,
+                            auditLogs: o.audit_logs,
+                            dateCreated: o.date_created
+                        }));
+                    }
+                } catch(e) {}
 
-            document.getElementById('metric-audit-count').innerText = `${auditFiltered.length} Logs`;
-
-            this.renderFinancialTable(filtered);
-            this.renderAttendanceTable(attendanceFiltered);
-            this.renderAuditTable(auditFiltered);
-        },
-
-        renderFinancialTable: function(list) {
-            const tbody = document.getElementById('financial-tbody');
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 italic">No financial transactions found for this date range. Click 'All-Time' above to show all records.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = list.map(m => {
-                const displayAmount = this.extractMemberAmount(m);
-                const walletBal = m.walletBalance !== undefined && !isNaN(m.walletBalance) ? Number(m.walletBalance) : 0;
-                const joinDate = m.dateJoined ? m.dateJoined.split('T')[0] : 'N/A';
-
-                return `
-                    <tr class="hover:bg-slate-900/50 transition">
-                        <td class="p-3 font-mono font-bold text-emerald-400">${m.id || 'MEM-0000'}</td>
-                        <td class="p-3 font-semibold text-white">${m.name || 'Unnamed Member'}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">${m.classification || 'Regular'}</span></td>
-                        <td class="p-3 font-medium text-white">${m.plan || '1-Day Pass'}</td>
-                        <td class="p-3 font-mono font-bold text-emerald-400">₱${displayAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td class="p-3 font-mono font-bold text-cyan-400">₱${walletBal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td class="p-3 font-mono text-slate-400">${joinDate}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${m.status || 'ACTIVE'}</span></td>
-                    </tr>
-                `;
-            }).join('');
-        },
-
-        renderAttendanceTable: function(list) {
-            const tbody = document.getElementById('attendance-tbody');
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">No door check-ins or scans recorded for this date range.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = list.map(m => {
-                let daysLeftStr = 'No Plan';
-                if (m.expirationDate) {
-                    const today = new Date();
-                    today.setHours(0,0,0,0);
-                    const expiry = new Date(m.expirationDate);
-                    expiry.setHours(0,0,0,0);
-                    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                    if (diffDays < 0) daysLeftStr = 'Expired';
-                    else if (diffDays === 0) daysLeftStr = 'Expires Today';
-                    else daysLeftStr = `${diffDays} day${diffDays === 1 ? '' : 's'} left`;
+                if (loadedOwners.length === 0) {
+                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
+                    if (ownersData) {
+                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
+                    }
                 }
 
-                return `
-                    <tr class="hover:bg-slate-900/50 transition">
-                        <td class="p-3 font-mono font-bold text-purple-400">${m.id}</td>
-                        <td class="p-3 font-semibold text-white">${m.name}</td>
-                        <td class="p-3">${m.plan || 'Active Pass'}</td>
-                        <td class="p-3 font-mono text-slate-300">${m.lastScannedDate || 'N/A'}</td>
-                        <td class="p-3 font-mono font-bold text-amber-400">${m.scansUsed || 0} scans</td>
-                        <td class="p-3 font-mono font-bold text-emerald-400">${daysLeftStr}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">${m.status || 'ACTIVE'}</span></td>
-                    </tr>
-                `;
-            }).join('');
-        },
-
-        resolveUserDisplay: function(userRaw) {
-            if (!userRaw) return "System (System)";
-            
-            if (userRaw === 'admin' || userRaw === 'Admin') {
-                const name = this.currentTenant && this.currentTenant.gymName ? `${this.currentTenant.gymName} Admin` : 'Administrator';
-                return `${name} (Admin)`;
-            }
-            if (userRaw === 'staff' || userRaw === 'Staff') {
-                return `Staff Member (Staff)`;
-            }
-
-            const cleanUser = userRaw.trim().toLowerCase();
-            
-            if (this.currentTenant) {
-                if (this.currentTenant.email && this.currentTenant.email.toLowerCase() === cleanUser) {
-                    const ownerName = this.currentTenant.ownerName || this.currentTenant.gymName || 'Gym Owner';
-                    return `${ownerName} (Admin)`;
+                if (loadedOwners.length > 0) {
+                    if (keyParam) {
+                        this.currentTenant = loadedOwners.find(o => o.token === keyParam);
+                    }
+                    if (!this.currentTenant && tenantId) {
+                        this.currentTenant = loadedOwners.find(o => o.id === tenantId);
+                    }
+                    if (!this.currentTenant) {
+                        this.currentTenant = loadedOwners[0];
+                    }
                 }
 
-                if (this.currentTenant.staff && Array.isArray(this.currentTenant.staff)) {
-                    const matchedStaff = this.currentTenant.staff.find(s => s.email && s.email.toLowerCase() === cleanUser);
-                    if (matchedStaff) {
-                        return `${matchedStaff.name} (Staff)`;
+                if (this.currentTenant) {
+                    const gymName = this.currentTenant.gymName || 'GYM';
+                    document.getElementById('header-gym-title').innerText = `${gymName} REPORTS & ANALYTICS`;
+                    document.getElementById('report-gym-name').innerText = gymName;
+                    document.getElementById('page-title').innerText = `${gymName} - Reports`;
+                    if (this.currentTenant.logo) {
+                        const img = document.getElementById('header-logo-img');
+                        const icon = document.getElementById('header-logo-icon');
+                        img.src = this.currentTenant.logo;
+                        img.classList.remove('hidden');
+                        icon.classList.add('hidden');
+                    }
+                }
+
+                let loadedMembers = [];
+                try {
+                    const { data, error } = await supabaseClient.from('members').select('*');
+                    if (!error && data) {
+                        loadedMembers = data.map(m => ({
+                            id: m.id,
+                            tenantId: m.tenant_id,
+                            tenantToken: m.tenant_token,
+                            name: m.name,
+                            email: m.email,
+                            phone: m.phone,
+                            password: m.password,
+                            classification: m.classification,
+                            discountPercentage: m.discount_percentage,
+                            plan: m.plan,
+                            cardBarcode: m.card_barcode,
+                            walletBalance: m.wallet_balance,
+                            amount: m.amount,
+                            scansUsed: m.scans_used,
+                            lastScannedDate: m.last_scanned_date,
+                            expirationDate: m.expiration_date,
+                            status: m.status,
+                            dateJoined: m.date_joined,
+                            avatar: m.avatar
+                        }));
+                    }
+                } catch(e) {}
+
+                if (loadedMembers.length === 0) {
+                    const membersData = localStorage.getItem(MEMBERS_STORAGE_KEY);
+                    if (membersData) {
+                        try { loadedMembers = JSON.parse(membersData); } catch(e) {}
+                    }
+                }
+
+                this.allMembers = loadedMembers;
+
+                const activeTId = this.currentTenant ? this.currentTenant.id : null;
+                const activeToken = this.currentTenant ? this.currentTenant.token : null;
+
+                this.branchMembers = this.allMembers.filter(m => {
+                    if (activeTId && m.tenantId === activeTId) return true;
+                    if (activeToken && m.tenantToken === activeToken) return true;
+                    if (!m.tenantId && !m.tenantToken) return true;
+                    return false;
+                });
+
+                document.getElementById('report-generated-timestamp').innerText = new Date().toLocaleString();
+            },
+
+            switchTab: function(tabName) {
+                this.currentTab = tabName;
+                const finBtn = document.getElementById('tab-btn-financial');
+                const attBtn = document.getElementById('tab-btn-attendance');
+                const auditBtn = document.getElementById('tab-btn-audit');
+
+                const finMetrics = document.getElementById('metrics-financial-row');
+                const attMetrics = document.getElementById('metrics-attendance-row');
+                const auditMetrics = document.getElementById('metrics-audit-row');
+
+                const finTable = document.getElementById('section-financial-table');
+                const attTable = document.getElementById('section-attendance-table');
+                const auditTable = document.getElementById('section-audit-table');
+
+                finBtn.className = "px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700";
+                attBtn.className = "px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700";
+                auditBtn.className = "px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700";
+
+                finMetrics.classList.add('hidden');
+                attMetrics.classList.add('hidden');
+                auditMetrics.classList.add('hidden');
+                finTable.classList.add('hidden');
+                attTable.classList.add('hidden');
+                auditTable.classList.add('hidden');
+
+                if (tabName === 'financial') {
+                    finBtn.className = "px-4 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-lg";
+                    finMetrics.classList.remove('hidden');
+                    finTable.classList.remove('hidden');
+                } else if (tabName === 'attendance') {
+                    attBtn.className = "px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg";
+                    attMetrics.classList.remove('hidden');
+                    attTable.classList.remove('hidden');
+                } else if (tabName === 'audit') {
+                    auditBtn.className = "px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg";
+                    auditMetrics.classList.remove('hidden');
+                    auditTable.classList.remove('hidden');
+                }
+
+                this.onDateFilterChange();
+            },
+
+            setQuickRange: function(type) {
+                const today = new Date();
+                const formatDate = (d) => d.toISOString().split('T')[0];
+                let startStr = formatDate(today);
+                let endStr = formatDate(today);
+
+                if (type === 'all') {
+                    startStr = '2020-01-01';
+                    endStr = '2030-12-31';
+                } else if (type === 'week') {
+                    const lastWeek = new Date();
+                    lastWeek.setDate(today.getDate() - 7);
+                    startStr = formatDate(lastWeek);
+                    endStr = formatDate(today);
+                }
+
+                document.getElementById('filter-date-start').value = startStr;
+                document.getElementById('filter-date-end').value = endStr;
+                this.onDateFilterChange();
+            },
+
+            onDateFilterChange: function() {
+                const startStr = document.getElementById('filter-date-start').value;
+                const endStr = document.getElementById('filter-date-end').value;
+                if (!startStr || !endStr) return;
+
+                document.getElementById('report-range-subtitle').innerText = `Report Period: ${startStr} to ${endStr}`;
+                this.filterAndRenderReport(startStr, endStr);
+            },
+
+            extractMemberAmount: function(m) {
+                if (!m.plan || m.plan === 'Not Selected') return 0;
+                if (m.amount !== undefined && !isNaN(m.amount)) return Number(m.amount);
+                if (m.price !== undefined && !isNaN(m.price)) return Number(m.price);
+                if (m.amountPaid !== undefined && !isNaN(m.amountPaid)) return Number(m.amountPaid);
+                return 0; 
+            },
+
+            filterAndRenderReport: function(startStr, endStr) {
+                const filtered = this.branchMembers.filter(m => {
+                    if (!m.plan || m.plan === 'Not Selected') return false;
+                    const recordDate = m.dateJoined ? m.dateJoined.split('T')[0] : '';
+                    if (!recordDate) return false;
+                    return recordDate >= startStr && recordDate <= endStr;
+                });
+
+                const totalRevenue = filtered.reduce((acc, curr) => acc + this.extractMemberAmount(curr), 0);
+                const totalCredits = this.branchMembers.reduce((acc, curr) => acc + (curr.walletBalance !== undefined && !isNaN(curr.walletBalance) ? Number(curr.walletBalance) : 0), 0);
+                const totalRegistrations = filtered.length;
+                const activeSubs = filtered.filter(m => m.status === 'ACTIVE' && m.plan && m.plan !== 'Not Selected').length;
+
+                document.getElementById('metric-revenue').innerText = `₱${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('metric-credits').innerText = `₱${totalCredits.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('metric-registrations').innerText = totalRegistrations;
+                document.getElementById('metric-subscriptions').innerText = activeSubs;
+
+                const attendanceFiltered = this.branchMembers.filter(m => {
+                    if (!m.lastScannedDate) return false;
+                    return m.lastScannedDate >= startStr && m.lastScannedDate <= endStr;
+                });
+
+                const totalScans = attendanceFiltered.reduce((acc, curr) => acc + (curr.scansUsed || 0), 0);
+                document.getElementById('metric-scans').innerText = totalScans;
+                document.getElementById('metric-active-visitors').innerText = attendanceFiltered.length;
+                document.getElementById('metric-total-roster').innerText = this.branchMembers.length;
+
+                const rawAuditLogs = this.currentTenant && this.currentTenant.auditLogs ? this.currentTenant.auditLogs : [];
+                const auditFiltered = rawAuditLogs.filter(l => {
+                    if (!l.timestamp) return true;
+                    try {
+                        const logDateObj = new Date(l.timestamp);
+                        if (isNaN(logDateObj.getTime())) return true;
+                        const logDateStr = logDateObj.toISOString().split('T')[0];
+                        return logDateStr >= startStr && logDateStr <= endStr;
+                    } catch(e) {
+                        return true;
+                    }
+                });
+
+                document.getElementById('metric-audit-count').innerText = `${auditFiltered.length} Logs`;
+
+                this.renderFinancialTable(filtered);
+                this.renderAttendanceTable(attendanceFiltered);
+                this.renderAuditTable(auditFiltered);
+            },
+
+            renderFinancialTable: function(list) {
+                const tbody = document.getElementById('financial-tbody');
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 italic">No financial transactions found for this date range. Click 'All-Time View' above to show all records.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(m => {
+                    const displayAmount = this.extractMemberAmount(m);
+                    const walletBal = m.walletBalance !== undefined && !isNaN(m.walletBalance) ? Number(m.walletBalance) : 0;
+                    const joinDate = m.dateJoined ? m.dateJoined.split('T')[0] : 'N/A';
+
+                    return `
+                        <tr class="hover:bg-slate-900/50 transition">
+                            <td class="p-3 font-mono font-bold text-emerald-400">${m.id || 'MEM-0000'}</td>
+                            <td class="p-3 font-semibold text-white">${m.name || 'Unnamed Member'}</td>
+                            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">${m.classification || 'Regular'}</span></td>
+                            <td class="p-3 font-medium text-white">${m.plan || '1-Day Pass'}</td>
+                            <td class="p-3 font-mono font-bold text-emerald-400">₱${displayAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td class="p-3 font-mono font-bold text-cyan-400">₱${walletBal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td class="p-3 font-mono text-slate-400">${joinDate}</td>
+                            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${m.status || 'ACTIVE'}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            renderAttendanceTable: function(list) {
+                const tbody = document.getElementById('attendance-tbody');
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">No door check-ins or scans recorded for this date range.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(m => {
+                    let daysLeftStr = 'No Plan';
+                    if (m.expirationDate) {
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+                        const expiry = new Date(m.expirationDate);
+                        expiry.setHours(0,0,0,0);
+                        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                        if (diffDays < 0) daysLeftStr = 'Expired';
+                        else if (diffDays === 0) daysLeftStr = 'Expires Today';
+                        else daysLeftStr = `${diffDays} day${diffDays === 1 ? '' : 's'} left`;
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-900/50 transition">
+                            <td class="p-3 font-mono font-bold text-purple-400">${m.id}</td>
+                            <td class="p-3 font-semibold text-white">${m.name}</td>
+                            <td class="p-3">${m.plan || 'Active Pass'}</td>
+                            <td class="p-3 font-mono text-slate-300">${m.lastScannedDate || 'N/A'}</td>
+                            <td class="p-3 font-mono font-bold text-amber-400">${m.scansUsed || 0} scans</td>
+                            <td class="p-3 font-mono font-bold text-emerald-400">${daysLeftStr}</td>
+                            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">${m.status || 'ACTIVE'}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            resolveUserDisplay: function(userRaw) {
+                if (!userRaw) return "System (System)";
+                
+                if (userRaw === 'admin' || userRaw === 'Admin') {
+                    const name = this.currentTenant && this.currentTenant.gymName ? `${this.currentTenant.gymName} Admin` : 'Administrator';
+                    return `${name} (Admin)`;
+                }
+                if (userRaw === 'staff' || userRaw === 'Staff') {
+                    return `Staff Member (Staff)`;
+                }
+
+                const cleanUser = userRaw.trim().toLowerCase();
+                
+                if (this.currentTenant) {
+                    if (this.currentTenant.email && this.currentTenant.email.toLowerCase() === cleanUser) {
+                        const ownerName = this.currentTenant.ownerName || this.currentTenant.gymName || 'Gym Owner';
+                        return `${ownerName} (Admin)`;
+                    }
+
+                    if (this.currentTenant.staff && Array.isArray(this.currentTenant.staff)) {
+                        const matchedStaff = this.currentTenant.staff.find(s => s.email && s.email.toLowerCase() === cleanUser);
+                        if (matchedStaff) {
+                            return `${matchedStaff.name} (Staff)`;
+                        }
+                    }
+                }
+
+                return userRaw;
+            },
+
+            renderAuditTable: function(logs) {
+                const tbody = document.getElementById('audit-tbody');
+                if (logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">No system audit logs recorded for this date range. Click 'All-Time View' above to show all logs.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => {
+                    const formattedUser = this.resolveUserDisplay(l.user);
+                    return `
+                        <tr class="hover:bg-slate-900/50 transition">
+                            <td class="p-3 font-mono text-slate-400 text-[11px]">${l.timestamp}</td>
+                            <td class="p-3 font-semibold text-emerald-400">${formattedUser}</td>
+                            <td class="p-3 font-bold text-white">${l.action}</td>
+                            <td class="p-3 text-slate-300">${l.details}</td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            goBack: function() {
+                if (this.isFromSuperAdmin) {
+                    window.location.href = 'index.html';
+                } else {
+                    const token = this.currentTenant ? this.currentTenant.token : '';
+                    if (token) {
+                        window.location.href = `admin.html?key=${token}`;
+                    } else {
+                        window.location.href = 'admin.html';
                     }
                 }
             }
+        };
 
-return userRaw;
-        },
-
-        renderAuditTable: function(logs) {
-            const tbody = document.getElementById('audit-tbody');
-            if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">No system audit logs recorded for this date range. Click 'All-Time' above to show all logs.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = logs.map(l => {
-                const formattedUser = this.resolveUserDisplay(l.user);
-                return `
-                    <tr class="hover:bg-slate-900/50 transition">
-                        <td class="p-3 font-mono text-slate-400 text-[11px]">${l.timestamp}</td>
-                        <td class="p-3 font-semibold text-emerald-400">${formattedUser}</td>
-                        <td class="p-3 font-bold text-white">${l.action}</td>
-                        <td class="p-3 text-slate-300">${l.details}</td>
-                    </tr>
-                `;
-            }).join('');
-        },
-
-        goBack: function() {
-            if (this.isFromSuperAdmin) {
-                window.location.href = 'index.html';
-            } else {
-                const token = this.currentTenant ? this.currentTenant.token : '';
-                if (token) {
-                    window.location.href = `admin.html?key=${token}`;
-                } else {
-                    window.location.href = 'admin.html';
-                }
-            }
-        }
-    };
-
-    window.onload = function() {
-        reportsApp.init();
-    };
-</script>
+        window.onload = function() {
+            reportsApp.init();
+        };
+    </script>
+</body>
+</html>
