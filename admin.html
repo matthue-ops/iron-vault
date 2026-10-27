@@ -197,7 +197,7 @@
                         <h3 class="font-bold text-white text-sm flex items-center gap-2">
                             <i class="fa-solid fa-id-card-clip text-emerald-400"></i> Member Access & Desk Entry Suite
                         </h3>
-                        <p class="text-xs text-slate-400">Accommodate phone-less walk-ins, log manual desk check-ins, or use QR pass image verification.</p>
+                        <p class="text-xs text-slate-400">Accommodate phone-less walk-ins, log manual desk check-ins, or use live QR pass camera verification.</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -557,7 +557,7 @@
 
     <!-- QR SCANNER MODAL -->
     <div id="scanner-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 space-y-5 border border-slate-800 shadow-2xl relative">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 space-y-4 border border-slate-800 shadow-2xl relative">
             <button onclick="adminApp.closeScannerModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -567,22 +567,31 @@
                     <i class="fa-solid fa-qrcode text-xl"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white">Door Access QR Scanner</h3>
-                <p class="text-xs text-slate-400">Upload or scan a member's daily QR code pass image</p>
+                <p class="text-xs text-slate-400">Point camera at member's daily QR code pass or upload image</p>
             </div>
 
-            <div class="space-y-3">
-                <label class="border-2 border-dashed border-slate-700 hover:border-purple-500 bg-slate-900/80 p-6 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition text-center">
-                    <i class="fa-solid fa-cloud-arrow-up text-purple-400 text-2xl mb-2"></i>
-                    <span class="text-xs font-bold text-white">Click to Upload QR Pass Image</span>
-                    <span class="text-[10px] text-slate-400 mt-0.5">Supports PNG, JPG member QR screenshots</span>
+            <!-- LIVE CAMERA VIEW -->
+            <div class="relative overflow-hidden rounded-2xl bg-slate-950 border border-slate-800">
+                <video id="qr-video" class="w-full aspect-video object-cover hidden" autoplay playsinline muted></video>
+                <canvas id="qr-canvas" class="hidden"></canvas>
+                <div id="camera-placeholder" class="p-6 text-center text-slate-500 text-xs">
+                    <i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i>
+                    Initializing camera stream...
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="border-2 border-dashed border-slate-700 hover:border-purple-500 bg-slate-900/80 p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition text-center">
+                    <i class="fa-solid fa-cloud-arrow-up text-purple-400 text-base"></i>
+                    <span class="text-xs font-bold text-white">Upload QR Pass Image Instead</span>
                     <input type="file" accept="image/*" onchange="adminApp.handleQRScanUpload(event)" class="hidden">
                 </label>
             </div>
 
-            <div id="scan-result-container" class="hidden p-4 rounded-2xl border text-center space-y-2">
-                <div id="scan-result-icon" class="text-2xl"></div>
-                <h4 id="scan-result-title" class="font-bold text-sm"></h4>
-                <p id="scan-result-desc" class="text-xs"></p>
+            <div id="scan-result-container" class="hidden p-3 rounded-xl border text-center space-y-1">
+                <div id="scan-result-icon" class="text-xl"></div>
+                <h4 id="scan-result-title" class="font-bold text-xs"></h4>
+                <p id="scan-result-desc" class="text-[11px]"></p>
             </div>
 
             <div class="flex justify-end pt-1">
@@ -887,6 +896,9 @@
             currentTenantId: null,
             matchedOwnerRecord: null,
             rosterActiveFilter: 'all', // 'all', 'logged', 'not_entered'
+            cameraStream: null,
+            scanTimer: null,
+            lastScannedCodePayload: null,
 
             init: async function() {
                 await this.detectTenantFromUrl();
@@ -2098,10 +2110,74 @@
             openScannerModal: function() {
                 document.getElementById('scan-result-container').classList.add('hidden');
                 document.getElementById('scanner-modal').classList.remove('hidden');
+                this.startCamera();
             },
 
             closeScannerModal: function() {
+                this.stopCamera();
                 document.getElementById('scanner-modal').classList.add('hidden');
+            },
+
+            startCamera: async function() {
+                const videoElement = document.getElementById('qr-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                if (!videoElement) return;
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    this.cameraStream = stream;
+                    videoElement.srcObject = stream;
+                    videoElement.classList.remove('hidden');
+                    if (placeholder) placeholder.classList.add('hidden');
+                    videoElement.play();
+                    this.scanTimer = setInterval(() => this.tickCameraScan(), 250);
+                } catch (err) {
+                    console.warn("Camera access failed or denied, file upload fallback is available:", err);
+                    if (placeholder) placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 block"></i>Camera permission denied or unavailable.<br>Please use the file upload option below.`;
+                }
+            },
+
+            stopCamera: function() {
+                if (this.scanTimer) {
+                    clearInterval(this.scanTimer);
+                    this.scanTimer = null;
+                }
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                    this.cameraStream = null;
+                }
+                const videoElement = document.getElementById('qr-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                if (videoElement) {
+                    videoElement.srcObject = null;
+                    videoElement.classList.add('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.remove('hidden');
+                    placeholder.innerHTML = `<i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i>Initializing camera stream...`;
+                }
+            },
+
+            tickCameraScan: function() {
+                const video = document.getElementById('qr-video');
+                const canvas = document.getElementById('qr-canvas');
+                if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+                if (code && code.data) {
+                    // Prevent immediate duplicate firing of the exact same payload scan
+                    if (this.lastScannedCodePayload === code.data) return;
+                    this.lastScannedCodePayload = code.data;
+                    setTimeout(() => { this.lastScannedCodePayload = null; }, 3000);
+
+                    this.processScannedCode(code.data);
+                }
             },
 
             handleQRScanUpload: function(e) {
