@@ -459,7 +459,7 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-slate-300 mb-1">Default Senior Discount (%)</label>
-                    <input type="number" id="input-discount-senior" min="0" max="100" step="1" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
+                    <input type="number" id="input-discount-senior" min="0" max="100" step="1" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono font-mono">
                 </div>
 
                 <div class="flex gap-2 pt-2">
@@ -1711,6 +1711,57 @@
                 }).join('');
             },
 
+            toggleRosterFilter: function(type) {
+                if (this.rosterActiveFilter === type) {
+                    this.rosterActiveFilter = 'all';
+                } else {
+                    this.rosterActiveFilter = type;
+                }
+
+                const loggedBtn = document.getElementById('filter-btn-logged');
+                const notEnteredBtn = document.getElementById('filter-btn-not-entered');
+
+                if (this.rosterActiveFilter === 'logged') {
+                    loggedBtn.classList.add('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
+                    notEnteredBtn.classList.remove('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
+                } else if (this.rosterActiveFilter === 'not_entered') {
+                    notEnteredBtn.classList.add('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
+                    loggedBtn.classList.remove('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
+                } else {
+                    loggedBtn.classList.remove('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
+                    notEnteredBtn.classList.remove('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
+                }
+
+                this.filterRoster();
+            },
+
+            filterRoster: function() {
+                const query = document.getElementById('roster-search').value.toLowerCase().trim();
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                let filtered = this.members.filter(m => {
+                    const matchesSearch = (m.name || '').toLowerCase().includes(query) ||
+                        (m.id || '').toLowerCase().includes(query) ||
+                        (m.email || '').toLowerCase().includes(query) ||
+                        (m.cardBarcode || '').toLowerCase().includes(query);
+
+                    if (!matchesSearch) return false;
+
+                    const isCheckedInToday = (m.lastScannedDate === todayStr);
+
+                    if (this.rosterActiveFilter === 'logged') {
+                        return isCheckedInToday;
+                    } else if (this.rosterActiveFilter === 'not_entered') {
+                        return !isCheckedInToday;
+                    }
+
+                    return true;
+                });
+
+                this.renderRoster(filtered);
+            },
+
             renderRoster: function(list) {
                 const tbody = document.getElementById('roster-tbody');
                 const activeList = list.filter(m => m.status !== 'PENDING');
@@ -1731,7 +1782,6 @@
                     const discountPercentage = member.discountPercentage !== undefined ? member.discountPercentage : 0;
                     const badgeText = classification === 'Regular' ? 'Regular' : `${classification} (${discountPercentage}%)`;
 
-                    // Separated scan status and check-in status display
                     let scanStatusText = '0 scans';
                     const planName = member.plan || 'Not Selected';
                     const isCheckedInToday = (member.lastScannedDate === todayStr);
@@ -1794,8 +1844,8 @@
                 const container = document.getElementById('manual-search-results');
 
                 const filtered = this.members.filter(m => 
-                    m.name.toLowerCase().includes(query) ||
-                    m.id.toLowerCase().includes(query) ||
+                    (m.name || '').toLowerCase().includes(query) ||
+                    (m.id || '').toLowerCase().includes(query) ||
                     (m.phone && m.phone.toLowerCase().includes(query)) ||
                     (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
                 );
@@ -1919,74 +1969,47 @@
                 else if (selectedPlanName === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
                 else if (selectedPlanName === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
 
-                const discountPct = member.discountPercentage !== undefined ? Number(member.discountPercentage) : 0;
-                const collectedAmount = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
-                const currentBalance = member.walletBalance || 0;
+                const discountPct = Number(member.discountPercentage || 0);
+                const finalCost = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
 
-                let cashToCollect = 0;
-                let creditsUsed = 0;
+                const currentBalance = Number(member.walletBalance || 0);
 
-                if (currentBalance >= collectedAmount) {
-                    // Sufficient credits: deduct full plan cost from credits
-                    member.walletBalance = currentBalance - collectedAmount;
-                    creditsUsed = collectedAmount;
-                    alert(`Deducted ₱${collectedAmount.toLocaleString()} from ${member.name}'s wallet credits for ${selectedPlanName}.\nRemaining Balance: ₱${member.walletBalance.toLocaleString()}`);
-                } else {
-                    // Insufficient credits: use all available credits and receive remainder through cash
-                    creditsUsed = currentBalance;
-                    cashToCollect = collectedAmount - currentBalance;
-
-                    const payPartial = confirm(
-                        `INSUFFICIENT CREDITS!\n\n` +
-                        `Required Plan Cost (${selectedPlanName}): ₱${collectedAmount.toLocaleString()}\n` +
-                        `Member Wallet Balance: ₱${currentBalance.toLocaleString()} (Will be fully used)\n` +
-                        `Remaining Balance to Collect in Cash: ₱${cashToCollect.toLocaleString()}\n\n` +
-                        `Deduct all credits and collect ₱${cashToCollect.toLocaleString()} CASH at desk to admit member?`
-                    );
-
-                    if (!payPartial) {
-                        alert(`ENTRY BLOCKED: ${member.name} was NOT admitted due to insufficient funds.`);
+                if (currentBalance < finalCost) {
+                    const diff = finalCost - currentBalance;
+                    if (confirm(`${member.name} has insufficient credit balance (Current: ₱${currentBalance.toLocaleString()}, Cost: ₱${finalCost.toLocaleString()}).\n\nWould you like to auto top-up ₱${diff.toLocaleString()} cash collected at desk?`)) {
+                        member.walletBalance = currentBalance + diff;
+                        member.amount = (Number(member.amount) || 0) + diff;
+                        this.logAudit('Desk Top-Up', `Desk collected ₱${diff} cash for ${member.name} (${member.id})`);
+                    } else {
+                        alert("Check-in cancelled due to insufficient funds.");
                         return;
                     }
-
-                    member.walletBalance = 0;
                 }
 
-                let planDays = 0;
-                if (selectedPlanName === '1-Week Pass') planDays = 7;
-                else if (selectedPlanName === '1-Month Unlimited') planDays = 30;
+                member.walletBalance = (Number(member.walletBalance) || 0) - finalCost;
+                member.amount = (Number(member.amount) || 0) + finalCost;
 
                 const now = new Date();
-                let expiryDate = new Date();
-                if (planDays > 0) {
-                    expiryDate.setDate(now.getDate() + planDays);
-                } else {
-                    expiryDate.setDate(now.getDate());
+                let expiry = new Date();
+                if (selectedPlanName === '1-Day Pass') {
+                    expiry.setDate(now.getDate());
+                } else if (selectedPlanName === '1-Week Pass') {
+                    expiry.setDate(now.getDate() + 7);
+                } else if (selectedPlanName === '1-Month Unlimited') {
+                    expiry.setDate(now.getDate() + 30);
                 }
 
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                
                 member.plan = selectedPlanName;
-                member.amount = (member.amount || 0) + collectedAmount;
-                member.dateJoined = todayStr;
-                member.expirationDate = expiryDate.toISOString().split('T')[0];
-                member.scansUsed = (member.scansUsed || 0) + 1;
-                member.lastScannedDate = todayStr;
+                member.expirationDate = expiry.toISOString().split('T')[0];
+                member.scansUsed = 0;
 
                 await this.saveMembers();
-                await this.loadMembers();
-
-                const daysLeft = this.calculateDaysLeft(member.expirationDate);
-                this.logAudit('Desk Entry & Plan Subscription', `Manual desk check-in & ${member.plan} subscription (Credits used: ₱${creditsUsed}, Cash collected: ₱${cashToCollect}) for ${member.name} (${member.id})`);
-                this.closeManualCheckInModal();
-                this.searchManualCheckIn();
-
-                alert(`SUCCESS: Subscribed to ${member.plan}!\nCredits Deducted: ₱${creditsUsed}\nCash Collected: ₱${cashToCollect}\nEntry Logged for ${member.name}!`);
+                this.finalizeDeskCheckIn(memberId, selectedPlanName);
             },
 
             cancelPlanSelection: function() {
-                document.getElementById('plan-selection-modal').classList.add('hidden');
                 this.activeCheckInMemberId = null;
+                document.getElementById('plan-selection-modal').classList.add('hidden');
             },
 
             finalizeDeskCheckIn: async function(memberId, planName) {
@@ -1996,22 +2019,16 @@
                 const now = new Date();
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                if (member.lastScannedDate === todayStr) {
-                    alert(`${member.name} has already been admitted today.`);
-                    return;
-                }
-
-                member.scansUsed = (member.scansUsed || 0) + 1;
                 member.lastScannedDate = todayStr;
+                member.scansUsed = (Number(member.scansUsed) || 0) + 1;
+
                 await this.saveMembers();
-                await this.loadMembers();
+                this.logAudit('Manual Desk Check-In', `Desk check-in logged for ${member.name} (${member.id}) under ${planName}`);
 
-                const daysLeft = this.calculateDaysLeft(member.expirationDate);
-                this.logAudit('Desk Entry (Active Pass)', `Manual desk check-in for ${member.name} (${member.id}) - Plan: ${member.plan} (${daysLeft})`);
-                this.closeManualCheckInModal();
+                alert(`SUCCESS! Door Access Granted.\n\nMember: ${member.name}\nPlan: ${planName}\nStatus: Checked In Today`);
+
                 this.searchManualCheckIn();
-
-                alert(`SUCCESS: Entry logged for ${member.name}!\nPlan: ${member.plan}\nStatus: Active (${daysLeft})`);
+                this.filterRoster();
             },
 
             openAddMemberModal: function() {
@@ -2034,308 +2051,117 @@
 
             handleAdminAddMember: async function(e) {
                 e.preventDefault();
-                await this.loadMembers();
+                if (!this.currentTenantId) return;
 
                 const name = document.getElementById('new-member-name').value.trim();
                 const phone = document.getElementById('new-member-phone').value.trim();
                 let email = document.getElementById('new-member-email').value.trim();
                 const classification = document.getElementById('new-member-classification').value;
-                const discountPercentage = parseFloat(document.getElementById('new-member-discount').value) || 0;
+                const discountPct = parseFloat(document.getElementById('new-member-discount').value) || 0;
                 const plan = document.getElementById('new-member-plan').value;
                 const cardBarcode = document.getElementById('new-member-barcode').value.trim();
-                const password = document.getElementById('new-member-password').value.trim() || 'gym12345';
+                const password = document.getElementById('new-member-password').value || 'gym12345';
+
+                const nextNum = this.allMembersSystem.length + 1;
+                const newId = `MEM-${String(nextNum).padStart(4, '0')}`;
 
                 if (!email) {
-                    const sanitizedPhone = phone.replace(/\D/g, '') || Math.floor(1000 + Math.random() * 9000);
-                    email = `walkin_${sanitizedPhone}@ironvault.com`;
+                    email = `walkin.${newId.toLowerCase()}@gym.local`;
                 }
 
-                if (this.allMembersSystem.some(m => m.email.toLowerCase() === email.toLowerCase() && (m.tenantId || 'GYM-001') === this.currentTenantId)) {
-                    alert("A member with this email or phone record already exists!");
+                if (this.allMembersSystem.some(m => m.email.toLowerCase() === email.toLowerCase())) {
+                    alert("A member with this email address already exists!");
                     return;
                 }
+
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
                 const pricing = this.matchedOwnerRecord?.pricing || { day: 150, week: 700, month: 2500 };
                 let baseCost = 0;
-                if (plan === '1-Day Pass') baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
-                else if (plan === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
-                else if (plan === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
+                let expiryStr = null;
 
-                const collectedAmount = (plan === 'Not Selected') ? 0 : (discountPercentage > 0 ? Math.round(baseCost * (1 - (discountPercentage / 100))) : baseCost);
+                if (plan === '1-Day Pass') {
+                    baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
+                    expiryStr = todayStr;
+                } else if (plan === '1-Week Pass') {
+                    baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
+                    const exp = new Date();
+                    exp.setDate(now.getDate() + 7);
+                    expiryStr = exp.toISOString().split('T')[0];
+                } else if (plan === '1-Month Unlimited') {
+                    baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
+                    const exp = new Date();
+                    exp.setDate(now.getDate() + 30);
+                    expiryStr = exp.toISOString().split('T')[0];
+                }
 
-                const now = new Date();
-                let expiryDate = new Date();
-                if (plan === '1-Day Pass') expiryDate.setDate(now.getDate());
-                else if (plan === '1-Week Pass') expiryDate.setDate(now.getDate() + 7);
-                else if (plan === '1-Month Unlimited') expiryDate.setDate(now.getDate() + 30);
-                else expiryDate = null;
-
-                const todayStr = now.toISOString().split('T')[0];
+                const finalCost = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
 
                 const newMember = {
-                    id: 'MEM-' + Math.floor(1000 + Math.random() * 9000),
+                    id: newId,
                     tenantId: this.currentTenantId,
                     tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
-                    name, email, phone, password, classification, discountPercentage, plan, cardBarcode,
+                    name,
+                    email,
+                    phone,
+                    password,
+                    classification,
+                    discountPercentage: discountPct,
+                    plan,
+                    cardBarcode: cardBarcode || newId,
                     walletBalance: 0,
-                    amount: collectedAmount,
-                    scansUsed: plan === 'Not Selected' ? 0 : 1,
-                    lastScannedDate: plan === 'Not Selected' ? null : todayStr,
-                    expirationDate: expiryDate ? expiryDate.toISOString().split('T')[0] : null,
+                    amount: finalCost,
+                    scansUsed: plan !== 'Not Selected' ? 1 : 0,
+                    lastScannedDate: plan !== 'Not Selected' ? todayStr : null,
+                    expirationDate: expiryStr,
                     status: 'ACTIVE',
-                    dateJoined: plan === 'Not Selected' ? null : todayStr
+                    dateJoined: todayStr,
+                    avatar: ''
                 };
 
-                this.allMembersSystem.push(newMember);
                 this.members.push(newMember);
                 await this.saveMembers();
-                
+
+                this.logAudit('Express Walk-In Reg', `Registered & admitted member ${name} (${newId}) under plan ${plan}`);
+                alert(`Member ${name} registered & admitted successfully!\n\nMember ID: ${newId}\nPassword: ${password}`);
+
                 this.closeAddMemberModal();
-                await this.loadMembers();
-                this.logAudit('Express Walk-In', `Registered & admitted walk-in ${name} (${newMember.id}) - Collected ₱${collectedAmount}`);
-                alert(`EXPRESS ENTRY SUCCESS!\n\nRegistered ${name} (${newMember.id})\nPlan: ${plan}\nPayment: ₱${collectedAmount}\nStatus: ACTIVE & Admitted Today!`);
+                this.filterRoster();
             },
 
-            quickApproveMember: async function(id) {
-                const member = this.members.find(m => m.id === id);
-                if (member) {
-                    member.status = 'ACTIVE';
-                    await this.saveMembers();
-                    await this.loadMembers();
-                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
-                    alert(`Member ${member.name} (${member.id}) has been approved and is now ACTIVE!`);
-                }
-            },
-
-            openScannerModal: function() {
-                document.getElementById('scan-result-container').classList.add('hidden');
-                document.getElementById('scanner-modal').classList.remove('hidden');
-                this.startCamera();
-            },
-
-            closeScannerModal: function() {
-                this.stopCamera();
-                document.getElementById('scanner-modal').classList.add('hidden');
-            },
-
-            startCamera: async function() {
-                const videoElement = document.getElementById('qr-video');
-                const placeholder = document.getElementById('camera-placeholder');
-                if (!videoElement) return;
-
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    this.cameraStream = stream;
-                    videoElement.srcObject = stream;
-                    videoElement.classList.remove('hidden');
-                    if (placeholder) placeholder.classList.add('hidden');
-                    videoElement.play();
-                    this.scanTimer = setInterval(() => this.tickCameraScan(), 250);
-                } catch (err) {
-                    console.warn("Camera access failed or denied, file upload fallback is available:", err);
-                    if (placeholder) placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 block"></i>Camera permission denied or unavailable.<br>Please use the file upload option below.`;
-                }
-            },
-
-            stopCamera: function() {
-                if (this.scanTimer) {
-                    clearInterval(this.scanTimer);
-                    this.scanTimer = null;
-                }
-                if (this.cameraStream) {
-                    this.cameraStream.getTracks().forEach(track => track.stop());
-                    this.cameraStream = null;
-                }
-                const videoElement = document.getElementById('qr-video');
-                const placeholder = document.getElementById('camera-placeholder');
-                if (videoElement) {
-                    videoElement.srcObject = null;
-                    videoElement.classList.add('hidden');
-                }
-                if (placeholder) {
-                    placeholder.classList.remove('hidden');
-                    placeholder.innerHTML = `<i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i>Initializing camera stream...`;
-                }
-            },
-
-            tickCameraScan: function() {
-                const video = document.getElementById('qr-video');
-                const canvas = document.getElementById('qr-canvas');
-                if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
-                if (code && code.data) {
-                    // Prevent immediate duplicate firing of the exact same payload scan
-                    if (this.lastScannedCodePayload === code.data) return;
-                    this.lastScannedCodePayload = code.data;
-                    setTimeout(() => { this.lastScannedCodePayload = null; }, 3000);
-
-                    this.processScannedCode(code.data);
-                }
-            },
-
-            handleQRScanUpload: function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const executeScan = () => {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const img = new Image();
-                        img.crossOrigin = "anonymous";
-                        img.onload = () => {
-                            try {
-                                const canvas = document.createElement('canvas');
-                                const context = canvas.getContext('2d', { willReadFrequently: true });
-                                let width = img.width;
-                                let height = img.height;
-                                const targetSize = 600;
-
-                                if (width > targetSize || height > targetSize) {
-                                    if (width > height) {
-                                        height = Math.round((height * targetSize) / width);
-                                        width = targetSize;
-                                    } else {
-                                        width = Math.round((width * targetSize) / height);
-                                        height = targetSize;
-                                    }
-                                }
-
-                                canvas.width = width;
-                                canvas.height = height;
-                                context.fillStyle = "#FFFFFF";
-                                context.fillRect(0, 0, width, height);
-                                context.drawImage(img, 0, 0, width, height);
-
-                                let imageData = context.getImageData(0, 0, width, height);
-                                let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
-
-                                if (!code) {
-                                    const data = imageData.data;
-                                    for (let i = 0; i < data.length; i += 4) {
-                                        const v = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) < 150 ? 0 : 255;
-                                        data[i] = v; data[i + 1] = v; data[i + 2] = v;
-                                    }
-                                    context.putImageData(imageData, 0, 0);
-                                    imageData = context.getImageData(0, 0, width, height);
-                                    code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
-                                }
-
-                                if (code && code.data) {
-                                    this.processScannedCode(code.data);
-                                } else {
-                                    this.showScanResult(false, "Invalid QR Pass", "Could not detect a valid QR code in this image.");
-                                    this.logAudit('QR Scan Denied', 'Invalid QR code image uploaded');
-                                }
-                            } catch (err) {
-                                this.showScanResult(false, "Scan Error", err.message);
-                            }
-                        };
-                        img.src = event.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                    e.target.value = '';
-                };
-
-                if (typeof jsQR === 'undefined') {
-                    const script = document.createElement('script');
-                    script.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
-                    script.onload = () => executeScan();
-                    document.head.appendChild(script);
-                } else {
-                    executeScan();
-                }
-            },
-
-            processScannedCode: async function(qrData) {
-                const parts = qrData.split('|');
-                if (parts.length !== 2) {
-                    this.showScanResult(false, "ACCESS DENIED", "Malformed QR code payload structure.");
-                    return;
-                }
-
-                const memberId = parts[0];
-                const qrDate = parts[1];
-                const todayStr = new Date().toISOString().split('T')[0];
-
+            openProfileModal: function(memberId) {
                 const member = this.members.find(m => m.id === memberId);
-                if (!member) {
-                    this.showScanResult(false, "ACCESS DENIED", `Member ID ${memberId} not found.`);
-                    return;
-                }
-
-                if (member.status !== 'ACTIVE') {
-                    this.showScanResult(false, "ACCESS DENIED", `${member.name}'s account is not ACTIVE.`);
-                    return;
-                }
-
-                if (qrDate !== todayStr) {
-                    this.showScanResult(false, "ACCESS DENIED", `QR Pass is outdated! Generated for ${qrDate}.`);
-                    return;
-                }
-
-                if (member.expirationDate && todayStr > member.expirationDate) {
-                    this.showScanResult(false, "ACCESS DENIED", `Membership expired on ${member.expirationDate}.`);
-                    return;
-                }
-
-                if (member.lastScannedDate === todayStr) {
-                    this.showScanResult(false, "ACCESS DENIED", `ALERT: QR code for today has ALREADY been scanned!`);
-                    return;
-                }
-
-                member.scansUsed = (member.scansUsed || 0) + 1;
-                member.lastScannedDate = todayStr;
-                await this.saveMembers();
-                await this.loadMembers();
-
-                this.showScanResult(true, "ACCESS GRANTED", `Welcome, ${member.name}!\nScan #${member.scansUsed}`);
-                this.logAudit('QR Scan Success', `Access granted for ${member.name} (${member.id})`);
-            },
-
-            showScanResult: function(isSuccess, title, desc) {
-                const container = document.getElementById('scan-result-container');
-                const icon = document.getElementById('scan-result-icon');
-                const titleElem = document.getElementById('scan-result-title');
-                const descElem = document.getElementById('scan-result-desc');
-
-                container.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-                if (isSuccess) {
-                    container.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
-                    icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
-                } else {
-                    container.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-                    icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-400"></i>';
-                }
-                titleElem.innerText = title;
-                descElem.innerText = desc;
-            },
-
-            openProfileModal: function(id) {
-                const member = this.members.find(m => m.id === id);
                 if (!member) return;
 
-                this.activeModalMemberId = id;
+                this.activeModalMemberId = memberId;
                 this.isPasswordVisible = false;
 
                 document.getElementById('modal-member-name').innerText = member.name;
                 document.getElementById('modal-member-id').innerText = member.id;
                 document.getElementById('modal-member-status-badge').innerText = member.status || 'ACTIVE';
-
-                const pendingBanner = document.getElementById('modal-pending-banner');
-                if (member.status === 'PENDING') pendingBanner.classList.remove('hidden');
-                else pendingBanner.classList.add('hidden');
-
                 document.getElementById('modal-member-balance').innerText = `₱${(member.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-                document.getElementById('edit-member-name').value = member.name;
-                document.getElementById('edit-member-email').value = member.email;
+                const avatarImg = document.getElementById('modal-avatar-img');
+                const avatarIcon = document.getElementById('modal-avatar-icon');
+                if (member.avatar) {
+                    avatarImg.src = member.avatar;
+                    avatarImg.classList.remove('hidden');
+                    avatarIcon.classList.add('hidden');
+                } else {
+                    avatarImg.classList.add('hidden');
+                    avatarIcon.classList.remove('hidden');
+                }
+
+                const pendingBanner = document.getElementById('modal-pending-banner');
+                if (member.status === 'PENDING') {
+                    pendingBanner.classList.remove('hidden');
+                } else {
+                    pendingBanner.classList.add('hidden');
+                }
+
+                document.getElementById('edit-member-name').value = member.name || '';
+                document.getElementById('edit-member-email').value = member.email || '';
                 document.getElementById('edit-member-phone').value = member.phone || '';
                 document.getElementById('edit-member-plan').value = member.plan || 'Not Selected';
                 document.getElementById('edit-member-classification').value = member.classification || 'Regular';
@@ -2344,7 +2170,11 @@
                 document.getElementById('edit-member-expiry').value = member.expirationDate || '';
                 document.getElementById('edit-member-status').value = member.status || 'ACTIVE';
 
-                this.updatePasswordDisplay(member.password);
+                document.getElementById('modal-password-text').innerText = '••••••••';
+                document.getElementById('eye-label').innerText = 'Show Password';
+                document.getElementById('eye-icon').className = 'fa-solid fa-eye';
+                document.getElementById('modal-reset-pass-input').value = '';
+
                 document.getElementById('member-profile-modal').classList.remove('hidden');
             },
 
@@ -2353,62 +2183,24 @@
                 document.getElementById('member-profile-modal').classList.add('hidden');
             },
 
-            approvePendingMember: async function() {
-                if (!this.activeModalMemberId) return;
-                const member = this.members.find(m => m.id === this.activeModalMemberId);
-                if (member) {
-                    member.status = 'ACTIVE';
-                    await this.saveMembers();
-                    await this.loadMembers();
-                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
-                    this.openProfileModal(this.activeModalMemberId);
-                    alert(`Member ${member.name} has been approved successfully!`);
-                }
-            },
-
-            handleSaveMemberDetails: async function(e) {
-                e.preventDefault();
-                if (!this.activeModalMemberId) return;
-                const member = this.members.find(m => m.id === this.activeModalMemberId);
-                if (!member) return;
-
-                member.name = document.getElementById('edit-member-name').value.trim();
-                member.email = document.getElementById('edit-member-email').value.trim();
-                member.phone = document.getElementById('edit-member-phone').value.trim();
-                member.plan = document.getElementById('edit-member-plan').value;
-                member.classification = document.getElementById('edit-member-classification').value;
-                member.discountPercentage = parseFloat(document.getElementById('edit-member-discount').value) || 0;
-                member.cardBarcode = document.getElementById('edit-member-barcode').value.trim();
-                member.expirationDate = document.getElementById('edit-member-expiry').value;
-                member.status = document.getElementById('edit-member-status').value;
-
-                await this.saveMembers();
-                await this.loadMembers();
-                this.logAudit('Member Updated', `Updated profile details for ${member.name} (${member.id})`);
-                alert(`Member details updated successfully!`);
-            },
-
             togglePasswordVisibility: function() {
                 if (!this.activeModalMemberId) return;
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
                 if (!member) return;
-                this.isPasswordVisible = !this.isPasswordVisible;
-                this.updatePasswordDisplay(member.password);
-            },
 
-            updatePasswordDisplay: function(actualPassword) {
-                const passTextElem = document.getElementById('modal-password-text');
-                const eyeIcon = document.getElementById('eye-icon');
+                this.isPasswordVisible = !this.isPasswordVisible;
+                const passText = document.getElementById('modal-password-text');
                 const eyeLabel = document.getElementById('eye-label');
+                const eyeIcon = document.getElementById('eye-icon');
 
                 if (this.isPasswordVisible) {
-                    passTextElem.innerText = actualPassword || 'No Password Set';
-                    eyeIcon.className = 'fa-solid fa-eye-slash';
+                    passText.innerText = member.password || 'No password set';
                     eyeLabel.innerText = 'Hide Password';
+                    eyeIcon.className = 'fa-solid fa-eye-slash';
                 } else {
-                    passTextElem.innerText = '••••••••';
-                    eyeIcon.className = 'fa-solid fa-eye';
+                    passText.innerText = '••••••••';
                     eyeLabel.innerText = 'Show Password';
+                    eyeIcon.className = 'fa-solid fa-eye';
                 }
             },
 
@@ -2417,19 +2209,21 @@
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
                 if (!member) return;
 
-                const inputPass = document.getElementById('modal-reset-pass-input').value.trim();
-                if (!inputPass || inputPass.length < 6) {
-                    alert("Please enter a new password of at least 6 characters.");
+                const newPass = document.getElementById('modal-reset-pass-input').value.trim();
+                if (!newPass) {
+                    alert("Please enter a new password.");
                     return;
                 }
 
-                if (confirm(`Reset password for ${member.name}?`)) {
-                    member.password = inputPass;
-                    await this.saveMembers();
-                    this.updatePasswordDisplay(member.password);
-                    document.getElementById('modal-reset-pass-input').value = '';
-                    this.logAudit('Password Reset', `Reset password for member ${member.name} (${member.id})`);
-                    alert(`Password updated successfully!`);
+                member.password = newPass;
+                await this.saveMembers();
+
+                this.logAudit('Password Reset', `Reset password for member ${member.name} (${member.id})`);
+                alert(`Password for ${member.name} reset successfully!`);
+                document.getElementById('modal-reset-pass-input').value = '';
+
+                if (this.isPasswordVisible) {
+                    document.getElementById('modal-password-text').innerText = newPass;
                 }
             },
 
@@ -2438,94 +2232,289 @@
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
                 if (!member) return;
 
-                if (!confirm(`Add ₱${amount.toLocaleString()} to ${member.name}'s account credits?`)) return;
+                member.walletBalance = (Number(member.walletBalance) || 0) + amount;
+                member.amount = (Number(member.amount) || 0) + amount;
 
-                member.walletBalance = (member.walletBalance || 0) + amount;
                 await this.saveMembers();
-                await this.loadMembers();
+                this.logAudit('Cash Credit Top-Up', `Added ₱${amount} credit to member ${member.name} (${member.id})`);
 
-                this.logAudit('Credit Top-up', `Added ₱${amount.toLocaleString()} to ${member.name} (${member.id})`);
-                this.openProfileModal(this.activeModalMemberId);
-                alert(`Successfully added ₱${amount.toLocaleString()} to account credits!`);
-            },
-
-            handleCustomModalTopUp: function() {
-                const input = document.getElementById('modal-topup-input');
-                const val = parseFloat(input.value);
-                if (isNaN(val) || val <= 0) {
-                    alert("Please enter a valid top-up amount.");
-                    return;
-                }
-                this.addModalCredits(val);
-                input.value = '';
-            },
-
-            toggleRosterFilter: function(filterType) {
-                if (this.rosterActiveFilter === filterType) {
-                    this.rosterActiveFilter = 'all'; // toggle off
-                } else {
-                    this.rosterActiveFilter = filterType;
-                }
-
-                const btnLogged = document.getElementById('filter-btn-logged');
-                const btnNotEntered = document.getElementById('filter-btn-not-entered');
-
-                btnLogged.className = "px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5";
-                btnNotEntered.className = "px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5";
-
-                if (this.rosterActiveFilter === 'logged') {
-                    btnLogged.className = "px-3 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow";
-                } else if (this.rosterActiveFilter === 'not_entered') {
-                    btnNotEntered.className = "px-3 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow";
-                }
-
+                document.getElementById('modal-member-balance').innerText = `₱${member.walletBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                alert(`Added ₱${amount} credits to ${member.name}'s account.`);
                 this.filterRoster();
             },
 
-            filterRoster: function() {
-                const query = document.getElementById('roster-search').value.toLowerCase();
+            handleCustomModalTopUp: async function() {
+                if (!this.activeModalMemberId) return;
+                const input = document.getElementById('modal-topup-input');
+                const val = parseFloat(input.value);
+
+                if (isNaN(val) || val <= 0) {
+                    alert("Please enter a valid amount to top up.");
+                    return;
+                }
+
+                await this.addModalCredits(val);
+                input.value = '';
+            },
+
+            approvePendingMember: async function() {
+                if (!this.activeModalMemberId) return;
+                this.quickApproveMember(this.activeModalMemberId);
+            },
+
+            quickApproveMember: async function(memberId) {
+                const member = this.members.find(m => m.id === memberId);
+                if (!member) return;
+
+                member.status = 'ACTIVE';
+                await this.saveMembers();
+
+                this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
+                alert(`Account approved for ${member.name}! Member can now access desk check-in and QR passes.`);
+
+                if (this.activeModalMemberId === memberId) {
+                    this.openProfileModal(memberId);
+                }
+
+                this.renderPendingRequests();
+                this.filterRoster();
+            },
+
+            handleSaveMemberDetails: async function(e) {
+                e.preventDefault();
+                if (!this.activeModalMemberId) return;
+
+                const member = this.members.find(m => m.id === this.activeModalMemberId);
+                if (!member) return;
+
+                const name = document.getElementById('edit-member-name').value.trim();
+                const email = document.getElementById('edit-member-email').value.trim();
+                const phone = document.getElementById('edit-member-phone').value.trim();
+                const plan = document.getElementById('edit-member-plan').value;
+                const classification = document.getElementById('edit-member-classification').value;
+                const discountPercentage = parseFloat(document.getElementById('edit-member-discount').value) || 0;
+                const cardBarcode = document.getElementById('edit-member-barcode').value.trim();
+                const expiry = document.getElementById('edit-member-expiry').value;
+                const status = document.getElementById('edit-member-status').value;
+
+                member.name = name;
+                member.email = email;
+                member.phone = phone;
+                member.plan = plan;
+                member.classification = classification;
+                member.discountPercentage = discountPercentage;
+                member.cardBarcode = cardBarcode;
+                member.expirationDate = expiry || null;
+                member.status = status;
+
+                await this.saveMembers();
+                this.logAudit('Member Profile Updated', `Updated details for member ${name} (${member.id})`);
+
+                alert("Member details saved successfully!");
+                this.closeProfileModal();
+                this.filterRoster();
+                this.renderPendingRequests();
+            },
+
+            deleteMember: async function(memberId) {
+                const member = this.members.find(m => m.id === memberId);
+                if (!member) return;
+
+                if (confirm(`Are you sure you want to delete member profile for ${member.name} (${member.id})?`)) {
+                    this.members = this.members.filter(m => m.id !== memberId);
+                    await this.saveMembers();
+
+                    this.logAudit('Member Deleted', `Deleted member profile ${member.name} (${memberId})`);
+                    this.filterRoster();
+                    this.renderPendingRequests();
+                }
+            },
+
+            openScannerModal: function() {
+                document.getElementById('scan-result-container').classList.add('hidden');
+                document.getElementById('scanner-modal').classList.remove('hidden');
+                this.startCameraStream();
+            },
+
+            closeScannerModal: function() {
+                this.stopCameraStream();
+                document.getElementById('scanner-modal').classList.add('hidden');
+            },
+
+            startCameraStream: function() {
+                const video = document.getElementById('qr-video');
+                const placeholder = document.getElementById('camera-placeholder');
+
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                        .then(stream => {
+                            this.cameraStream = stream;
+                            video.srcObject = stream;
+                            video.classList.remove('hidden');
+                            placeholder.classList.add('hidden');
+
+                            this.scanTimer = requestAnimationFrame(this.tickScanner.bind(this));
+                        })
+                        .catch(err => {
+                            placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 block"></i> Camera access unavailable. You can upload a QR pass image below.`;
+                        });
+                }
+            },
+
+            stopCameraStream: function() {
+                if (this.scanTimer) {
+                    cancelAnimationFrame(this.scanTimer);
+                    this.scanTimer = null;
+                }
+
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                    this.cameraStream = null;
+                }
+
+                const video = document.getElementById('qr-video');
+                if (video) video.classList.add('hidden');
+
+                const placeholder = document.getElementById('camera-placeholder');
+                if (placeholder) {
+                    placeholder.classList.remove('hidden');
+                    placeholder.innerHTML = `<i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i> Initializing camera stream...`;
+                }
+            },
+
+            tickScanner: function() {
+                const video = document.getElementById('qr-video');
+                const canvas = document.getElementById('qr-canvas');
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+
+                    if (code && code.data && code.data !== this.lastScannedCodePayload) {
+                        this.lastScannedCodePayload = code.data;
+                        this.processScannedQRPayload(code.data);
+                    }
+                }
+
+                if (!document.getElementById('scanner-modal').classList.contains('hidden')) {
+                    this.scanTimer = requestAnimationFrame(this.tickScanner.bind(this));
+                }
+            },
+
+            handleQRScanUpload: function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                        if (code && code.data) {
+                            this.processScannedQRPayload(code.data);
+                        } else {
+                            this.showScanResult(false, "Invalid Image", "Could not detect a valid QR pass in the uploaded image.");
+                        }
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            },
+
+            processScannedQRPayload: function(payload) {
+                let memberId = null;
+                try {
+                    const parsed = JSON.parse(payload);
+                    memberId = parsed.memberId || parsed.id;
+                } catch(e) {
+                    memberId = payload.trim();
+                }
+
+                const member = this.members.find(m => m.id === memberId || (m.cardBarcode && m.cardBarcode === memberId));
+
+                if (!member) {
+                    this.showScanResult(false, "Unknown QR Pass", `No registered member matches Code: ${memberId}`);
+                    return;
+                }
+
+                if (member.status === 'PENDING') {
+                    this.showScanResult(false, "Account Pending", `${member.name}'s online registration is still pending approval.`);
+                    return;
+                }
+
+                if (member.status !== 'ACTIVE') {
+                    this.showScanResult(false, "Account Inactive", `${member.name}'s account is inactive or suspended.`);
+                    return;
+                }
+
                 const now = new Date();
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                const filtered = this.members.filter(m => {
-                    const matchesSearch = (
-                        m.name.toLowerCase().includes(query) ||
-                        m.id.toLowerCase().includes(query) ||
-                        m.email.toLowerCase().includes(query) ||
-                        (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
-                    );
+                if (member.lastScannedDate === todayStr) {
+                    this.showScanResult(true, "Already Checked In", `${member.name} has already logged entry for today.`);
+                    return;
+                }
 
-                    if (!matchesSearch) return false;
+                if (!member.plan || member.plan === 'Not Selected' || (member.expirationDate && todayStr > member.expirationDate)) {
+                    this.showScanResult(false, "Expired / No Plan", `${member.name} has no active plan. Please check in manually at desk.`);
+                    return;
+                }
 
-                    const isLoggedToday = (m.lastScannedDate === todayStr);
-                    if (this.rosterActiveFilter === 'logged') {
-                        return isLoggedToday;
-                    } else if (this.rosterActiveFilter === 'not_entered') {
-                        return !isLoggedToday;
-                    }
+                member.lastScannedDate = todayStr;
+                member.scansUsed = (Number(member.scansUsed) || 0) + 1;
+                this.saveMembers();
 
-                    return true;
-                });
-
-                this.renderRoster(filtered);
+                this.logAudit('QR Door Access', `QR Pass verified for ${member.name} (${member.id})`);
+                this.showScanResult(true, "ACCESS GRANTED", `Welcome ${member.name}! Pass verified under ${member.plan}.`);
+                this.filterRoster();
             },
 
-            deleteMember: async function(id) {
-                if (confirm(`Are you sure you want to delete member record ${id}?`)) {
-                    this.members = this.members.filter(m => m.id !== id);
-                    await this.saveMembers();
-                    await this.loadMembers();
-                    try {
-                        await supabaseClient.from('members').delete().eq('id', id);
-                    } catch(e) {}
-                    this.logAudit('Member Deleted', `Deleted member record ${id}`);
+            showScanResult: function(success, title, desc) {
+                const container = document.getElementById('scan-result-container');
+                const icon = document.getElementById('scan-result-icon');
+                const titleElem = document.getElementById('scan-result-title');
+                const descElem = document.getElementById('scan-result-desc');
+
+                container.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/30', 'bg-rose-500/10', 'border-rose-500/30');
+
+                if (success) {
+                    container.classList.add('bg-emerald-500/10', 'border-emerald-500/30');
+                    icon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
+                    titleElem.className = 'font-bold text-xs text-emerald-300';
+                } else {
+                    container.classList.add('bg-rose-500/10', 'border-rose-500/30');
+                    icon.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i>`;
+                    titleElem.className = 'font-bold text-xs text-rose-300';
                 }
+
+                titleElem.innerText = title;
+                descElem.innerText = desc;
+                descElem.className = 'text-[11px] text-slate-300';
+
+                setTimeout(() => {
+                    this.lastScannedCodePayload = null;
+                }, 3000);
             }
         };
 
-        window.onload = function() {
+        window.addEventListener('DOMContentLoaded', () => {
             adminApp.init();
-        };
+        });
     </script>
 </body>
 </html>
