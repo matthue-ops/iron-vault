@@ -100,7 +100,7 @@
                 </button>
 
                 <!-- LOGOUT BUTTON -->
-                <button id="btn-admin-logout" onclick="adminApp.logoutAdmin()" class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                <button id="btn-admin-logout" onclick="adminApp.logoutAdmin()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
                     <span class="hidden sm:inline">Sign Out</span>
                 </button>
@@ -111,46 +111,8 @@
     <!-- MAIN BODY CONTAINER -->
     <main class="relative z-10 flex-grow p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-4 sm:space-y-6">
 
-        <!-- ADMIN LOGIN SCREEN -->
-        <div id="admin-auth-card" class="max-w-md mx-auto my-6 sm:my-12 px-2">
-            <div class="glass-card rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
-                <div class="text-center space-y-2">
-                    <div id="login-logo-container" class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 mb-1 overflow-hidden transition-all duration-300">
-                        <i id="login-logo-icon" class="fa-solid fa-lock text-lg sm:text-xl"></i>
-                        <img id="login-logo-img" src="" alt="Logo" class="w-full h-full object-cover hidden">
-                    </div>
-                    <h2 id="login-heading" class="text-lg sm:text-xl font-bold text-white">Staff or Admin Credentials Required</h2>
-                    <p id="login-subtitle" class="text-xs text-slate-400">Enter administrator or staff email & password to access management controls</p>
-                </div>
-
-                <div id="no-tenant-banner" class="hidden bg-rose-500/10 border border-rose-500/30 p-3 sm:p-4 rounded-2xl text-center space-y-2">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg"></i>
-                    <h4 class="text-xs font-bold text-rose-300">No Active Key Selected</h4>
-                    <p class="text-[11px] text-slate-300 leading-relaxed">
-                        Please open this Admin Portal using a valid access link generated from the <a href="index.html" class="text-amber-400 underline font-semibold">Super Admin Master Control Tower</a>.
-                    </p>
-                </div>
-
-                <form onsubmit="adminApp.handleAdminLogin(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
-                        <input type="email" id="admin-email" placeholder="owner@gym.com or staff@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-3 focus:outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
-                        <input type="password" id="admin-password" placeholder="••••••••" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-3 focus:outline-none">
-                    </div>
-
-                    <button type="submit" id="login-btn" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg">
-                        Unlock Portal
-                    </button>
-                </form>
-            </div>
-        </div>
-
         <!-- ADMIN DASHBOARD -->
-        <div id="admin-dashboard" class="space-y-4 sm:space-y-6 hidden">
+        <div id="admin-dashboard" class="space-y-4 sm:space-y-6">
             
             <!-- QUICK METRICS ROW (2x2 on Mobile, 4x1 on Desktop) -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
@@ -876,12 +838,6 @@
                         headerLogoWrap.style.borderColor = hexColor;
                         headerLogoWrap.style.boxShadow = `0 0 12px ${hexColor}40`;
                     }
-
-                    const loginLogoWrap = document.getElementById('login-logo-container');
-                    if (loginLogoWrap) {
-                        loginLogoWrap.style.borderColor = hexColor;
-                        loginLogoWrap.style.boxShadow = `0 0 12px ${hexColor}40`;
-                    }
                 }
             };
         }
@@ -895,7 +851,7 @@
             isPasswordVisible: false,
             currentTenantId: null,
             matchedOwnerRecord: null,
-            rosterActiveFilter: 'all', // 'all', 'logged', 'not_entered'
+            rosterActiveFilter: 'all',
             cameraStream: null,
             scanTimer: null,
             lastScannedCodePayload: null,
@@ -957,28 +913,12 @@
 
                 this.currentTenantId = null;
                 this.matchedOwnerRecord = null;
-                this.applyNoTenantState();
-            },
-
-            applyNoTenantState: function() {
-                document.getElementById('header-gym-title').innerText = "NO ACTIVE TENANT";
-                document.getElementById('header-subtitle').innerText = "Admin Portal Locked";
-                document.getElementById('page-title').innerText = "Admin Portal - No Active Tenant";
-                document.getElementById('login-heading').innerText = "Access Restricted";
-                document.getElementById('login-subtitle').innerText = "No valid token provided in the URL.";
-                
-                document.getElementById('no-tenant-banner').classList.remove('hidden');
-                document.getElementById('admin-email').disabled = true;
-                document.getElementById('admin-password').disabled = true;
-                document.getElementById('login-btn').disabled = true;
-                document.getElementById('login-btn').classList.add('opacity-50', 'cursor-not-allowed');
             },
 
             applyBranding: function(owner) {
                 document.getElementById('header-gym-title').innerText = owner.gymName;
                 document.getElementById('header-subtitle').innerText = `Admin & Staff Portal`;
                 document.getElementById('page-title').innerText = `${owner.gymName} - Portal`;
-                document.getElementById('login-subtitle').innerText = `Enter administrator or staff credentials for ${owner.gymName}`;
 
                 if (owner.logo) {
                     const headerImg = document.getElementById('header-logo-img');
@@ -986,12 +926,6 @@
                     headerImg.src = owner.logo;
                     headerImg.classList.remove('hidden');
                     headerIcon.classList.add('hidden');
-
-                    const loginImg = document.getElementById('login-logo-img');
-                    const loginIcon = document.getElementById('login-logo-icon');
-                    loginImg.src = owner.logo;
-                    loginImg.classList.remove('hidden');
-                    loginIcon.classList.add('hidden');
 
                     applyDynamicThemeFromLogo(owner.logo);
                 }
@@ -1123,98 +1057,16 @@
             },
 
             checkExistingSession: function() {
-                if (!this.currentTenantId) return;
-
-                const savedTenantId = sessionStorage.getItem(ACTIVE_TENANT_KEY);
-                const savedRole = sessionStorage.getItem(ACTIVE_ROLE_KEY);
-                if (savedTenantId && savedTenantId === this.currentTenantId && savedRole) {
-                    this.applyUIRoleVisibility(savedRole);
-                    this.loadMembers();
-                } else {
-                    sessionStorage.removeItem(ACTIVE_TENANT_KEY);
-                    sessionStorage.removeItem(ACTIVE_ROLE_KEY);
-                    sessionStorage.removeItem(LOGGED_USER_KEY);
-                }
-            },
-
-            handleAdminLogin: async function(e) {
-                e.preventDefault();
-                if (!this.currentTenantId || !this.matchedOwnerRecord) {
-                    alert("No valid account selected. Cannot authenticate.");
+                if (!this.currentTenantId) {
+                    this.logoutAdmin();
                     return;
                 }
-
-                try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
-                    if (!error && data) {
-                        this.allOwnersSystem = data.map(o => ({
-                            id: o.id,
-                            gymName: o.gym_name,
-                            ownerName: o.owner_name,
-                            email: o.email,
-                            password: o.password,
-                            token: o.token,
-                            logo: o.logo,
-                            status: o.status,
-                            pricing: o.pricing,
-                            staff: o.staff,
-                            auditLogs: o.audit_logs,
-                            dateCreated: o.date_created
-                        }));
-                        const refreshed = this.allOwnersSystem.find(o => o.id === this.currentTenantId);
-                        if (refreshed) this.matchedOwnerRecord = refreshed;
-                    }
-                } catch(err) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try {
-                            this.allOwnersSystem = JSON.parse(ownersData);
-                            const refreshed = this.allOwnersSystem.find(o => o.id === this.currentTenantId);
-                            if (refreshed) this.matchedOwnerRecord = refreshed;
-                        } catch(e) {}
-                    }
-                }
-
-                const email = document.getElementById('admin-email').value.trim();
-                const password = document.getElementById('admin-password').value;
-
-                if (this.matchedOwnerRecord.email === email && this.matchedOwnerRecord.password === password) {
-                    if (this.matchedOwnerRecord.status === 'SUSPENDED') {
-                        alert("This gym account has been suspended by the super administrator.");
-                        return;
-                    }
-
-                    sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
-                    sessionStorage.setItem(ACTIVE_ROLE_KEY, 'admin');
-                    sessionStorage.setItem(LOGGED_USER_KEY, email);
-
-                    this.logAudit('Admin Login', `Admin logged in successfully (${email})`);
-                    this.applyUIRoleVisibility('admin');
-                    await this.loadMembers();
-                    return;
-                }
-
-                const staffList = this.matchedOwnerRecord.staff || [];
-                const matchedStaff = staffList.find(s => s.email.toLowerCase() === email.toLowerCase() && s.password === password);
-
-                if (matchedStaff) {
-                    sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
-                    sessionStorage.setItem(ACTIVE_ROLE_KEY, 'staff');
-                    sessionStorage.setItem(LOGGED_USER_KEY, email);
-
-                    this.logAudit('Staff Login', `Staff logged in successfully (${matchedStaff.name} - ${email})`);
-                    this.applyUIRoleVisibility('staff');
-                    await this.loadMembers();
-                    return;
-                }
-
-                alert("Invalid Admin or Staff Email/Password!");
+                const savedRole = sessionStorage.getItem(ACTIVE_ROLE_KEY) || 'admin';
+                this.applyUIRoleVisibility(savedRole);
+                this.loadMembers();
             },
 
             applyUIRoleVisibility: function(role) {
-                document.getElementById('admin-auth-card').classList.add('hidden');
-                document.getElementById('admin-dashboard').classList.remove('hidden');
-
                 const logoutBtn = document.getElementById('btn-admin-logout');
                 const reportsBtn = document.getElementById('btn-reports-analytics');
                 const staffManagementBtn = document.getElementById('btn-staff-management');
@@ -1246,23 +1098,16 @@
             },
 
             logoutAdmin: function() {
-                const user = sessionStorage.getItem(LOGGED_USER_KEY) || 'Unknown';
-                this.logAudit('Logout', `User signed out (${user})`);
-
                 sessionStorage.removeItem(ACTIVE_TENANT_KEY);
                 sessionStorage.removeItem(ACTIVE_ROLE_KEY);
                 sessionStorage.removeItem(LOGGED_USER_KEY);
 
-                document.getElementById('admin-dashboard').classList.add('hidden');
-                document.getElementById('btn-admin-logout').classList.add('hidden');
-                const reportsBtn = document.getElementById('btn-reports-analytics');
-                const staffManagementBtn = document.getElementById('btn-staff-management');
-                if (reportsBtn) reportsBtn.classList.add('hidden');
-                if (staffManagementBtn) staffManagementBtn.classList.add('hidden');
-
-                document.getElementById('admin-auth-card').classList.remove('hidden');
-                document.getElementById('admin-email').value = '';
-                document.getElementById('admin-password').value = '';
+                const token = this.matchedOwnerRecord ? this.matchedOwnerRecord.token : new URLSearchParams(window.location.search).get('key');
+                if (token) {
+                    window.location.href = `memberlogin.html?key=${token}`;
+                } else {
+                    window.location.href = 'memberlogin.html';
+                }
             },
 
             logAudit: async function(action, details) {
