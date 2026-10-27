@@ -291,7 +291,7 @@
                         <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
                             <tr>
                                 <th class="p-3">Tenant ID</th>
-                                <th class="p-3">Gym Branch & Discrete URLs</th>
+                                <th class="p-3">Gym Branch & Unified Portal Link</th>
                                 <th class="p-3">Owner Name & Email</th>
                                 <th class="p-3">Plaintext Password</th>
                                 <th class="p-3">Status</th>
@@ -308,6 +308,30 @@
         </div>
 
     </main>
+
+    <!-- QR CODE MODAL -->
+    <div id="qr-code-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-sm rounded-3xl p-6 text-center space-y-4 border border-slate-800 shadow-2xl relative">
+            <button onclick="indexApp.closeQrModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition text-lg p-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-1">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-1">
+                    <i class="fa-solid fa-qrcode text-xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-white" id="qr-modal-title">Branch Access QR</h3>
+                <p class="text-[11px] text-slate-400 truncate px-2" id="qr-modal-url-text"></p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl inline-block shadow-inner">
+                <img id="qr-code-img" src="" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
+            </div>
+            <div class="pt-1">
+                <button onclick="indexApp.closeQrModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- BRANCH INSPECTION MODAL -->
     <div id="branch-inspect-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
@@ -784,8 +808,8 @@
                     const passDisplay = isShow ? owner.password : '••••••••';
                     const iconClass = isShow ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
                     
-                    const memberBranchUrl = `memberlogin.html?key=${owner.token}`;
-                    const adminBranchUrl = `admin.html?key=${owner.token}`;
+                    const origin = window.location.origin === 'null' || window.location.origin.startsWith('file://') ? '' : window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+                    const memberPortalUrl = `${origin}memberlogin.html?key=${owner.token}`;
 
                     const logoHtml = owner.logo 
                         ? `<img src="${owner.logo}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0">` 
@@ -797,11 +821,18 @@
                             <td class="p-3">
                                 <div class="flex items-center gap-2.5">
                                     ${logoHtml}
-                                    <div>
+                                    <div class="space-y-1">
                                         <div class="font-semibold text-white">${owner.gymName}</div>
-                                        <div class="text-[10px] font-mono text-emerald-400 mt-0.5 space-y-0.5">
-                                            <div>Member: <a href="${memberBranchUrl}" target="_blank" class="hover:underline">${memberBranchUrl}</a></div>
-                                            <div>Admin: <a href="${adminBranchUrl}" target="_blank" class="text-purple-400 hover:underline">${adminBranchUrl}</a></div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <a href="memberlogin.html?key=${owner.token}" target="_blank" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                                memberlogin.html?key=${owner.token.substring(0, 10)}...
+                                            </a>
+                                            <button onclick="indexApp.copyToClipboard('${memberPortalUrl}', this)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition" title="Copy Link">
+                                                <i class="fa-regular fa-copy"></i> Copy
+                                            </button>
+                                            <button onclick="indexApp.openQrModal('${memberPortalUrl}', '${owner.gymName}')" class="px-2 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-semibold transition" title="Generate QR Code">
+                                                <i class="fa-solid fa-qrcode"></i> QR
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -838,6 +869,32 @@
                         </tr>
                     `;
                 }).join('');
+            },
+
+            copyToClipboard: function(text, btnElement) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalHTML = btnElement.innerHTML;
+                    btnElement.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> Copied';
+                    btnElement.classList.add('bg-emerald-500/20', 'text-emerald-300');
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalHTML;
+                        btnElement.classList.remove('bg-emerald-500/20', 'text-emerald-300');
+                    }, 2000);
+                }).catch(err => {
+                    alert("Failed to copy text: " + err);
+                });
+            },
+
+            openQrModal: function(url, gymName) {
+                document.getElementById('qr-modal-title').innerText = `${gymName} Access Portal`;
+                document.getElementById('qr-modal-url-text').innerText = url;
+                const qrImg = document.getElementById('qr-code-img');
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+                document.getElementById('qr-code-modal').classList.remove('hidden');
+            },
+
+            closeQrModal: function() {
+                document.getElementById('qr-code-modal').classList.add('hidden');
             },
 
             toggleInspectSection: function(sectionKey) {
