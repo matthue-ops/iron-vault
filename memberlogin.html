@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Member Access Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: 'var(--brand-primary)',
+                            600: 'var(--brand-primary)',
+                            700: 'var(--brand-primary)',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --brand-primary: #10b981;
+            --brand-primary-glow: rgba(16, 185, 129, 0.2);
+            --bg-base: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.75);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px var(--brand-primary-glow);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(1.05); }
+        }
+
+        .bg-glow-orb {
+            animation: pulseGlow 8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+
+    <!-- BACKGROUND GLOW EFFECTS -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="bg-glow-orb absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-35 bg-emerald-500"></div>
+        <div class="bg-glow-orb absolute top-1/2 -right-32 w-96 h-96 rounded-full blur-3xl opacity-20 bg-blue-500"></div>
+    </div>
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="header-logo-container" class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 overflow-hidden transition-all duration-300">
+                    <i id="header-logo-icon" class="fa-solid fa-dumbbell text-lg"></i>
+                    <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
+                </div>
+                <div>
+                    <span id="header-gym-name" class="font-black text-white text-base tracking-wider uppercase block">GYM PORTAL</span>
+                    <span id="header-branch-badge" class="text-[10px] text-slate-400 font-mono">Member Access Portal</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN ACCESS CONTAINER -->
+    <main class="relative z-10 flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="w-full max-w-md space-y-6">
+
+            <!-- LOGO & HEADING -->
+            <div class="text-center space-y-2">
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
+                    MEMBERS PORTAL
+                </h1>
+                <p id="portal-subtitle" class="text-xs sm:text-sm font-medium text-slate-400">
+                    Sign in to view your Digital Door Pass & Account Details
+                </p>
+            </div>
+
+            <!-- CARD CONTAINER -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+                
+                <!-- TAB SWITCHER -->
+                <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/90 flex gap-1 mb-6 shadow-inner text-xs font-semibold">
+                    <button id="tab-btn-signin" onclick="app.switchTab('SIGNIN')" class="flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 font-bold shadow-md">
+                        <i class="fa-solid fa-right-to-bracket"></i> Member Sign In
+                    </button>
+                    <button id="tab-btn-signup" onclick="app.switchTab('SIGNUP')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-user-plus"></i> Join / Sign Up
+                    </button>
+                </div>
+
+                <!-- Alert Feedback -->
+                <div id="form-alert" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-xl text-xs mb-4 flex items-center gap-2">
+                    <i id="form-alert-icon" class="fa-solid fa-circle-exclamation text-base flex-shrink-0"></i>
+                    <span id="form-alert-msg">Error processing request.</span>
+                </div>
+
+                <!-- 1. SIGN IN FORM -->
+                <form id="auth-signin-form" onsubmit="app.handleSignInSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Email or Member ID</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-id-card text-xs"></i>
+                            </span>
+                            <input type="text" id="signin-identifier" required placeholder="e.g. MEM-1001 or alex@gym.com" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-xs font-medium text-slate-300">Password</label>
+                            <a href="#" onclick="app.handleForgotPassword(event)" class="text-[11px] text-emerald-400 hover:text-emerald-300 transition">Forgot password?</a>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="signin-password" required placeholder="••••••••" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <button type="button" onclick="app.togglePasswordVisibility('signin-password', 'pwd-icon-1')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="pwd-icon-1" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-signin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Sign In to Profile</span>
+                    </button>
+                </form>
+
+                <!-- 2. SIGN UP FORM -->
+                <form id="auth-signup-form" onsubmit="app.handleSignUpSubmit(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-user text-xs"></i>
+                            </span>
+                            <input type="text" id="signup-name" required placeholder="Juan Dela Cruz" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-envelope text-xs"></i>
+                            </span>
+                            <input type="email" id="signup-email" required placeholder="juan@example.com" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Phone Number</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-phone text-xs"></i>
+                            </span>
+                            <input type="tel" id="signup-phone" required placeholder="+63 912 345 6789" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="signup-password" required minlength="6" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <button type="button" onclick="app.togglePasswordVisibility('signup-password', 'pwd-icon-2')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="pwd-icon-2" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-signup" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Create Account</span>
+                    </button>
+                </form>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900">
+        <p>© 2026 Iron Vault Gym Access System • Multi-Tenant SaaS Engine</p>
+    </footer>
+
+    <!-- LOGIC CONTROLLER -->
+    <script>
+        const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
+        const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
+        const SESSION_KEY = 'ironvault_active_member';
+
+        function applyDynamicThemeFromLogo(logoBase64) {
+            if (!logoBase64) return;
+
+            const img = new Image();
+            if (!logoBase64.startsWith('data:')) {
+                img.crossOrigin = "Anonymous";
+            }
+            img.src = logoBase64;
+
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const width = 50;
+                const height = 50;
+                canvas.width = width;
+                canvas.height = height;
+                
+                try {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const imageData = ctx.getImageData(0, 0, width, height).data;
+                    
+                    let rSum = 0, gSum = 0, bSum = 0, count = 0;
+
+                    for (let i = 0; i < imageData.length; i += 16) {
+                        const r = imageData[i];
+                        const g = imageData[i + 1];
+                        const b = imageData[i + 2];
+                        const alpha = imageData[i + 3];
+
+                        if (alpha > 125 && !(r > 230 && g > 230 && b > 230) && !(r < 25 && g < 25 && b < 25)) {
+                            rSum += r;
+                            gSum += g;
+                            bSum += b;
+                            count++;
+                        }
+                    }
+
+                    if (count > 10) {
+                        const avgR = Math.round(rSum / count);
+                        const avgG = Math.round(gSum / count);
+                        const avgB = Math.round(bSum / count);
+                        const hexColor = `#${((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1)}`;
+
+                        document.documentElement.style.setProperty('--brand-primary', hexColor);
+                        document.documentElement.style.setProperty('--brand-primary-glow', `${hexColor}33`);
+
+                        const headerLogoWrap = document.getElementById('header-logo-container');
+                        if (headerLogoWrap) {
+                            headerLogoWrap.style.borderColor = hexColor;
+                            headerLogoWrap.style.boxShadow = `0 0 12px ${hexColor}40`;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Canvas pixel extraction restricted:", e);
+                }
+            };
+        }
+
+        const app = {
+            allMembersSystem: [],
+            currentTenantId: null,
+            matchedOwnerRecord: null,
+            currentTab: 'SIGNIN',
+
+            init: async function() {
+                await this.detectTenantFromUrl();
+                await this.loadMembersFromStorage();
+            },
+
+            detectTenantFromUrl: async function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const keyParam = urlParams.get('key');
+                const gymParam = urlParams.get('gym'); // backward compatibility fallback
+
+                let loadedOwners = [];
+                try {
+                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    if (!error && data) {
+                        loadedOwners = data.map(o => ({
+                            id: o.id,
+                            gymName: o.gym_name,
+                            ownerName: o.owner_name,
+                            email: o.email,
+                            password: o.password,
+                            token: o.token,
+                            logo: o.logo,
+                            status: o.status,
+                            pricing: o.pricing,
+                            staff: o.staff,
+                            auditLogs: o.audit_logs,
+                            dateCreated: o.date_created
+                        }));
+                    }
+                } catch(e) {}
+
+                if (loadedOwners.length === 0) {
+                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
+                    if (ownersData) {
+                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
+                    }
+                }
+
+                let matched = null;
+                if (keyParam) {
+                    matched = loadedOwners.find(o => o.token === keyParam);
+                } else if (gymParam) {
+                    matched = loadedOwners.find(o => o.id === gymParam.toUpperCase());
+                }
+
+                if (matched) {
+                    this.currentTenantId = matched.id;
+                    this.matchedOwnerRecord = matched;
+                    
+                    document.getElementById('header-gym-name').innerText = matched.gymName;
+                    document.getElementById('header-branch-badge').innerText = `Member Access Portal`;
+                    document.getElementById('page-title').innerText = `${matched.gymName} - Member Portal`;
+                    document.getElementById('portal-subtitle').innerText = `Sign in to your account at ${matched.gymName}`;
+
+                    if (matched.logo) {
+                        const headerImg = document.getElementById('header-logo-img');
+                        const headerIcon = document.getElementById('header-logo-icon');
+                        headerImg.src = matched.logo;
+                        headerImg.classList.remove('hidden');
+                        headerIcon.classList.add('hidden');
+
+                        applyDynamicThemeFromLogo(matched.logo);
+                    }
+                    return;
+                }
+
+                // NO VALID TENANT FOUND STATE
+                this.currentTenantId = null;
+                this.matchedOwnerRecord = null;
+
+                document.getElementById('header-gym-name').innerText = "INVALID LINK";
+                document.getElementById('header-branch-badge').innerText = "Invalid or Missing Link";
+                document.getElementById('page-title').innerText = "Member Portal - Invalid Link";
+                document.getElementById('portal-subtitle').innerText = "A valid gym portal URL is required to sign in or sign up.";
+
+                this.showAlert("A valid gym portal URL is required to sign in or sign up.");
+                
+                // Disable form inputs & buttons
+                document.getElementById('signin-identifier').disabled = true;
+                document.getElementById('signin-password').disabled = true;
+                document.getElementById('btn-submit-signin').disabled = true;
+                document.getElementById('btn-submit-signin').classList.add('opacity-50', 'cursor-not-allowed');
+
+                document.getElementById('signup-name').disabled = true;
+                document.getElementById('signup-email').disabled = true;
+                document.getElementById('signup-phone').disabled = true;
+                document.getElementById('signup-password').disabled = true;
+                document.getElementById('btn-submit-signup').disabled = true;
+                document.getElementById('btn-submit-signup').classList.add('opacity-50', 'cursor-not-allowed');
+            },
+
+            loadMembersFromStorage: async function() {
+                let loadedMembers = [];
+                try {
+                    const { data, error } = await supabaseClient.from('members').select('*');
+                    if (!error && data) {
+                        loadedMembers = data.map(m => ({
+                            id: m.id,
+                            tenantId: m.tenant_id,
+                            tenantToken: m.tenant_token,
+                            name: m.name,
+                            email: m.email,
+                            phone: m.phone,
+                            password: m.password,
+                            classification: m.classification,
+                            discountPercentage: m.discount_percentage,
+                            plan: m.plan,
+                            cardBarcode: m.card_barcode,
+                            walletBalance: m.wallet_balance,
+                            amount: m.amount,
+                            scansUsed: m.scans_used,
+                            lastScannedDate: m.last_scanned_date,
+                            expirationDate: m.expiration_date,
+                            status: m.status,
+                            dateJoined: m.date_joined,
+                            avatar: m.avatar
+                        }));
+                    }
+                } catch(e) {}
+
+                if (loadedMembers.length === 0) {
+                    const data = localStorage.getItem(MEMBERS_STORAGE_KEY);
+                    if (data) {
+                        try { loadedMembers = JSON.parse(data); } catch(e) {}
+                    }
+                }
+
+                this.allMembersSystem = loadedMembers;
+            },
+
+            saveMembersToStorage: async function() {
+                localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(this.allMembersSystem));
+
+                try {
+                    for (const m of this.allMembersSystem) {
+                        await supabaseClient.from('members').upsert({
+                            id: m.id,
+                            tenant_id: m.tenantId,
+                            tenant_token: m.tenantToken,
+                            name: m.name,
+                            email: m.email,
+                            phone: m.phone,
+                            password: m.password,
+                            classification: m.classification || 'Regular',
+                            discount_percentage: m.discountPercentage || 0,
+                            plan: m.plan || 'Not Selected',
+                            card_barcode: m.cardBarcode,
+                            wallet_balance: m.walletBalance || 0,
+                            amount: m.amount || 0,
+                            scans_used: m.scansUsed || 0,
+                            last_scanned_date: m.lastScannedDate,
+                            expiration_date: m.expirationDate,
+                            status: m.status || 'ACTIVE',
+                            date_joined: m.dateJoined,
+                            avatar: m.avatar
+                        });
+                    }
+                } catch(e) {}
+            },
+
+            switchTab: function(tab) {
+                this.currentTab = tab;
+                const btnSignIn = document.getElementById('tab-btn-signin');
+                const btnSignUp = document.getElementById('tab-btn-signup');
+                const formSignIn = document.getElementById('auth-signin-form');
+                const formSignUp = document.getElementById('auth-signup-form');
+
+                if (!this.currentTenantId) return; // Keep error alert active if unlinked
+
+                document.getElementById('form-alert').classList.add('hidden');
+
+                if (tab === 'SIGNIN') {
+                    btnSignIn.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
+                    btnSignUp.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+                    formSignIn.classList.remove('hidden');
+                    formSignUp.classList.add('hidden');
+                } else {
+                    btnSignUp.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
+                    btnSignIn.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+                    formSignUp.classList.remove('hidden');
+                    formSignIn.classList.add('hidden');
+                }
+            },
+
+            togglePasswordVisibility: function(inputId, iconId) {
+                const pwdInput = document.getElementById(inputId);
+                const icon = document.getElementById(iconId);
+                if (pwdInput.type === 'password') {
+                    pwdInput.type = 'text';
+                    icon.className = "fa-solid fa-eye-slash text-xs";
+                } else {
+                    pwdInput.type = 'password';
+                    icon.className = "fa-solid fa-eye text-xs";
+                }
+            },
+
+            showAlert: function(msg, isSuccess = false) {
+                const alertBox = document.getElementById('form-alert');
+                const alertMsg = document.getElementById('form-alert-msg');
+                const alertIcon = document.getElementById('form-alert-icon');
+
+                alertMsg.innerText = msg;
+                alertBox.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+
+                if (isSuccess) {
+                    alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+                    alertIcon.className = "fa-solid fa-circle-check text-base flex-shrink-0";
+                } else {
+                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+                    alertIcon.className = "fa-solid fa-circle-exclamation text-base flex-shrink-0";
+                }
+            },
+
+            handleSignInSubmit: async function(e) {
+                e.preventDefault();
+                if (!this.currentTenantId) {
+                    this.showAlert("A valid gym portal URL is required to sign in.");
+                    return;
+                }
+
+                await this.loadMembersFromStorage();
+
+                const identifier = document.getElementById('signin-identifier').value.trim();
+                const password = document.getElementById('signin-password').value;
+
+                const branchMembers = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') === this.currentTenantId || (this.matchedOwnerRecord && m.tenantToken === this.matchedOwnerRecord.token));
+
+                const member = branchMembers.find(m => 
+                    (m.id.toLowerCase() === identifier.toLowerCase() || m.email.toLowerCase() === identifier.toLowerCase()) && 
+                    m.password === password
+                );
+
+                if (member) {
+                    if (member.status === 'INACTIVE') {
+                        this.showAlert("Your account is currently inactive. Please contact the front desk.");
+                        return;
+                    }
+
+                    if (member.status === 'PENDING') {
+                        this.showAlert("Your account is pending desk approval. Please approach the gym counter.");
+                        return;
+                    }
+
+                    sessionStorage.setItem(SESSION_KEY, member.id);
+                    window.location.href = 'memberprofile.html';
+                } else {
+                    this.showAlert("Invalid Member ID/Email or Password.");
+                }
+            },
+
+            handleSignUpSubmit: async function(e) {
+                e.preventDefault();
+                if (!this.currentTenantId) {
+                    this.showAlert("A valid gym portal URL is required to sign up.");
+                    return;
+                }
+
+                await this.loadMembersFromStorage();
+
+                const name = document.getElementById('signup-name').value.trim();
+                const email = document.getElementById('signup-email').value.trim();
+                const phone = document.getElementById('signup-phone').value.trim();
+                const password = document.getElementById('signup-password').value;
+
+                const branchMembers = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') === this.currentTenantId || (this.matchedOwnerRecord && m.tenantToken === this.matchedOwnerRecord.token));
+
+                if (branchMembers.some(m => m.email.toLowerCase() === email.toLowerCase())) {
+                    this.showAlert("An account with this email already exists!");
+                    return;
+                }
+
+                const newMember = {
+                    id: 'MEM-' + Math.floor(1000 + Math.random() * 9000),
+                    tenantId: this.currentTenantId,
+                    tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    password: password,
+                    plan: 'Not Selected',
+                    walletBalance: 0,
+                    amount: 0,
+                    status: 'PENDING',
+                    dateJoined: new Date().toISOString().split('T')[0]
+                };
+
+                this.allMembersSystem.push(newMember);
+                await this.saveMembersToStorage();
+
+                document.getElementById('auth-signup-form').reset();
+                this.switchTab('SIGNIN');
+                this.showAlert("Account created successfully! Awaiting staff approval at the gym counter.", true);
+            },
+
+            handleForgotPassword: function(e) {
+                e.preventDefault();
+                this.showAlert("Password reset link sent! Please check with your gym counter staff.", true);
+            }
+        };
+
+        window.onload = async function() {
+            await app.init();
+        };
+    </script>
+</body>
+</html>

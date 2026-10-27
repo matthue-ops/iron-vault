@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Member Profile</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- QRCode.js library for dynamic QR code rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: 'var(--brand-primary)',
+                            600: 'var(--brand-primary)',
+                            700: 'var(--brand-primary)',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --brand-primary: #10b981;
+            --brand-primary-glow: rgba(16, 185, 129, 0.2);
+            --bg-base: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.75);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px var(--brand-primary-glow);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(1.05); }
+        }
+
+        .bg-glow-orb {
+            animation: pulseGlow 8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+
+    <!-- BACKGROUND GLOW EFFECTS -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="bg-glow-orb absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-30 bg-emerald-500"></div>
+        <div class="bg-glow-orb absolute top-1/2 -right-32 w-96 h-96 rounded-full blur-3xl opacity-20 bg-blue-500"></div>
+    </div>
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="header-logo-container" class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 overflow-hidden transition-all duration-300">
+                    <i id="header-logo-icon" class="fa-solid fa-dumbbell text-lg"></i>
+                    <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
+                </div>
+                <div>
+                    <span id="header-gym-name" class="font-black text-white text-base tracking-wider uppercase block">IRON VAULT GYM</span>
+                    <span id="header-badge" class="text-[10px] text-slate-400 font-mono">Member Profile Portal</span>
+                </div>
+            </div>
+
+            <!-- LOGOUT BUTTON -->
+            <button onclick="profileApp.logout()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
+                <span>Sign Out</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN PROFILE CONTAINER -->
+    <main class="relative z-10 flex-grow p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full">
+
+        <!-- Alert Notification Box -->
+        <div id="profile-alert" class="hidden max-w-2xl mx-auto mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-3 rounded-xl text-xs flex items-center gap-2 shadow-lg">
+            <i id="alert-icon" class="fa-solid fa-circle-check text-base flex-shrink-0"></i>
+            <span id="profile-alert-msg">Changes saved successfully.</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- LEFT COLUMN: DIGITAL PASS, PROFILE PIC & DAILY QR CODE -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass-card rounded-3xl p-6 shadow-2xl text-center space-y-5">
+                    
+                    <!-- HEADER BADGE -->
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                        <div class="text-left">
+                            <span class="text-[9px] uppercase font-bold tracking-widest text-emerald-400">Door Access Pass</span>
+                            <h3 id="profile-card-name" class="text-sm font-black text-white">Loading...</h3>
+                        </div>
+                        <span id="profile-card-status" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            ACTIVE
+                        </span>
+                    </div>
+
+                    <!-- PROFILE PICTURE CONTAINER -->
+                    <div class="relative inline-block group">
+                        <div class="w-24 h-24 rounded-2xl overflow-hidden border-2 border-emerald-500/40 bg-slate-900 mx-auto flex items-center justify-center text-slate-500 shadow-xl">
+                            <img id="avatar-img" src="" alt="Profile Picture" class="w-full h-full object-cover hidden">
+                            <i id="avatar-icon" class="fa-solid fa-user text-3xl"></i>
+                        </div>
+                        
+                        <!-- UPLOAD OVERLAY BUTTON -->
+                        <label class="absolute bottom-0 right-0 w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-lg hover:opacity-90 transition" title="Upload Profile Picture">
+                            <i class="fa-solid fa-camera text-xs"></i>
+                            <input type="file" accept="image/*" onchange="profileApp.handleAvatarUpload(event)" class="hidden">
+                        </label>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p id="profile-card-id" class="text-xs font-mono font-bold text-emerald-400">MEM-0000</p>
+                        <div id="profile-classification-badge-container">
+                            <!-- Dynamic Classification Tag Badge -->
+                        </div>
+                    </div>
+
+                    <!-- DAILY DYNAMIC QR CODE DISPLAY -->
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center space-y-3">
+                        <div id="qr-wrapper" class="hidden flex-col items-center space-y-2">
+                            <div id="qrcode-container" class="p-2 bg-white rounded-xl shadow-inner inline-block"></div>
+                            <span id="qr-date-badge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                Date: --
+                            </span>
+                            <p class="text-[10px] text-slate-400">Valid for entry today only</p>
+                        </div>
+
+                        <!-- GENERATE BUTTON -->
+                        <button id="btn-generate-qr" onclick="profileApp.generateDailyQR()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:opacity-90 text-slate-950 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-md">
+                            <i class="fa-solid fa-qrcode"></i>
+                            <span>Generate Today's QR</span>
+                        </button>
+                    </div>
+
+                    <!-- ACTIVE PLAN & EXPIRATION -->
+                    <div class="bg-slate-900/60 border border-slate-800 p-3 rounded-xl text-left space-y-1">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block mb-0.5">Active Membership Plan</span>
+                            <span id="profile-card-plan" class="text-xs font-bold text-white">Not Selected</span>
+                        </div>
+                        <div id="expiration-container" class="hidden pt-1 border-t border-slate-800/80">
+                            <span class="text-[9px] text-slate-400 block">Plan Expiration Date</span>
+                            <span id="profile-card-expiry" class="text-[11px] font-mono font-bold text-amber-400">--</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: ACCOUNT CREDITS, PLAN PURCHASE & PROFILE SETTINGS -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- 1. ACCOUNT CREDITS DISPLAY -->
+                <div class="glass-card rounded-3xl p-6 shadow-2xl space-y-3 border border-emerald-500/20 relative overflow-hidden">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-800/80 pb-3">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Vault Account Balance</span>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-wallet text-emerald-400"></i> Account Credits
+                            </h3>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <span class="text-[10px] text-slate-400 block">Available Balance</span>
+                            <span id="wallet-balance-display" class="text-2xl font-black text-emerald-400">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/60 border border-slate-800/80 p-3 rounded-xl flex items-center gap-3">
+                        <i class="fa-solid fa-circle-info text-emerald-400 text-base flex-shrink-0"></i>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">
+                            To add funds to your account credits, please pay directly at your gym counter. The staff will instantly top up your balance on the spot.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 2. MEMBERSHIP PLAN SELECTOR -->
+                <div class="glass-card rounded-3xl p-6 shadow-2xl space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-ticket text-emerald-400"></i> Purchase or Update Membership Plan
+                            </h3>
+                            <p class="text-xs text-slate-400">Select a training plan below. Your discount tag is applied automatically.</p>
+                        </div>
+                        <div id="discount-banner-indicator" class="hidden px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-tag"></i>
+                            <span id="discount-banner-text">20% Discount Applied</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <!-- DAY PASS CARD -->
+                        <div id="plan-card-daypass" onclick="profileApp.selectPlan('1-Day Pass')" class="border border-slate-700/80 bg-slate-900/80 p-4 rounded-2xl cursor-pointer hover:border-emerald-500 transition flex flex-col justify-between relative overflow-hidden">
+                            <div id="badge-daypass" class="hidden absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full">
+                                Current Plan
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-xs">Day Pass</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Single Entry Access</div>
+                            </div>
+                            <div class="mt-4">
+                                <div id="price-label-daypass" class="text-emerald-400 font-black text-sm">₱150</div>
+                                <div id="original-price-daypass" class="text-[10px] text-slate-500 line-through hidden">₱150</div>
+                            </div>
+                        </div>
+
+                        <!-- 1 WEEK PASS CARD -->
+                        <div id="plan-card-week" onclick="profileApp.selectPlan('1-Week Pass')" class="border border-slate-700/80 bg-slate-900/80 p-4 rounded-2xl cursor-pointer hover:border-emerald-500 transition flex flex-col justify-between relative overflow-hidden">
+                            <div id="badge-week" class="hidden absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full">
+                                Current Plan
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-xs">1-Week Pass</div>
+                                <div class="text-[10px] text-slate-400 mt-1">7 Days Access</div>
+                            </div>
+                            <div class="mt-4">
+                                <div id="price-label-week" class="text-emerald-400 font-black text-sm">₱700</div>
+                                <div id="original-price-week" class="text-[10px] text-slate-500 line-through hidden">₱700</div>
+                            </div>
+                        </div>
+
+                        <!-- 1 MONTH UNLIMITED CARD -->
+                        <div id="plan-card-month" onclick="profileApp.selectPlan('1-Month Unlimited')" class="border border-slate-700/80 bg-slate-900/80 p-4 rounded-2xl cursor-pointer hover:border-emerald-500 transition flex flex-col justify-between relative overflow-hidden">
+                            <div id="badge-month" class="hidden absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full">
+                                Current Plan
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-xs">1-Month Unlimited</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Unlimited Gym Access</div>
+                            </div>
+                            <div class="mt-4">
+                                <div id="price-label-month" class="text-emerald-400 font-black text-sm">₱2,500</div>
+                                <div id="original-price-month" class="text-[10px] text-slate-500 line-through hidden">₱2,500</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. EDIT PROFILE & CREDENTIALS FORM -->
+                <div class="glass-card rounded-3xl p-6 shadow-2xl space-y-4">
+                    <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-purple-400"></i> Personal Information & Security
+                    </h3>
+
+                    <form onsubmit="profileApp.handleProfileUpdate(event)" class="space-y-4 pt-1">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                                <input type="text" id="edit-name" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+                                <input type="email" id="edit-email" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Phone Number</label>
+                                <input type="tel" id="edit-phone" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New Password (Optional)</label>
+                                <input type="password" id="edit-password" placeholder="Leave blank to keep current" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button type="submit" class="px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg">
+                                Save Profile Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900">
+        <p>© 2026 Iron Vault Gym Access System • Member Portal</p>
+    </footer>
+
+    <!-- LOGIC CONTROLLER -->
+    <script>
+        const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
+        const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
+        const SESSION_KEY = 'ironvault_active_member';
+        const TOKEN_SESSION_KEY = 'ironvault_active_token';
+
+        window._facilityPricing = {
+            day: 150,
+            week: 700,
+            month: 2500,
+            studentDiscount: 20,
+            seniorDiscount: 20
+        };
+
+        function applyDynamicThemeFromLogo(logoBase64) {
+            if (!logoBase64) return;
+
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = logoBase64;
+
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                let rSum = 0, gSum = 0, bSum = 0, count = 0;
+
+                for (let i = 0; i < imageData.length; i += 16) {
+                    const r = imageData[i];
+                    const g = imageData[i + 1];
+                    const b = imageData[i + 2];
+                    const alpha = imageData[i + 3];
+
+                    if (alpha > 128 && !(r > 240 && g > 240 && b > 240) && !(r < 15 && g < 15 && b < 15)) {
+                        rSum += r;
+                        gSum += g;
+                        bSum += b;
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    const avgR = Math.round(rSum / count);
+                    const avgG = Math.round(gSum / count);
+                    const avgB = Math.round(bSum / count);
+                    const hexColor = `#${((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1)}`;
+
+                    document.documentElement.style.setProperty('--brand-primary', hexColor);
+                    document.documentElement.style.setProperty('--brand-primary-glow', `${hexColor}33`);
+
+                    const headerLogoWrap = document.getElementById('header-logo-container');
+                    if (headerLogoWrap) {
+                        headerLogoWrap.style.borderColor = hexColor;
+                        headerLogoWrap.style.boxShadow = `0 0 12px ${hexColor}40`;
+                    }
+                }
+            };
+        }
+
+        const profileApp = {
+            allMembersSystem: [],
+            members: [],
+            currentMember: null,
+
+            init: async function() {
+                await this.loadData();
+                await this.checkSession();
+            },
+
+            loadData: async function() {
+                let loadedMembers = [];
+                try {
+                    const { data, error } = await supabaseClient.from('members').select('*');
+                    if (!error && data) {
+                        loadedMembers = data.map(m => ({
+                            id: m.id,
+                            tenantId: m.tenant_id,
+                            tenantToken: m.tenant_token,
+                            name: m.name,
+                            email: m.email,
+                            phone: m.phone,
+                            password: m.password,
+                            classification: m.classification,
+                            discountPercentage: m.discount_percentage,
+                            plan: m.plan,
+                            cardBarcode: m.card_barcode,
+                            walletBalance: m.wallet_balance,
+                            amount: m.amount,
+                            scansUsed: m.scans_used,
+                            lastScannedDate: m.last_scanned_date,
+                            expirationDate: m.expiration_date,
+                            status: m.status,
+                            dateJoined: m.date_joined,
+                            avatar: m.avatar
+                        }));
+                    }
+                } catch(e) {}
+
+                if (loadedMembers.length === 0) {
+                    const data = localStorage.getItem(MEMBERS_STORAGE_KEY);
+                    if (data) {
+                        try { loadedMembers = JSON.parse(data); } catch(e) {}
+                    }
+                }
+
+                this.allMembersSystem = loadedMembers;
+            },
+
+            saveData: async function() {
+                if (!this.currentMember) return;
+                const activeId = this.currentMember.tenantId || 'GYM-001';
+                const otherTenantMembers = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') !== activeId);
+                const currentTenantMembers = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') === activeId);
+
+                const index = currentTenantMembers.findIndex(m => m.id === this.currentMember.id);
+                if (index >= 0) {
+                    currentTenantMembers[index] = this.currentMember;
+                } else {
+                    currentTenantMembers.push(this.currentMember);
+                }
+
+                this.allMembersSystem = [...otherTenantMembers, ...currentTenantMembers];
+                localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(this.allMembersSystem));
+
+                try {
+                    await supabaseClient.from('members').upsert({
+                        id: this.currentMember.id,
+                        tenant_id: this.currentMember.tenantId,
+                        tenant_token: this.currentMember.tenantToken,
+                        name: this.currentMember.name,
+                        email: this.currentMember.email,
+                        phone: this.currentMember.phone,
+                        password: this.currentMember.password,
+                        classification: this.currentMember.classification || 'Regular',
+                        discount_percentage: this.currentMember.discountPercentage || 0,
+                        plan: this.currentMember.plan || 'Not Selected',
+                        card_barcode: this.currentMember.cardBarcode,
+                        wallet_balance: this.currentMember.walletBalance || 0,
+                        amount: this.currentMember.amount || 0,
+                        scans_used: this.currentMember.scansUsed || 0,
+                        last_scanned_date: this.currentMember.lastScannedDate,
+                        expiration_date: this.currentMember.expirationDate,
+                        status: this.currentMember.status || 'ACTIVE',
+                        date_joined: this.currentMember.dateJoined,
+                        avatar: this.currentMember.avatar
+                    });
+                } catch(e) {}
+            },
+
+            checkSession: async function() {
+                const activeId = sessionStorage.getItem(SESSION_KEY);
+                if (!activeId) {
+                    this.redirectWithToken();
+                    return;
+                }
+
+                this.currentMember = this.allMembersSystem.find(m => m.id === activeId || m.email === activeId);
+                if (!this.currentMember) {
+                    this.redirectWithToken();
+                    return;
+                }
+
+                if (typeof this.currentMember.walletBalance === 'undefined') {
+                    this.currentMember.walletBalance = 0;
+                }
+
+                // Check if plan has expired; if so, clear active plan state
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
+                if (this.currentMember.expirationDate && todayStr > this.currentMember.expirationDate) {
+                    this.currentMember.plan = 'Not Selected';
+                    this.currentMember.expirationDate = null;
+                    await this.saveData();
+                }
+
+                await this.loadTenantBrandingAndPricing();
+                this.renderProfile();
+            },
+
+            loadTenantBrandingAndPricing: async function() {
+                const tenantId = this.currentMember.tenantId || 'GYM-001';
+                let loadedOwners = [];
+
+                try {
+                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    if (!error && data) {
+                        loadedOwners = data.map(o => ({
+                            id: o.id,
+                            gymName: o.gym_name,
+                            ownerName: o.owner_name,
+                            email: o.email,
+                            password: o.password,
+                            token: o.token,
+                            logo: o.logo,
+                            status: o.status,
+                            pricing: o.pricing,
+                            staff: o.staff,
+                            auditLogs: o.audit_logs,
+                            dateCreated: o.date_created
+                        }));
+                    }
+                } catch(e) {}
+
+                if (loadedOwners.length === 0) {
+                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
+                    if (ownersData) {
+                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
+                    }
+                }
+
+                if (loadedOwners.length > 0) {
+                    const owner = loadedOwners.find(o => o.id === tenantId || (this.currentMember.tenantToken && o.token === this.currentMember.tenantToken));
+                    if (owner) {
+                        sessionStorage.setItem(TOKEN_SESSION_KEY, owner.token);
+
+                        document.getElementById('header-gym-name').innerText = owner.gymName;
+                        document.getElementById('header-badge').innerText = `Member Portal`;
+                        document.getElementById('page-title').innerText = `${owner.gymName} - Member Profile`;
+
+                        if (owner.pricing) {
+                            window._facilityPricing = {
+                                day: owner.pricing.day !== undefined ? Number(owner.pricing.day) : 150,
+                                week: owner.pricing.week !== undefined ? Number(owner.pricing.week) : 700,
+                                month: owner.pricing.month !== undefined ? Number(owner.pricing.month) : 2500,
+                                studentDiscount: owner.pricing.studentDiscount !== undefined ? Number(owner.pricing.studentDiscount) : 20,
+                                seniorDiscount: owner.pricing.seniorDiscount !== undefined ? Number(owner.pricing.seniorDiscount) : 20
+                            };
+                        }
+
+                        if (owner.logo) {
+                            const headerImg = document.getElementById('header-logo-img');
+                            const headerIcon = document.getElementById('header-logo-icon');
+                            headerImg.src = owner.logo;
+                            headerImg.classList.remove('hidden');
+                            headerIcon.classList.add('hidden');
+
+                            applyDynamicThemeFromLogo(owner.logo);
+                        }
+                        this.updatePricingUI();
+                        return;
+                    }
+                }
+
+                document.getElementById('header-gym-name').innerText = "IRON VAULT GYM";
+                document.getElementById('header-badge').innerText = "Member Portal";
+                this.updatePricingUI();
+            },
+
+            getEffectiveDiscount: function() {
+                const m = this.currentMember;
+                if (!m) return 0;
+                if (m.discountPercentage !== undefined && m.discountPercentage !== null) {
+                    return Number(m.discountPercentage);
+                }
+                const classification = m.classification || 'Regular';
+                const p = window._facilityPricing;
+                if (classification === 'Student') {
+                    return p.studentDiscount !== undefined ? p.studentDiscount : 20;
+                } else if (classification === 'Senior') {
+                    return p.seniorDiscount !== undefined ? p.seniorDiscount : 20;
+                }
+                return 0;
+            },
+
+            updatePricingUI: function() {
+                const p = window._facilityPricing;
+                const classification = this.currentMember?.classification || 'Regular';
+                const discountPct = this.getEffectiveDiscount();
+
+                const banner = document.getElementById('discount-banner-indicator');
+                const bannerText = document.getElementById('discount-banner-text');
+                if (classification !== 'Regular' && discountPct > 0) {
+                    banner.classList.remove('hidden');
+                    bannerText.innerText = `${discountPct}% ${classification} Discount Applied`;
+                } else {
+                    banner.classList.add('hidden');
+                }
+
+                const calcDiscounted = (basePrice) => {
+                    if (discountPct <= 0) return basePrice;
+                    return Math.round(basePrice * (1 - (discountPct / 100)));
+                };
+
+                const plans = [
+                    { key: 'daypass', base: p.day },
+                    { key: 'week', base: p.week },
+                    { key: 'month', base: p.month }
+                ];
+
+                plans.forEach(plan => {
+                    const finalPrice = calcDiscounted(plan.base);
+                    const labelElem = document.getElementById(`price-label-${plan.key}`);
+                    const origElem = document.getElementById(`original-price-${plan.key}`);
+
+                    if (labelElem) labelElem.innerText = `₱${finalPrice.toLocaleString()}`;
+                    if (origElem) {
+                        if (discountPct > 0) {
+                            origElem.innerText = `₱${plan.base.toLocaleString()}`;
+                            origElem.classList.remove('hidden');
+                        } else {
+                            origElem.classList.add('hidden');
+                        }
+                    }
+                });
+            },
+
+            renderProfile: function() {
+                const m = this.currentMember;
+
+                document.getElementById('profile-card-name').innerText = m.name;
+                document.getElementById('profile-card-id').innerText = m.id;
+                document.getElementById('profile-card-plan').innerText = m.plan || 'Not Selected';
+                
+                const statusBadge = document.getElementById('profile-card-status');
+                statusBadge.innerText = m.status || 'ACTIVE';
+
+                const classification = m.classification || 'Regular';
+                const discountPct = this.getEffectiveDiscount();
+                const badgeContainer = document.getElementById('profile-classification-badge-container');
+                if (classification !== 'Regular') {
+                    badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/35">${classification} (${discountPct}%)</span>`;
+                } else {
+                    badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">Regular</span>`;
+                }
+
+                const expiryContainer = document.getElementById('expiration-container');
+                const expiryElem = document.getElementById('profile-card-expiry');
+                if (m.expirationDate) {
+                    expiryElem.innerText = m.expirationDate;
+                    expiryContainer.classList.remove('hidden');
+                } else {
+                    expiryContainer.classList.add('hidden');
+                }
+
+                const walletBalance = m.walletBalance || 0;
+                document.getElementById('wallet-balance-display').innerText = `₱${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                this.updatePlanCardBadges(m.plan);
+                this.updatePricingUI();
+
+                const imgElem = document.getElementById('avatar-img');
+                const iconElem = document.getElementById('avatar-icon');
+                if (m.avatar) {
+                    imgElem.src = m.avatar;
+                    imgElem.classList.remove('hidden');
+                    iconElem.classList.add('hidden');
+                } else {
+                    imgElem.classList.add('hidden');
+                    iconElem.classList.remove('hidden');
+                }
+
+                document.getElementById('edit-name').value = m.name;
+                document.getElementById('edit-email').value = m.email;
+                document.getElementById('edit-phone').value = m.phone || '';
+            },
+
+            updatePlanCardBadges: function(currentPlan) {
+                const cards = ['daypass', 'week', 'month'];
+                cards.forEach(key => {
+                    const cardElem = document.getElementById(`plan-card-${key}`);
+                    const badgeElem = document.getElementById(`badge-${key}`);
+                    if (cardElem) cardElem.classList.remove('border-emerald-500', 'bg-emerald-500/10');
+                    if (badgeElem) badgeElem.classList.add('hidden');
+                });
+
+                let planKey = null;
+                if (currentPlan === '1-Day Pass') planKey = 'daypass';
+                else if (currentPlan === '1-Week Pass') planKey = 'week';
+                else if (currentPlan === '1-Month Unlimited') planKey = 'month';
+
+                if (planKey) {
+                    document.getElementById(`plan-card-${planKey}`)?.classList.add('border-emerald-500', 'bg-emerald-500/10');
+                    document.getElementById(`badge-${planKey}`)?.classList.remove('hidden');
+                }
+            },
+
+            selectPlan: async function(planName) {
+                if (!this.currentMember) return;
+
+                const currentPlan = this.currentMember.plan;
+                if (currentPlan && currentPlan !== 'Not Selected') {
+                    this.showAlert(`You are already subscribed to the ${currentPlan} plan. Plan changes are restricted once subscribed.`, false);
+                    return;
+                }
+
+                const confirmChoice = confirm(`Are you sure you want to subscribe to the ${planName}?`);
+                if (!confirmChoice) {
+                    return;
+                }
+
+                const p = window._facilityPricing;
+                let baseCost = 150;
+                if (planName === '1-Day Pass') baseCost = p.day;
+                else if (planName === '1-Week Pass') baseCost = p.week;
+                else if (planName === '1-Month Unlimited') baseCost = p.month;
+
+                const discountPct = this.getEffectiveDiscount();
+                const cost = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
+
+                const currentWallet = this.currentMember.walletBalance || 0;
+
+                if (currentWallet < cost) {
+                    this.showAlert(`Insufficient account credits! Plan costs ₱${cost.toLocaleString()} but your balance is ₱${currentWallet.toLocaleString()}. Please pay at the counter to add credits.`, false);
+                    return;
+                }
+
+                const today = new Date();
+                let expiryDate = new Date();
+                if (planName === '1-Day Pass') {
+                    expiryDate.setDate(today.getDate());
+                } else if (planName === '1-Week Pass') {
+                    expiryDate.setDate(today.getDate() + 7);
+                } else if (planName === '1-Month Unlimited') {
+                    expiryDate.setDate(today.getDate() + 30);
+                }
+
+                this.currentMember.walletBalance = currentWallet - cost;
+                this.currentMember.plan = planName;
+                this.currentMember.amount = (this.currentMember.amount || 0) + cost;
+                this.currentMember.expirationDate = expiryDate.toISOString().split('T')[0];
+
+                await this.saveData();
+                this.renderProfile();
+                this.showAlert(`Plan updated! Deducted ₱${cost.toLocaleString()} from account credits. Subscribed to ${planName} until ${this.currentMember.expirationDate}.`, true);
+            },
+
+            handleAvatarUpload: async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const base64Img = event.target.result;
+                    this.currentMember.avatar = base64Img;
+
+                    await this.saveData();
+                    this.renderProfile();
+                    this.showAlert("Profile picture updated successfully!", true);
+                };
+                reader.readAsDataURL(file);
+            },
+
+            generateDailyQR: async function() {
+                if (!this.currentMember) return;
+
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
+                if (!this.currentMember.plan || this.currentMember.plan === 'Not Selected') {
+                    this.showAlert("Please select a membership plan first before generating a pass.", false);
+                    return;
+                }
+
+                if (!this.currentMember.expirationDate || todayStr > this.currentMember.expirationDate) {
+                    let newExpiry = new Date();
+                    if (this.currentMember.plan === '1-Month Unlimited') {
+                        newExpiry.setDate(now.getDate() + 30);
+                    } else if (this.currentMember.plan === '1-Week Pass') {
+                        newExpiry.setDate(now.getDate() + 7);
+                    } else {
+                        newExpiry.setDate(now.getDate());
+                    }
+                    this.currentMember.expirationDate = newExpiry.toISOString().split('T')[0];
+                    await this.saveData();
+                    this.renderProfile();
+                }
+
+                if (this.currentMember.lastScannedDate === todayStr) {
+                    this.showAlert("Warning: Your QR code for today has already been used for entry!", false);
+                    return;
+                }
+
+                const qrPayload = `${this.currentMember.id}|${todayStr}`;
+
+                const qrcodeContainer = document.getElementById('qrcode-container');
+                qrcodeContainer.innerHTML = '';
+
+                new QRCode(qrcodeContainer, {
+                    text: qrPayload,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                document.getElementById('qr-date-badge').innerText = `Date: ${todayStr}`;
+                document.getElementById('qr-wrapper').classList.remove('hidden');
+                document.getElementById('qr-wrapper').classList.add('flex');
+                document.getElementById('btn-generate-qr').innerText = "Regenerate Today's QR";
+            },
+
+            handleProfileUpdate: async function(e) {
+                e.preventDefault();
+                if (!this.currentMember) return;
+
+                const name = document.getElementById('edit-name').value.trim();
+                const email = document.getElementById('edit-email').value.trim();
+                const phone = document.getElementById('edit-phone').value.trim();
+                const password = document.getElementById('edit-password').value;
+
+                this.currentMember.name = name;
+                this.currentMember.email = email;
+                this.currentMember.phone = phone;
+                if (password && password.length >= 6) {
+                    this.currentMember.password = password;
+                }
+
+                await this.saveData();
+                this.renderProfile();
+                this.showAlert("Profile information updated successfully!", true);
+                document.getElementById('edit-password').value = '';
+            },
+
+            showAlert: function(msg, isSuccess = true) {
+                const alertBox = document.getElementById('profile-alert');
+                const alertMsg = document.getElementById('profile-alert-msg');
+                const alertIcon = document.getElementById('alert-icon');
+
+                alertMsg.innerText = msg;
+                alertBox.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+
+                if (isSuccess) {
+                    alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+                    alertIcon.className = "fa-solid fa-circle-check text-base flex-shrink-0";
+                } else {
+                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+                    alertIcon.className = "fa-solid fa-circle-exclamation text-base flex-shrink-0";
+                }
+
+                setTimeout(() => {
+                    alertBox.classList.add('hidden');
+                }, 5000);
+            },
+
+            redirectWithToken: function() {
+                const token = sessionStorage.getItem(TOKEN_SESSION_KEY) || (this.currentMember ? this.currentMember.tenantToken : null);
+                sessionStorage.removeItem(SESSION_KEY);
+                sessionStorage.removeItem(TOKEN_SESSION_KEY);
+
+                if (token) {
+                    window.location.href = `memberlogin.html?key=${token}`;
+                } else {
+                    window.location.href = 'memberlogin.html';
+                }
+            },
+
+            logout: function() {
+                this.redirectWithToken();
+            }
+        };
+
+        window.onload = function() {
+            profileApp.init();
+        };
+    </script>
+</body>
+</html>
