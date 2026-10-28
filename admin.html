@@ -448,7 +448,7 @@
                     <i class="fa-solid fa-user-plus text-xl"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white">Express Walk-In Registration</h3>
-                <p class="text-xs text-slate-400">Quick counter registration for walk-in members (Email optional)</p>
+                <p class="text-xs text-slate-400">Quick counter registration for walk-in members (Registration only)</p>
             </div>
 
             <form onsubmit="adminApp.handleAdminAddMember(event)" class="space-y-3 text-xs">
@@ -485,11 +485,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Initial Plan</label>
-                        <select id="new-member-plan" onchange="adminApp.updateAddMemberCostSummary()" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none bg-slate-900">
+                        <select id="new-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none bg-slate-900">
+                            <option value="Not Selected">Not Selected</option>
                             <option value="1-Day Pass">1-Day Pass</option>
                             <option value="1-Week Pass">1-Week Pass</option>
                             <option value="1-Month Unlimited">1-Month Unlimited</option>
-                            <option value="Not Selected">Not Selected</option>
                         </select>
                     </div>
                     <div>
@@ -503,14 +503,9 @@
                     <input type="text" id="new-member-password" value="gym12345" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
                 </div>
 
-                <div id="add-member-cost-summary" class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                    <span class="text-slate-400">Total Cash Collected:</span>
-                    <span id="add-member-cost-val" class="font-bold text-emerald-400 text-sm">₱150</span>
-                </div>
-
                 <div class="flex gap-2 pt-1">
                     <button type="submit" class="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:bg-emerald-400 transition shadow-lg">
-                        Register & Admit Instantly
+                        Register Member
                     </button>
                 </div>
             </form>
@@ -621,102 +616,118 @@
                 </div>
             </div>
 
-            <form onsubmit="adminApp.handleSaveMemberDetails(event)" class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3 text-xs">
-                <h4 class="font-bold text-white text-xs flex items-center gap-1.5 border-b border-slate-800 pb-2">
-                    <i class="fa-solid fa-user-pen text-blue-400"></i> Edit Member Information & Classification
-                </h4>
+            <!-- COLLAPSIBLE EDIT MEMBER INFO -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <button type="button" onclick="adminApp.toggleProfileSection('edit-info-section')" class="w-full p-4 text-left font-bold text-white text-xs flex items-center justify-between hover:bg-slate-800/50 transition">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-blue-400"></i> Edit Member Information & Classification
+                    </span>
+                    <i id="edit-info-section-icon" class="fa-solid fa-chevron-down text-slate-400"></i>
+                </button>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Full Name</label>
-                        <input type="text" id="edit-member-name" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Email Address</label>
-                        <input type="email" id="edit-member-email" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                    </div>
+                <div id="edit-info-section" class="hidden p-4 pt-0 space-y-3 text-xs border-t border-slate-800/60 mt-1">
+                    <form onsubmit="adminApp.handleSaveMemberDetails(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Full Name</label>
+                                <input type="text" id="edit-member-name" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Email Address</label>
+                                <input type="email" id="edit-member-email" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Phone Number</label>
+                                <input type="tel" id="edit-member-phone" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Membership Plan</label>
+                                <select id="edit-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
+                                    <option value="Not Selected">Not Selected</option>
+                                    <option value="1-Day Pass">1-Day Pass</option>
+                                    <option value="1-Week Pass">1-Week Pass</option>
+                                    <option value="1-Month Unlimited">1-Month Unlimited</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Classification</label>
+                                <select id="edit-member-classification" onchange="adminApp.onClassificationChange('edit')" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
+                                    <option value="Regular">Regular</option>
+                                    <option value="Student">Student</option>
+                                    <option value="Senior">Senior</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Discount %</label>
+                                <input type="number" id="edit-member-discount" min="0" max="100" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Physical Card / Barcode</label>
+                                <input type="text" id="edit-member-barcode" placeholder="e.g. CARD-9988" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Expiration Date</label>
+                                <input type="date" id="edit-member-expiry" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">Status</label>
+                            <select id="edit-member-status" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="PENDING">PENDING</option>
+                                <option value="INACTIVE">INACTIVE</option>
+                            </select>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider transition shadow-md flex items-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <span>Save Member Details</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Phone Number</label>
-                        <input type="tel" id="edit-member-phone" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Membership Plan</label>
-                        <select id="edit-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
-                            <option value="Not Selected">Not Selected</option>
-                            <option value="1-Day Pass">1-Day Pass</option>
-                            <option value="1-Week Pass">1-Week Pass</option>
-                            <option value="1-Month Unlimited">1-Month Unlimited</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Classification</label>
-                        <select id="edit-member-classification" onchange="adminApp.onClassificationChange('edit')" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
-                            <option value="Regular">Regular</option>
-                            <option value="Student">Student</option>
-                            <option value="Senior">Senior</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Discount %</label>
-                        <input type="number" id="edit-member-discount" min="0" max="100" required class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Physical Card / Barcode</label>
-                        <input type="text" id="edit-member-barcode" placeholder="e.g. CARD-9988" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Expiration Date</label>
-                        <input type="date" id="edit-member-expiry" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] text-slate-400 mb-1">Status</label>
-                    <select id="edit-member-status" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="PENDING">PENDING</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                    </select>
-                </div>
-
-                <div class="flex justify-end pt-2">
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider transition shadow-md flex items-center gap-1.5">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Save Member Details</span>
-                    </button>
-                </div>
-            </form>
-
-            <div class="bg-slate-900/70 border border-purple-500/20 p-3.5 rounded-2xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+            <!-- COLLAPSIBLE REGISTERED PASSWORD -->
+            <div class="bg-slate-900/70 border border-purple-500/20 rounded-2xl overflow-hidden">
+                <button type="button" onclick="adminApp.toggleProfileSection('password-section')" class="w-full p-3.5 text-left font-bold text-purple-300 text-xs flex items-center justify-between hover:bg-slate-800/50 transition">
+                    <span class="flex items-center gap-2">
                         <i class="fa-solid fa-key"></i> Registered Password
                     </span>
-                    <button onclick="adminApp.togglePasswordVisibility()" class="text-[11px] text-purple-400 hover:text-purple-300 transition flex items-center gap-1">
-                        <i id="eye-icon" class="fa-solid fa-eye"></i>
-                        <span id="eye-label">Show Password</span>
-                    </button>
-                </div>
+                    <i id="password-section-icon" class="fa-solid fa-chevron-down text-slate-400"></i>
+                </button>
 
-                <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 font-mono text-xs text-amber-300 flex items-center justify-between">
-                    <span id="modal-password-text">••••••••</span>
-                    <span class="text-[9px] text-slate-500 uppercase tracking-wider font-sans">Plaintext View</span>
-                </div>
+                <div id="password-section" class="hidden p-3.5 pt-0 space-y-2 border-t border-purple-500/20 mt-1">
+                    <div class="flex items-center justify-between pt-2">
+                        <span class="text-[11px] text-slate-400">View or Change Security Password</span>
+                        <button onclick="adminApp.togglePasswordVisibility()" class="text-[11px] text-purple-400 hover:text-purple-300 transition flex items-center gap-1">
+                            <i id="eye-icon" class="fa-solid fa-eye"></i>
+                            <span id="eye-label">Show Password</span>
+                        </button>
+                    </div>
 
-                <div class="flex gap-2 pt-1">
-                    <input type="text" id="modal-reset-pass-input" placeholder="Enter new password to reset..." class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                    <button onclick="adminApp.handleAdminResetPassword()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] uppercase transition flex-shrink-0">
-                        Reset Pass
-                    </button>
+                    <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 font-mono text-xs text-amber-300 flex items-center justify-between">
+                        <span id="modal-password-text">••••••••</span>
+                        <span class="text-[9px] text-slate-500 uppercase tracking-wider font-sans">Plaintext View</span>
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <input type="text" id="modal-reset-pass-input" placeholder="Enter new password to reset..." class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <button onclick="adminApp.handleAdminResetPassword()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] uppercase transition flex-shrink-0">
+                            Reset Pass
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -737,41 +748,59 @@
 
             <div class="text-center space-y-1">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 mb-1">
-                    <i class="fa-solid fa-user-plus text-xl"></i>
+                    <i class="fa-solid fa-users-gear text-xl"></i>
                 </div>
-                <h3 class="text-lg font-bold text-white">Register New Staff Account</h3>
-                <p class="text-xs text-slate-400">Create login credentials for desk staff</p>
+                <h3 class="text-lg font-bold text-white">Staff Management</h3>
+                <p class="text-xs text-slate-400">Register new staff or manage active staff accounts</p>
             </div>
 
-            <form onsubmit="adminApp.handleStaffSignup(event)" class="space-y-3.5 text-xs">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Full Name</label>
-                    <input type="text" id="staff-reg-name" required placeholder="Staff Name" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                </div>
+            <!-- TAB SWITCHER BUTTONS -->
+            <div class="flex bg-slate-900 p-1 rounded-2xl border border-slate-800 gap-1">
+                <button id="staff-tab-register" onclick="adminApp.switchStaffTab('register')" class="w-1/2 py-2 rounded-xl font-bold text-xs transition bg-amber-500 text-slate-950 shadow">
+                    Register New Staff
+                </button>
+                <button id="staff-tab-list" onclick="adminApp.switchStaffTab('list')" class="w-1/2 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
+                    Registered Staff
+                </button>
+            </div>
 
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Login Email</label>
-                    <input type="email" id="staff-reg-email" required placeholder="staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                </div>
+            <!-- REGISTER STAFF CONTENT TAB -->
+            <div id="staff-content-register" class="space-y-3.5">
+                <form onsubmit="adminApp.handleStaffSignup(event)" class="space-y-3.5 text-xs">
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Full Name</label>
+                        <input type="text" id="staff-reg-name" required placeholder="Staff Name" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
 
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Password</label>
-                    <input type="password" id="staff-reg-password" required minlength="6" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Login Email</label>
+                        <input type="email" id="staff-reg-email" required placeholder="staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
 
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="adminApp.closeStaffSignupModal()" class="w-1/2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
-                        Cancel
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Password</label>
+                        <input type="password" id="staff-reg-password" required minlength="6" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="adminApp.closeStaffSignupModal()" class="w-1/2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
+                            Cancel
+                        </button>
+                        <button type="submit" class="w-1/2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
+                            Create Staff
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- REGISTERED STAFF CONTENT TAB -->
+            <div id="staff-content-list" class="hidden space-y-2">
+                <div id="existing-staff-list" class="max-h-60 overflow-y-auto space-y-2 text-xs touch-scroll"></div>
+                <div class="pt-2">
+                    <button type="button" onclick="adminApp.closeStaffSignupModal()" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
+                        Close
                     </button>
-                    <button type="submit" class="w-1/2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
-                        Create Staff
-                    </button>
                 </div>
-            </form>
-
-            <div class="pt-4 border-t border-slate-800 space-y-2">
-                <h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Registered Staff</h4>
-                <div id="existing-staff-list" class="max-h-48 overflow-y-auto space-y-2 text-xs touch-scroll"></div>
             </div>
         </div>
     </div>
@@ -1030,30 +1059,6 @@
                 } else {
                     discountInput.value = 0;
                 }
-
-                if (mode === 'new') {
-                    this.updateAddMemberCostSummary();
-                }
-            },
-
-            updateAddMemberCostSummary: function() {
-                const planSelect = document.getElementById('new-member-plan');
-                const discountInput = document.getElementById('new-member-discount');
-                const costValElem = document.getElementById('add-member-cost-val');
-
-                if (!planSelect || !costValElem) return;
-
-                const pricing = this.matchedOwnerRecord?.pricing || { day: 150, week: 700, month: 2500 };
-                const plan = planSelect.value;
-                const discountPct = parseFloat(discountInput ? discountInput.value : 0) || 0;
-
-                let baseCost = 0;
-                if (plan === '1-Day Pass') baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
-                else if (plan === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
-                else if (plan === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
-
-                const finalCost = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
-                costValElem.innerText = `₱${finalCost.toLocaleString()}`;
             },
 
             checkExistingSession: function() {
@@ -1152,6 +1157,26 @@
                 } catch(e) {}
             },
 
+            switchStaffTab: function(tab) {
+                const regTab = document.getElementById('staff-tab-register');
+                const listTab = document.getElementById('staff-tab-list');
+                const regContent = document.getElementById('staff-content-register');
+                const listContent = document.getElementById('staff-content-list');
+
+                if (tab === 'register') {
+                    regTab.className = "w-1/2 py-2 rounded-xl font-bold text-xs transition bg-amber-500 text-slate-950 shadow";
+                    listTab.className = "w-1/2 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white";
+                    regContent.classList.remove('hidden');
+                    listContent.classList.add('hidden');
+                } else {
+                    listTab.className = "w-1/2 py-2 rounded-xl font-bold text-xs transition bg-amber-500 text-slate-950 shadow";
+                    regTab.className = "w-1/2 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white";
+                    listContent.classList.remove('hidden');
+                    regContent.classList.add('hidden');
+                    this.renderExistingStaffList();
+                }
+            },
+
             openStaffSignupModal: async function() {
                 if (!this.currentTenantId) return;
 
@@ -1186,6 +1211,7 @@
                     }
                 }
 
+                this.switchStaffTab('register');
                 this.renderExistingStaffList();
                 document.getElementById('staff-signup-modal').classList.remove('hidden');
             },
@@ -1251,14 +1277,13 @@
                 document.getElementById('staff-reg-name').value = '';
                 document.getElementById('staff-reg-email').value = '';
                 document.getElementById('staff-reg-password').value = '';
-                this.renderExistingStaffList();
+                this.switchStaffTab('list');
             },
 
             toggleStaffAdminPrivilege: async function(idx) {
-                if (!this.matchedOwnerRecord || !this.matchedOwnerRecord.staff) return;
-                const staffMember = this.matchedOwnerRecord.staff[idx];
+                if (!this.matchedOwnerRecord || !this.matchedOwnerRecord.staff || !this.matchedOwnerRecord.staff[idx]) return;
                 
-                // Toggle isAdmin property (vice versa)
+                const staffMember = this.matchedOwnerRecord.staff[idx];
                 staffMember.isAdmin = !staffMember.isAdmin;
 
                 const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
@@ -1296,7 +1321,7 @@
             renderExistingStaffList: function() {
                 const container = document.getElementById('existing-staff-list');
                 if (!this.matchedOwnerRecord || !this.matchedOwnerRecord.staff || this.matchedOwnerRecord.staff.length === 0) {
-                    container.innerHTML = `<p class="text-slate-500 italic">No staff accounts registered yet.</p>`;
+                    container.innerHTML = `<p class="text-slate-500 italic p-3 text-center">No staff accounts registered yet.</p>`;
                     return;
                 }
 
@@ -1859,7 +1884,6 @@
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 
                 member.plan = selectedPlanName;
-                // FIX: Report total amount received as the plan's cost (collectedAmount), not adding credits + cash
                 member.amount = (member.amount || 0) + collectedAmount;
                 member.dateJoined = todayStr;
                 member.expirationDate = expiryDate.toISOString().split('T')[0];
@@ -1913,11 +1937,10 @@
                 document.getElementById('new-member-email').value = '';
                 document.getElementById('new-member-classification').value = 'Regular';
                 document.getElementById('new-member-discount').value = 0;
-                document.getElementById('new-member-plan').value = '1-Day Pass';
+                document.getElementById('new-member-plan').value = 'Not Selected';
                 document.getElementById('new-member-barcode').value = '';
                 document.getElementById('new-member-password').value = 'gym12345';
                 
-                this.updateAddMemberCostSummary();
                 document.getElementById('add-member-modal').classList.remove('hidden');
             },
 
@@ -1948,14 +1971,6 @@
                     return;
                 }
 
-                const pricing = this.matchedOwnerRecord?.pricing || { day: 150, week: 700, month: 2500 };
-                let baseCost = 0;
-                if (plan === '1-Day Pass') baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
-                else if (plan === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
-                else if (plan === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
-
-                const collectedAmount = (plan === 'Not Selected') ? 0 : (discountPercentage > 0 ? Math.round(baseCost * (1 - (discountPercentage / 100))) : baseCost);
-
                 const now = new Date();
                 let expiryDate = new Date();
                 if (plan === '1-Day Pass') expiryDate.setDate(now.getDate());
@@ -1970,13 +1985,13 @@
                     tenantId: this.currentTenantId,
                     tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
                     name, email, phone, password, classification, discountPercentage, plan, cardBarcode,
-                    walletBalance: 0, // Express Walk-In is exclusively for registration & pass purchase; topping up credit can be done through member account viewing.
-                    amount: collectedAmount,
-                    scansUsed: plan === 'Not Selected' ? 0 : 1,
-                    lastScannedDate: plan === 'Not Selected' ? null : todayStr,
+                    walletBalance: 0,
+                    amount: 0,
+                    scansUsed: 0,
+                    lastScannedDate: null,
                     expirationDate: expiryDate ? expiryDate.toISOString().split('T')[0] : null,
                     status: 'ACTIVE',
-                    dateJoined: plan === 'Not Selected' ? null : todayStr
+                    dateJoined: todayStr
                 };
 
                 this.allMembersSystem.push(newMember);
@@ -1985,8 +2000,8 @@
                 
                 this.closeAddMemberModal();
                 await this.loadMembers();
-                this.logAudit('Express Walk-In', `Registered & admitted walk-in ${name} (${newMember.id}) - Collected ₱${collectedAmount}`);
-                alert(`EXPRESS ENTRY SUCCESS!\n\nRegistered ${name} (${newMember.id})\nPlan: ${plan}\nPayment: ₱${collectedAmount}\nStatus: ACTIVE & Admitted Today!`);
+                this.logAudit('Express Walk-In', `Registered member ${name} (${newMember.id})`);
+                alert(`MEMBER REGISTRATION SUCCESS!\n\nRegistered ${name} (${newMember.id})\nPlan: ${plan}\nStatus: ACTIVE`);
             },
 
             quickApproveMember: async function(id) {
@@ -2209,6 +2224,21 @@
                 descElem.innerText = desc;
             },
 
+            toggleProfileSection: function(sectionId) {
+                const section = document.getElementById(sectionId);
+                const icon = document.getElementById(`${sectionId}-icon`);
+                if (!section) return;
+
+                const isHidden = section.classList.contains('hidden');
+                if (isHidden) {
+                    section.classList.remove('hidden');
+                    if (icon) icon.className = 'fa-solid fa-chevron-up text-slate-400';
+                } else {
+                    section.classList.add('hidden');
+                    if (icon) icon.className = 'fa-solid fa-chevron-down text-slate-400';
+                }
+            },
+
             openProfileModal: function(id) {
                 const member = this.members.find(m => m.id === id);
                 if (!member) return;
@@ -2235,6 +2265,12 @@
                 document.getElementById('edit-member-barcode').value = member.cardBarcode || '';
                 document.getElementById('edit-member-expiry').value = member.expirationDate || '';
                 document.getElementById('edit-member-status').value = member.status || 'ACTIVE';
+
+                // Ensure collapsible sections start collapsed
+                document.getElementById('edit-info-section').classList.add('hidden');
+                document.getElementById('edit-info-section-icon').className = 'fa-solid fa-chevron-down text-slate-400';
+                document.getElementById('password-section').classList.add('hidden');
+                document.getElementById('password-section-icon').className = 'fa-solid fa-chevron-down text-slate-400';
 
                 this.updatePasswordDisplay(member.password);
                 document.getElementById('member-profile-modal').classList.remove('hidden');
