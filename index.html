@@ -158,7 +158,141 @@
                 </div>
             </div>
 
-            <!-- MASTER ZIP BACKUP & IMPORT / EXPORT BAR -->
+            <!-- REGISTER NEW GYM OWNER FORM (COLLAPSIBLE) -->
+            <div class="glass-card rounded-3xl overflow-hidden border border-amber-500/20 shadow-2xl">
+                <button onclick="indexApp.toggleDashboardSection('register')" class="w-full p-5 flex items-center justify-between text-left hover:bg-slate-800/40 transition">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-amber-400 text-base"></i>
+                        <h3 class="font-bold text-white text-sm">Register New Gym Owner Tenant</h3>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-mono hidden sm:inline">White-Label Onboarding</span>
+                        <i id="dash-toggle-icon-register" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                    </div>
+                </button>
+                <div id="dash-content-register" class="p-6 pt-0 space-y-4 hidden border-t border-slate-800/60 mt-1">
+                    <form onsubmit="indexApp.handleRegisterOwner(event)" class="space-y-4 pt-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Branch / Business Name</label>
+                                <input type="text" id="reg-gym-name" placeholder="e.g., Iron Vault Cebu Branch" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Full Name</label>
+                                <input type="text" id="reg-owner-name" placeholder="e.g., Juan Dela Cruz" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Login Email</label>
+                                <input type="email" id="reg-owner-email" placeholder="owner@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Temporary Passkey / Password</label>
+                                <input type="text" id="reg-owner-pass" placeholder="At least 6 characters" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- MEMBERSHIP TIER PRICING CONFIGURATION -->
+                        <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                            <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-tags"></i> Initial Membership Tier Pricing & Default Discounts
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">1-Day Pass Base (₱)</label>
+                                    <input type="number" id="reg-price-day" value="150" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">1-Week Pass Base (₱)</label>
+                                    <input type="number" id="reg-price-week" value="700" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">1-Month Unlimited Base (₱)</label>
+                                    <input type="number" id="reg-price-month" value="2500" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Student Discount (%)</label>
+                                    <input type="number" id="reg-discount-student" value="20" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Senior Discount (%)</label>
+                                    <input type="number" id="reg-discount-senior" value="20" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- INITIAL STAFF PROVISIONING (OPTIONAL) -->
+                        <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                            <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-user-shield"></i> Initial Staff Provisioning (Optional)
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Staff Full Name</label>
+                                    <input type="text" id="reg-staff-name" placeholder="e.g., Staff Jane" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Staff Login Email</label>
+                                    <input type="email" id="reg-staff-email" placeholder="staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Staff Password</label>
+                                    <input type="text" id="reg-staff-pass" placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GYM LOGO UPLOAD FIELD -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Logo Image (Optional)</label>
+                            <input type="file" id="reg-gym-logo" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
+                        </div>
+
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
+                                Create Gym Tenant Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- REGISTERED GYM OWNERS TABLE (COLLAPSIBLE) -->
+            <div class="glass-card rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
+                <button onclick="indexApp.toggleDashboardSection('tenants')" class="w-full p-5 flex items-center justify-between text-left hover:bg-slate-800/40 transition">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-building-shield text-amber-400 text-base"></i>
+                        <h3 class="font-bold text-white text-sm">Registered Gym Tenants & White-Label Access Links</h3>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400">Total Owners: <span id="owner-count" class="font-bold text-white">0</span></span>
+                        <i id="dash-toggle-icon-tenants" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                    </div>
+                </button>
+                <div id="dash-content-tenants" class="p-6 pt-0 space-y-4 hidden border-t border-slate-800/60 mt-1">
+                    <div class="overflow-x-auto pt-3">
+                        <table class="w-full text-left text-xs">
+                            <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
+                                <tr>
+                                    <th class="p-3">Tenant ID</th>
+                                    <th class="p-3">Gym Branch & Unified Portal Link</th>
+                                    <th class="p-3">Owner Name & Email</th>
+                                    <th class="p-3">Plaintext Password</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="owners-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+                                <!-- Dynamic Owner Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MASTER ZIP BACKUP & IMPORT / EXPORT BAR (RELOCATED TO BOTTOM) -->
             <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h3 class="font-bold text-white text-sm flex items-center gap-2">
@@ -178,130 +312,6 @@
                         <span>Import ZIP / JSON</span>
                         <input type="file" id="file-import-input" accept=".zip,.json" onchange="indexApp.importDataFromFile(event)" class="hidden">
                     </label>
-                </div>
-            </div>
-
-            <!-- REGISTER NEW GYM OWNER FORM -->
-            <div class="glass-card rounded-3xl p-6 shadow-2xl space-y-4 border border-amber-500/20">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus text-amber-400"></i> Register New Gym Owner Tenant
-                    </h3>
-                    <span class="text-[10px] text-slate-400 uppercase tracking-widest font-mono">White-Label Onboarding</span>
-                </div>
-
-                <form onsubmit="indexApp.handleRegisterOwner(event)" class="space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Branch / Business Name</label>
-                            <input type="text" id="reg-gym-name" placeholder="e.g., Iron Vault Cebu Branch" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Full Name</label>
-                            <input type="text" id="reg-owner-name" placeholder="e.g., Juan Dela Cruz" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Login Email</label>
-                            <input type="email" id="reg-owner-email" placeholder="owner@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1.5">Temporary Passkey / Password</label>
-                            <input type="text" id="reg-owner-pass" placeholder="At least 6 characters" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
-                        </div>
-                    </div>
-
-                    <!-- MEMBERSHIP TIER PRICING CONFIGURATION -->
-                    <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
-                        <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-tags"></i> Initial Membership Tier Pricing & Default Discounts
-                        </h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">1-Day Pass Base (₱)</label>
-                                <input type="number" id="reg-price-day" value="150" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">1-Week Pass Base (₱)</label>
-                                <input type="number" id="reg-price-week" value="700" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">1-Month Unlimited Base (₱)</label>
-                                <input type="number" id="reg-price-month" value="2500" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Student Discount (%)</label>
-                                <input type="number" id="reg-discount-student" value="20" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Senior Discount (%)</label>
-                                <input type="number" id="reg-discount-senior" value="20" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- INITIAL STAFF PROVISIONING (OPTIONAL) -->
-                    <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
-                        <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-user-shield"></i> Initial Staff Provisioning (Optional)
-                        </h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Staff Full Name</label>
-                                <input type="text" id="reg-staff-name" placeholder="e.g., Staff Jane" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Staff Login Email</label>
-                                <input type="email" id="reg-staff-email" placeholder="staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Staff Password</label>
-                                <input type="text" id="reg-staff-pass" placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- GYM LOGO UPLOAD FIELD -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Logo Image (Optional)</label>
-                        <input type="file" id="reg-gym-logo" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
-                    </div>
-
-                    <div class="flex justify-end pt-1">
-                        <button type="submit" class="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
-                            Create Gym Tenant Account
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- REGISTERED GYM OWNERS TABLE -->
-            <div class="glass-card rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-building-shield text-amber-400"></i> Registered Gym Tenants & White-Label Access Links
-                    </h3>
-                    <span class="text-xs text-slate-400">Total Owners: <span id="owner-count" class="font-bold text-white">0</span></span>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
-                            <tr>
-                                <th class="p-3">Tenant ID</th>
-                                <th class="p-3">Gym Branch & Unified Portal Link</th>
-                                <th class="p-3">Owner Name & Email</th>
-                                <th class="p-3">Plaintext Password</th>
-                                <th class="p-3">Status</th>
-                                <th class="p-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="owners-tbody" class="divide-y divide-slate-800/60 text-slate-300">
-                            <!-- Dynamic Owner Rows -->
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
@@ -354,27 +364,6 @@
                 </div>
             </div>
 
-            <!-- INDIVIDUAL TENANT ZIP IMPORT/EXPORT BAR -->
-            <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-file-zipper"></i> Tenant ZIP Backup & Restore
-                    </h4>
-                    <p class="text-[11px] text-slate-400">Export or restore backup archives for this individual tenant only.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <button onclick="indexApp.exportTenantZip()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow">
-                        <i class="fa-solid fa-download"></i>
-                        <span>Export Tenant ZIP</span>
-                    </button>
-                    <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 cursor-pointer transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-upload text-amber-400"></i>
-                        <span>Import Tenant ZIP</span>
-                        <input type="file" id="tenant-zip-import-input" accept=".zip" onchange="indexApp.importTenantZip(event)" class="hidden">
-                    </label>
-                </div>
-            </div>
-
             <!-- TOGGLE 1: BRANCH PRICING & DEFAULT DISCOUNTS -->
             <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
                 <button onclick="indexApp.toggleInspectSection('pricing')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
@@ -406,31 +395,7 @@
                 </div>
             </div>
 
-            <!-- TOGGLE 2: BRANCH STAFF ACCOUNTS MANAGEMENT -->
-            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
-                <button onclick="indexApp.toggleInspectSection('staff')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
-                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-user-shield"></i> Branch Staff Accounts Management
-                    </h4>
-                    <i id="toggle-icon-staff" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
-                </button>
-                <div id="toggle-content-staff" class="p-4 pt-0 space-y-3 hidden">
-                    <div id="inspect-staff-list" class="space-y-2 max-h-40 overflow-y-auto text-xs">
-                        <!-- Dynamic staff list -->
-                    </div>
-                    <!-- Add Staff Form Inside Inspect Modal -->
-                    <form onsubmit="indexApp.handleInspectAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
-                        <input type="text" id="inspect-new-staff-name" placeholder="Staff Name" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                        <input type="email" id="inspect-new-staff-email" placeholder="staff@gym.com" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                        <input type="text" id="inspect-new-staff-pass" placeholder="Password" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow">
-                            Add Staff
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- TOGGLE 3: TENANT MEMBER ROSTER -->
+            <!-- TOGGLE 1 (REORDERED): TENANT MEMBER ROSTER (AT THE TOP) -->
             <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
                 <div class="w-full p-4 flex items-center justify-between">
                     <button onclick="indexApp.toggleInspectSection('roster')" class="flex items-center gap-2 text-left hover:opacity-80 transition flex-grow">
@@ -439,7 +404,7 @@
                         </h4>
                         <i id="toggle-icon-roster" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
                     </button>
-                    <!-- Reports & Analytics button placed right beside Tenant Member Roster toggle header -->
+                    <!-- Reports & Analytics button with return param so superadmin returns to index.html without affecting gym audit logs -->
                     <a id="inspect-reports-btn" href="#" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-md flex-shrink-0">
                         <i class="fa-solid fa-chart-pie"></i>
                         <span>Open Full Reports & Analytics</span>
@@ -464,6 +429,56 @@
                                 <!-- Dynamic rows -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOGGLE 2 (REORDERED): BRANCH STAFF ACCOUNTS MANAGEMENT -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <button onclick="indexApp.toggleInspectSection('staff')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
+                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield"></i> Branch Staff Accounts Management
+                    </h4>
+                    <i id="toggle-icon-staff" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                </button>
+                <div id="toggle-content-staff" class="p-4 pt-0 space-y-3 hidden">
+                    <div id="inspect-staff-list" class="space-y-2 max-h-40 overflow-y-auto text-xs">
+                        <!-- Dynamic staff list -->
+                    </div>
+                    <!-- Add Staff Form Inside Inspect Modal -->
+                    <form onsubmit="indexApp.handleInspectAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
+                        <input type="text" id="inspect-new-staff-name" placeholder="Staff Name" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <input type="email" id="inspect-new-staff-email" placeholder="staff@gym.com" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <input type="text" id="inspect-new-staff-pass" placeholder="Password" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow">
+                            Add Staff
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TOGGLE 3 (REORDERED): TENANT ZIP BACKUP & RESTORE (AT THE BOTTOM) -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <button onclick="indexApp.toggleInspectSection('zip')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
+                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-file-zipper"></i> Tenant ZIP Backup & Restore
+                    </h4>
+                    <i id="toggle-icon-zip" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                </button>
+                <div id="toggle-content-zip" class="p-4 pt-0 space-y-3 hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <p class="text-[11px] text-slate-400">Export or restore backup archives for this individual tenant only.</p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="indexApp.exportTenantZip()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Export Tenant ZIP</span>
+                            </button>
+                            <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 cursor-pointer transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-upload text-amber-400"></i>
+                                <span>Import Tenant ZIP</span>
+                                <input type="file" id="tenant-zip-import-input" accept=".zip" onchange="indexApp.importTenantZip(event)" class="hidden">
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -796,6 +811,20 @@
                 this.renderOwnersTable();
             },
 
+            toggleDashboardSection: function(sectionKey) {
+                const content = document.getElementById(`dash-content-${sectionKey}`);
+                const icon = document.getElementById(`dash-toggle-icon-${sectionKey}`);
+                if (!content || !icon) return;
+
+                if (content.classList.contains('hidden')) {
+                    content.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                } else {
+                    content.classList.add('hidden');
+                    icon.classList.remove('rotate-180');
+                }
+            },
+
             renderOwnersTable: function() {
                 const tbody = document.getElementById('owners-tbody');
                 if (this.owners.length === 0) {
@@ -922,6 +951,7 @@
 
                 const reportsBtn = document.getElementById('inspect-reports-btn');
                 if (reportsBtn) {
+                    // Added &from=index so reports.html returns superadmin back to index.html without modifying gym audit logs
                     reportsBtn.href = `reports.html?key=${owner.token}&from=index`;
                 }
 
