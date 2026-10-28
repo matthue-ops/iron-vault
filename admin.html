@@ -1215,6 +1215,7 @@
                     name,
                     email,
                     password,
+                    isAdmin: false, // Default staff role
                     dateCreated: new Date().toISOString().split('T')[0]
                 });
 
@@ -1253,6 +1254,45 @@
                 this.renderExistingStaffList();
             },
 
+            toggleStaffAdminPrivilege: async function(idx) {
+                if (!this.matchedOwnerRecord || !this.matchedOwnerRecord.staff) return;
+                const staffMember = this.matchedOwnerRecord.staff[idx];
+                
+                // Toggle isAdmin property (vice versa)
+                staffMember.isAdmin = !staffMember.isAdmin;
+
+                const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
+                if (ownersData) {
+                    try {
+                        let owners = JSON.parse(ownersData);
+                        owners = owners.map(o => o.id === this.currentTenantId ? this.matchedOwnerRecord : o);
+                        localStorage.setItem(OWNERS_STORAGE_KEY, JSON.stringify(owners));
+                        this.allOwnersSystem = owners;
+                    } catch(e) {}
+                }
+
+                try {
+                    await supabaseClient.from('owners').upsert({
+                        id: this.matchedOwnerRecord.id,
+                        gym_name: this.matchedOwnerRecord.gymName,
+                        owner_name: this.matchedOwnerRecord.ownerName,
+                        email: this.matchedOwnerRecord.email,
+                        password: this.matchedOwnerRecord.password,
+                        token: this.matchedOwnerRecord.token,
+                        logo: this.matchedOwnerRecord.logo || '',
+                        status: this.matchedOwnerRecord.status || 'ACTIVE',
+                        pricing: this.matchedOwnerRecord.pricing,
+                        staff: this.matchedOwnerRecord.staff || [],
+                        audit_logs: this.matchedOwnerRecord.auditLogs || [],
+                        date_created: this.matchedOwnerRecord.dateCreated || new Date().toISOString()
+                    });
+                } catch(e) {}
+
+                this.logAudit('Staff Role Toggled', `Toggled admin privileges for staff ${staffMember.name} to: ${staffMember.isAdmin ? 'Admin' : 'Staff'}`);
+                alert(`Staff ${staffMember.name} role updated to: ${staffMember.isAdmin ? 'Admin-Level Privileges' : 'Standard Staff'}`);
+                this.renderExistingStaffList();
+            },
+
             renderExistingStaffList: function() {
                 const container = document.getElementById('existing-staff-list');
                 if (!this.matchedOwnerRecord || !this.matchedOwnerRecord.staff || this.matchedOwnerRecord.staff.length === 0) {
@@ -1260,36 +1300,47 @@
                     return;
                 }
 
-                container.innerHTML = this.matchedOwnerRecord.staff.map((s, idx) => `
-                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="font-bold text-white text-xs">${s.name}</span>
-                                <span class="text-[10px] text-slate-400 block">${s.email}</span>
+                container.innerHTML = this.matchedOwnerRecord.staff.map((s, idx) => {
+                    const isAdmin = s.isAdmin === true;
+                    return `
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-white text-xs">${s.name}</span>
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-bold ${isAdmin ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+                                            ${isAdmin ? 'Admin Privilege' : 'Standard Staff'}
+                                        </span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 block">${s.email}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                                    <button type="button" onclick="adminApp.toggleStaffAdminPrivilege(${idx})" class="px-2.5 py-1 rounded-lg ${isAdmin ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30'} text-[10px] font-bold transition flex items-center gap-1" title="Toggle Admin Functionality">
+                                        <i class="fa-solid fa-shield-halved"></i> ${isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                                    </button>
+                                    <button type="button" onclick="adminApp.toggleStaffEdit(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-[10px] font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </button>
+                                    <button type="button" onclick="adminApp.deleteStaff(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-trash"></i> Delete
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <button type="button" onclick="adminApp.toggleStaffEdit(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-[10px] font-bold transition flex items-center gap-1">
-                                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                            <div class="flex items-center justify-between bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono">
+                                <span class="text-slate-400">Password: <strong class="text-amber-300">${s.password}</strong></span>
+                            </div>
+                            <div id="staff-edit-box-${idx}" class="hidden pt-2 border-t border-slate-800/80 space-y-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="text" id="staff-edit-name-${idx}" value="${s.name}" placeholder="Name..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none">
+                                    <input type="text" id="staff-edit-pass-${idx}" value="${s.password}" placeholder="Password..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none font-mono">
+                                </div>
+                                <button type="button" onclick="adminApp.saveStaffEdit(${idx})" class="w-full py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] uppercase transition shadow">
+                                    Save Changes
                                 </button>
-                                <button type="button" onclick="adminApp.deleteStaff(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold transition flex items-center gap-1">
-                                    <i class="fa-solid fa-trash"></i> Delete
-                                </button>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono">
-                            <span class="text-slate-400">Password: <strong class="text-amber-300">${s.password}</strong></span>
-                        </div>
-                        <div id="staff-edit-box-${idx}" class="hidden pt-2 border-t border-slate-800/80 space-y-2">
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="text" id="staff-edit-name-${idx}" value="${s.name}" placeholder="Name..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none">
-                                <input type="text" id="staff-edit-pass-${idx}" value="${s.password}" placeholder="Password..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none font-mono">
-                            </div>
-                            <button type="button" onclick="adminApp.saveStaffEdit(${idx})" class="w-full py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] uppercase transition shadow">
-                                Save Changes
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             },
 
             toggleStaffEdit: function(idx) {
@@ -1808,6 +1859,7 @@
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 
                 member.plan = selectedPlanName;
+                // FIX: Report total amount received as the plan's cost (collectedAmount), not adding credits + cash
                 member.amount = (member.amount || 0) + collectedAmount;
                 member.dateJoined = todayStr;
                 member.expirationDate = expiryDate.toISOString().split('T')[0];
@@ -1918,7 +1970,7 @@
                     tenantId: this.currentTenantId,
                     tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
                     name, email, phone, password, classification, discountPercentage, plan, cardBarcode,
-                    walletBalance: 0,
+                    walletBalance: 0, // Express Walk-In is exclusively for registration & pass purchase; topping up credit can be done through member account viewing.
                     amount: collectedAmount,
                     scansUsed: plan === 'Not Selected' ? 0 : 1,
                     lastScannedDate: plan === 'Not Selected' ? null : todayStr,
