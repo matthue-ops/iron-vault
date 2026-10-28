@@ -327,10 +327,10 @@
                 const keyParam = urlParams.get('key');
                 const fromParam = urlParams.get('from');
 
-                if (fromParam === 'superadmin') {
+                if (fromParam === 'index' || fromParam === 'superadmin') {
                     this.isFromSuperAdmin = true;
                     const backLabel = document.getElementById('back-btn-label');
-                    if (backLabel) backLabel.innerText = "Back to Master Control";
+                    if (backLabel) backLabel.innerText = fromParam === 'index' ? "Back to Master Control" : "Back to Super Admin";
                 }
 
                 await this.loadTenantAndData(keyParam);
