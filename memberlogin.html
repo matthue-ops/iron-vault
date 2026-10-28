@@ -570,6 +570,11 @@
                     return;
                 }
 
+                if (this.matchedOwnerRecord && this.matchedOwnerRecord.status === 'SUSPENDED') {
+                    this.showAlert("This gym account has been suspended by the super administrator.");
+                    return;
+                }
+
                 await this.loadMembersFromStorage();
 
                 const identifier = document.getElementById('signin-identifier').value.trim();
@@ -607,15 +612,15 @@
                     return;
                 }
 
+                if (this.matchedOwnerRecord.status === 'SUSPENDED') {
+                    this.showAlert("This gym account has been suspended by the super administrator.");
+                    return;
+                }
+
                 const email = document.getElementById('admin-login-email').value.trim();
                 const password = document.getElementById('admin-login-password').value;
 
                 if (this.matchedOwnerRecord.email.toLowerCase() === email.toLowerCase() && this.matchedOwnerRecord.password === password) {
-                    if (this.matchedOwnerRecord.status === 'SUSPENDED') {
-                        this.showAlert("This gym account has been suspended by the super administrator.");
-                        return;
-                    }
-
                     sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
                     sessionStorage.setItem(ACTIVE_ROLE_KEY, 'admin');
                     sessionStorage.setItem(LOGGED_USER_KEY, email);
