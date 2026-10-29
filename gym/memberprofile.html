@@ -516,10 +516,15 @@
                 }
 
                 // Check if plan has expired; if so, clear active plan state
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
+                const options = { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' };
+                const formatter = new Intl.DateTimeFormat([], options);
+                const parts = formatter.formatToParts(new Date());
+                let year, month, day;
+                parts.forEach(p => {
+                    if (p.type === 'year') year = p.value;
+                    if (p.type === 'month') month = p.value;
+                    if (p.type === 'day') day = p.value;
+                });
                 const todayStr = `${year}-${month}-${day}`;
 
                 if (this.currentMember.expirationDate && todayStr > this.currentMember.expirationDate) {
@@ -670,10 +675,15 @@
                 statusBadge.innerText = m.status || 'ACTIVE';
 
                 // CHECK IF MEMBER HAS CLEARED ENTRY TODAY
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
+                const options = { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' };
+                const formatter = new Intl.DateTimeFormat([], options);
+                const parts = formatter.formatToParts(new Date());
+                let year, month, day;
+                parts.forEach(p => {
+                    if (p.type === 'year') year = p.value;
+                    if (p.type === 'month') month = p.value;
+                    if (p.type === 'day') day = p.value;
+                });
                 const todayStr = `${year}-${month}-${day}`;
 
                 const entryBadge = document.getElementById('entry-status-badge');
@@ -825,10 +835,18 @@
             generateDailyQR: async function() {
                 if (!this.currentMember) return;
 
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
+                // Anchor explicitly to Philippine Standard Time (Asia/Manila)
+                const options = { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' };
+                const formatter = new Intl.DateTimeFormat([], options);
+                const parts = formatter.formatToParts(new Date());
+                
+                let year, month, day;
+                parts.forEach(p => {
+                    if (p.type === 'year') year = p.value;
+                    if (p.type === 'month') month = p.value;
+                    if (p.type === 'day') day = p.value;
+                });
+                
                 const todayStr = `${year}-${month}-${day}`;
 
                 if (!this.currentMember.plan || this.currentMember.plan === 'Not Selected') {
@@ -839,21 +857,26 @@
                 if (!this.currentMember.expirationDate || todayStr > this.currentMember.expirationDate) {
                     let newExpiry = new Date();
                     if (this.currentMember.plan === '1-Month Unlimited') {
-                        newExpiry.setDate(now.getDate() + 30);
+                        newExpiry.setDate(newExpiry.getDate() + 30);
                     } else if (this.currentMember.plan === '1-Week Pass') {
-                        newExpiry.setDate(now.getDate() + 7);
-                    } else {
-                        newExpiry.setDate(now.getDate());
+                        newExpiry.setDate(newExpiry.getDate() + 7);
                     }
                     this.currentMember.expirationDate = newExpiry.toISOString().split('T')[0];
                     await this.saveData();
                     this.renderProfile();
                 }
 
+                // Reset lastScannedDate if it belongs to a past day
+                if (this.currentMember.lastScannedDate && this.currentMember.lastScannedDate !== todayStr) {
+                    this.currentMember.lastScannedDate = null;
+                    await this.saveData();
+                }
+
                 if (this.currentMember.lastScannedDate === todayStr) {
                     this.showAlert("Notice: Your QR code for today has already been scanned and entry cleared!", true);
                 }
 
+                // Generate payload anchored to Asia/Manila date string
                 const qrPayload = `${this.currentMember.id}|${todayStr}`;
 
                 const qrcodeContainer = document.getElementById('qrcode-container');
