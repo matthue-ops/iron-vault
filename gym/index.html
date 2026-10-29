@@ -951,7 +951,6 @@
 
                 const reportsBtn = document.getElementById('inspect-reports-btn');
                 if (reportsBtn) {
-                    // Added &from=index so reports.html returns superadmin back to index.html without modifying gym audit logs
                     reportsBtn.href = `reports.html?key=${owner.token}&from=index`;
                 }
 
@@ -1225,9 +1224,22 @@
                     return;
                 }
 
-                const nextNum = this.owners.length + 1;
+                // Determine next sequential tenant ID avoiding collisions with existing owners
+                let nextNum = 1;
+                while (this.owners.some(o => o.id === `GYM-${String(nextNum).padStart(3, '0')}`)) {
+                    nextNum++;
+                }
                 const newId = `GYM-${String(nextNum).padStart(3, '0')}`;
-                const newToken = this.generateUniqueToken(24);
+                
+                // Always generate a fresh unique security token for the brand new gym signup
+                let newToken = this.generateUniqueToken(24);
+                while (this.owners.some(o => o.token === newToken)) {
+                    newToken = this.generateUniqueToken(24);
+                }
+
+                // Clean sweep: purge any residual orphaned members matching this ID or token from memory and localStorage
+                this.members = this.members.filter(m => m.tenantId !== newId && m.tenantToken !== newToken);
+                await this.saveMembers();
 
                 const processRegistration = async (logoBase64) => {
                     const initialStaff = [];
@@ -1296,12 +1308,29 @@
             },
 
             deleteOwner: async function(id) {
-                if (confirm(`Are you sure you want to delete gym tenant ${id}?`)) {
+                if (confirm(`Are you sure you want to delete gym tenant ${id}? This will permanently wipe all associated members and branch data.`)) {
+                    const targetOwner = this.owners.find(o => o.id === id);
+                    const targetToken = targetOwner ? targetOwner.token : null;
+
+                    // 1. Purge owner record from state and local storage
                     this.owners = this.owners.filter(o => o.id !== id);
                     await this.saveOwners();
+
+                    // 2. Purge all related members matching tenantId or tenantToken from state and local storage
+                    this.members = this.members.filter(m => m.tenantId !== id && (!targetToken || m.tenantToken !== targetToken));
+                    await this.saveMembers();
+
+                    // 3. Delete owner and related members from Supabase database
                     try {
                         await supabaseClient.from('owners').delete().eq('id', id);
-                    } catch(e) {}
+                        await supabaseClient.from('members').delete().eq('tenant_id', id);
+                        if (targetToken) {
+                            await supabaseClient.from('members').delete().eq('tenant_token', targetToken);
+                        }
+                    } catch(e) {
+                        console.error("Error purging tenant records from Supabase:", e);
+                    }
+
                     this.renderDashboard();
                 }
             },
