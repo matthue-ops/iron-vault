@@ -551,7 +551,10 @@
                 <p id="scan-result-desc" class="text-[11px]"></p>
             </div>
 
-            <div class="flex justify-end pt-1">
+            <div class="flex gap-2 pt-1">
+                <button id="scan-next-button" onclick="adminApp.resumeScanner()" class="hidden w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition">
+                    <i class="fa-solid fa-qrcode mr-1"></i> Scan Next Member
+                </button>
                 <button onclick="adminApp.closeScannerModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
                     Close Scanner
                 </button>
@@ -821,6 +824,7 @@
         const ACTIVE_TENANT_KEY = 'ironvault_active_tenant_id';
         const ACTIVE_ROLE_KEY = 'ironvault_active_role';
         const LOGGED_USER_KEY = 'ironvault_logged_user';
+        const SIGNED_OUT_KEY = 'ironvault_admin_signed_out';
 
         function applyDynamicThemeFromLogo(logoBase64) {
             if (!logoBase64) return;
@@ -884,6 +888,8 @@
             cameraStream: null,
             scanTimer: null,
             lastScannedCodePayload: null,
+            isProcessingScan: false,
+            scanPaused: false,
 
             init: async function() {
                 await this.detectTenantFromUrl();
@@ -1066,6 +1072,17 @@
                     this.logoutAdmin();
                     return;
                 }
+
+                // A page restored from browser history must not recreate a session after sign-out.
+                const signedOut = sessionStorage.getItem(SIGNED_OUT_KEY) === '1';
+                const hasFreshLogin = !!(sessionStorage.getItem(ACTIVE_TENANT_KEY) || sessionStorage.getItem(LOGGED_USER_KEY));
+                if (signedOut && !hasFreshLogin) {
+                    const token = this.matchedOwnerRecord ? this.matchedOwnerRecord.token : new URLSearchParams(window.location.search).get('key');
+                    window.location.replace(token ? `memberlogin.html?key=${token}` : 'memberlogin.html');
+                    return;
+                }
+                if (hasFreshLogin) sessionStorage.removeItem(SIGNED_OUT_KEY);
+
                 const savedRole = sessionStorage.getItem(ACTIVE_ROLE_KEY) || 'admin';
                 this.applyUIRoleVisibility(savedRole);
                 this.loadMembers();
@@ -1103,6 +1120,7 @@
             },
 
             logoutAdmin: function() {
+                sessionStorage.setItem(SIGNED_OUT_KEY, '1');
                 sessionStorage.removeItem(ACTIVE_TENANT_KEY);
                 sessionStorage.removeItem(ACTIVE_ROLE_KEY);
                 sessionStorage.removeItem(LOGGED_USER_KEY);
@@ -1282,36 +1300,43 @@
 
             toggleStaffAdminPrivilege: async function(idx) {
                 if (!this.matchedOwnerRecord || !this.matchedOwnerRecord.staff || !this.matchedOwnerRecord.staff[idx]) return;
-                
+
                 const staffMember = this.matchedOwnerRecord.staff[idx];
                 staffMember.isAdmin = !staffMember.isAdmin;
 
+                // Persist the complete owner record locally even if this browser had no cached owners list.
                 const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                if (ownersData) {
-                    try {
-                        let owners = JSON.parse(ownersData);
-                        owners = owners.map(o => o.id === this.currentTenantId ? this.matchedOwnerRecord : o);
-                        localStorage.setItem(OWNERS_STORAGE_KEY, JSON.stringify(owners));
-                        this.allOwnersSystem = owners;
-                    } catch(e) {}
-                }
+                let owners = [];
+                try { owners = ownersData ? JSON.parse(ownersData) : (this.allOwnersSystem || []); } catch(e) { owners = this.allOwnersSystem || []; }
+                owners = owners.filter(o => o.id !== this.currentTenantId);
+                owners.push(this.matchedOwnerRecord);
+                localStorage.setItem(OWNERS_STORAGE_KEY, JSON.stringify(owners));
+                this.allOwnersSystem = owners;
 
-                try {
-                    await supabaseClient.from('owners').upsert({
-                        id: this.matchedOwnerRecord.id,
-                        gym_name: this.matchedOwnerRecord.gymName,
-                        owner_name: this.matchedOwnerRecord.ownerName,
-                        email: this.matchedOwnerRecord.email,
-                        password: this.matchedOwnerRecord.password,
-                        token: this.matchedOwnerRecord.token,
-                        logo: this.matchedOwnerRecord.logo || '',
-                        status: this.matchedOwnerRecord.status || 'ACTIVE',
-                        pricing: this.matchedOwnerRecord.pricing,
-                        staff: this.matchedOwnerRecord.staff || [],
-                        audit_logs: this.matchedOwnerRecord.auditLogs || [],
-                        date_created: this.matchedOwnerRecord.dateCreated || new Date().toISOString()
-                    });
-                } catch(e) {}
+                const ownerPayload = {
+                    id: this.matchedOwnerRecord.id,
+                    gym_name: this.matchedOwnerRecord.gymName,
+                    owner_name: this.matchedOwnerRecord.ownerName,
+                    email: this.matchedOwnerRecord.email,
+                    password: this.matchedOwnerRecord.password,
+                    token: this.matchedOwnerRecord.token,
+                    logo: this.matchedOwnerRecord.logo || '',
+                    status: this.matchedOwnerRecord.status || 'ACTIVE',
+                    pricing: this.matchedOwnerRecord.pricing,
+                    staff: this.matchedOwnerRecord.staff || [],
+                    audit_logs: this.matchedOwnerRecord.auditLogs || [],
+                    date_created: this.matchedOwnerRecord.dateCreated || new Date().toISOString()
+                };
+
+                const { error } = await supabaseClient.from('owners').update({ staff: ownerPayload.staff }).eq('id', this.currentTenantId);
+                if (error) {
+                    const { error: upsertError } = await supabaseClient.from('owners').upsert(ownerPayload);
+                    if (upsertError) {
+                        // Keep the local change, but make the database failure visible instead of silently pretending it synced.
+                        console.error('Could not save staff role change:', upsertError);
+                        alert('Role changed in this browser, but could not be synced to the database. Please check the Supabase owners table permissions.');
+                    }
+                }
 
                 this.logAudit('Staff Role Toggled', `Toggled admin privileges for staff ${staffMember.name} to: ${staffMember.isAdmin ? 'Admin' : 'Staff'}`);
                 alert(`Staff ${staffMember.name} role updated to: ${staffMember.isAdmin ? 'Admin-Level Privileges' : 'Standard Staff'}`);
@@ -1653,16 +1678,18 @@
 
                     let scanStatusText = '0 scans';
                     const planName = member.plan || 'Not Selected';
-                    const isCheckedInToday = (member.lastScannedDate === todayStr);
+                    const scannedDate = member.lastScannedDate ? String(member.lastScannedDate).slice(0, 10) : '';
+                    const isCheckedInToday = (scannedDate === todayStr);
+                    const usedScans = Number(member.scansUsed) || 0;
 
                     if (planName === '1-Day Pass') {
                         if (isCheckedInToday) {
-                            scanStatusText = '<span class="text-emerald-400 font-semibold">1 scan used • Checked in today</span>';
+                            scanStatusText = `<span class="text-emerald-400 font-semibold">${Math.max(1, usedScans)} scan used • Checked in today</span>`;
                         } else {
                             scanStatusText = '<span class="text-amber-400 font-medium">0 scans used • Hasnt entered</span>';
                         }
                     } else if (planName === '1-Week Pass' || planName === '1-Month Unlimited') {
-                        const used = member.scansUsed || 0;
+                        const used = usedScans;
                         if (isCheckedInToday) {
                             scanStatusText = `<span class="text-purple-400 font-medium">${used} scan${used === 1 ? '' : 's'} used • <span class="text-emerald-400 font-semibold">Checked in today</span></span>`;
                         } else {
@@ -2017,8 +2044,43 @@
 
             openScannerModal: function() {
                 document.getElementById('scan-result-container').classList.add('hidden');
+                document.getElementById('scan-next-button').classList.add('hidden');
+                this.scanPaused = false;
+                this.isProcessingScan = false;
                 document.getElementById('scanner-modal').classList.remove('hidden');
                 this.startCamera();
+            },
+
+            resumeScanner: function() {
+                this.scanPaused = false;
+                this.isProcessingScan = false;
+                this.lastScannedCodePayload = null;
+                document.getElementById('scan-result-container').classList.add('hidden');
+                document.getElementById('scan-next-button').classList.add('hidden');
+                this.startCamera();
+            },
+
+            pauseScannerAfterSuccess: function() {
+                this.scanPaused = true;
+                if (this.scanTimer) {
+                    clearInterval(this.scanTimer);
+                    this.scanTimer = null;
+                }
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                    this.cameraStream = null;
+                }
+                const video = document.getElementById('qr-video');
+                if (video) {
+                    video.srcObject = null;
+                    video.classList.add('hidden');
+                }
+                const placeholder = document.getElementById('camera-placeholder');
+                if (placeholder) {
+                    placeholder.classList.remove('hidden');
+                    placeholder.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 text-2xl mb-1 block"></i>Scan Success! Tap “Scan Next Member” when ready.';
+                }
+                document.getElementById('scan-next-button').classList.remove('hidden');
             },
 
             closeScannerModal: function() {
@@ -2027,6 +2089,7 @@
             },
 
             startCamera: async function() {
+                this.scanPaused = false;
                 const videoElement = document.getElementById('qr-video');
                 const placeholder = document.getElementById('camera-placeholder');
                 if (!videoElement) return;
@@ -2067,6 +2130,7 @@
             },
 
             tickCameraScan: function() {
+                if (this.scanPaused || this.isProcessingScan) return;
                 const video = document.getElementById('qr-video');
                 const canvas = document.getElementById('qr-canvas');
                 if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
@@ -2081,9 +2145,13 @@
                 if (code && code.data) {
                     if (this.lastScannedCodePayload === code.data) return;
                     this.lastScannedCodePayload = code.data;
-                    setTimeout(() => { this.lastScannedCodePayload = null; }, 3000);
-
-                    this.processScannedCode(code.data);
+                    setTimeout(() => {
+                        if (!this.scanPaused && this.lastScannedCodePayload === code.data) this.lastScannedCodePayload = null;
+                    }, 2500);
+                    this.isProcessingScan = true;
+                    this.processScannedCode(code.data).finally(() => {
+                        if (!this.scanPaused) this.isProcessingScan = false;
+                    });
                 }
             },
 
@@ -2135,7 +2203,11 @@
                                 }
 
                                 if (code && code.data) {
-                                    this.processScannedCode(code.data);
+                                    if (this.isProcessingScan) return;
+                                    this.isProcessingScan = true;
+                                    this.processScannedCode(code.data).finally(() => {
+                                        if (!this.scanPaused) this.isProcessingScan = false;
+                                    });
                                 } else {
                                     this.showScanResult(false, "Invalid QR Pass", "Could not detect a valid QR code in this image.");
                                     this.logAudit('QR Scan Denied', 'Invalid QR code image uploaded');
@@ -2169,7 +2241,10 @@
 
                 const memberId = parts[0];
                 const qrDate = parts[1];
-                const todayStr = new Date().toISOString().split('T')[0];
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                // QR payloads are date-stamped using ISO/UTC by the member pass generator.
+                const qrTodayStr = now.toISOString().split('T')[0];
 
                 const member = this.members.find(m => m.id === memberId);
                 if (!member) {
@@ -2182,7 +2257,7 @@
                     return;
                 }
 
-                if (qrDate !== todayStr) {
+                if (qrDate !== qrTodayStr) {
                     this.showScanResult(false, "ACCESS DENIED", `QR Pass is outdated! Generated for ${qrDate}.`);
                     return;
                 }
@@ -2202,8 +2277,9 @@
                 await this.saveMembers();
                 await this.loadMembers();
 
-                this.showScanResult(true, "ACCESS GRANTED", `Welcome, ${member.name}!\nScan #${member.scansUsed}`);
+                this.showScanResult(true, "SCAN SUCCESS", `Welcome, ${member.name}!\nEntry recorded • Scan #${member.scansUsed}`);
                 this.logAudit('QR Scan Success', `Access granted for ${member.name} (${member.id})`);
+                this.pauseScannerAfterSuccess();
             },
 
             showScanResult: function(isSuccess, title, desc) {
@@ -2425,7 +2501,7 @@
 
                     if (!matchesSearch) return false;
 
-                    const isLoggedToday = (m.lastScannedDate === todayStr);
+                    const isLoggedToday = (m.lastScannedDate ? String(m.lastScannedDate).slice(0, 10) : '') === todayStr;
                     if (this.rosterActiveFilter === 'logged') {
                         return isLoggedToday;
                     } else if (this.rosterActiveFilter === 'not_entered') {
@@ -2454,6 +2530,17 @@
         window.onload = function() {
             adminApp.init();
         };
+
+        window.addEventListener('pageshow', function(event) {
+            const signedOut = sessionStorage.getItem(SIGNED_OUT_KEY) === '1';
+            const hasFreshLogin = !!(sessionStorage.getItem(ACTIVE_TENANT_KEY) || sessionStorage.getItem(LOGGED_USER_KEY));
+            if (signedOut && !hasFreshLogin) {
+                const token = new URLSearchParams(window.location.search).get('key');
+                window.location.replace(token ? `memberlogin.html?key=${token}` : 'memberlogin.html');
+            } else if (hasFreshLogin) {
+                sessionStorage.removeItem(SIGNED_OUT_KEY);
+            }
+        });
     </script>
 </body>
 </html>
