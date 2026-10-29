@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title id="page-title">Member Profile</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -128,9 +131,15 @@
                             <span class="text-[9px] uppercase font-bold tracking-widest text-emerald-400">Door Access Pass</span>
                             <h3 id="profile-card-name" class="text-sm font-black text-white">Loading...</h3>
                         </div>
-                        <span id="profile-card-status" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            ACTIVE
-                        </span>
+                        <div class="flex flex-col items-end gap-1">
+                            <span id="profile-card-status" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                ACTIVE
+                            </span>
+                            <!-- GYM ENTRY BADGE INDICATOR -->
+                            <span id="entry-status-badge" class="hidden px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-slate-950 border border-emerald-400 flex items-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-door-open text-[8px]"></i> ENTERED
+                            </span>
+                        </div>
                     </div>
 
                     <!-- PROFILE PICTURE CONTAINER -->
@@ -156,12 +165,18 @@
 
                     <!-- DAILY DYNAMIC QR CODE DISPLAY -->
                     <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center space-y-3">
+                        <!-- QR SCAN SUCCESS CONFIRMATION BANNER -->
+                        <div id="qr-scan-success-banner" class="hidden w-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-2.5 rounded-xl text-xs flex items-center justify-center gap-2 font-bold shadow-md">
+                            <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+                            <span>QR ACCEPTED • SCAN SUCCESSFUL</span>
+                        </div>
+
                         <div id="qr-wrapper" class="hidden flex-col items-center space-y-2">
                             <div id="qrcode-container" class="p-2 bg-white rounded-xl shadow-inner inline-block"></div>
                             <span id="qr-date-badge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                                 Date: --
                             </span>
-                            <p class="text-[10px] text-slate-400">Valid for entry today only</p>
+                            <p id="qr-status-text" class="text-[10px] text-slate-400">Valid for entry today only</p>
                         </div>
 
                         <!-- GENERATE BUTTON -->
@@ -654,6 +669,33 @@
                 const statusBadge = document.getElementById('profile-card-status');
                 statusBadge.innerText = m.status || 'ACTIVE';
 
+                // CHECK IF MEMBER HAS CLEARED ENTRY TODAY
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
+                const entryBadge = document.getElementById('entry-status-badge');
+                const scanBanner = document.getElementById('qr-scan-success-banner');
+                const qrStatusText = document.getElementById('qr-status-text');
+
+                if (m.lastScannedDate === todayStr) {
+                    if (entryBadge) entryBadge.classList.remove('hidden');
+                    if (scanBanner) scanBanner.classList.remove('hidden');
+                    if (qrStatusText) {
+                        qrStatusText.innerText = "Entry cleared for today!";
+                        qrStatusText.className = "text-[10px] text-emerald-400 font-bold";
+                    }
+                } else {
+                    if (entryBadge) entryBadge.classList.add('hidden');
+                    if (scanBanner) scanBanner.classList.add('hidden');
+                    if (qrStatusText) {
+                        qrStatusText.innerText = "Valid for entry today only";
+                        qrStatusText.className = "text-[10px] text-slate-400";
+                    }
+                }
+
                 const classification = m.classification || 'Regular';
                 const discountPct = this.getEffectiveDiscount();
                 const badgeContainer = document.getElementById('profile-classification-badge-container');
@@ -809,8 +851,7 @@
                 }
 
                 if (this.currentMember.lastScannedDate === todayStr) {
-                    this.showAlert("Warning: Your QR code for today has already been used for entry!", false);
-                    return;
+                    this.showAlert("Notice: Your QR code for today has already been scanned and entry cleared!", true);
                 }
 
                 const qrPayload = `${this.currentMember.id}|${todayStr}`;
@@ -896,6 +937,13 @@
         window.onload = function() {
             profileApp.init();
         };
+
+        // PREVENT GO BACK ACCESS AFTER SIGN OUT (BFCACHE RE-CHECK)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                profileApp.checkSession();
+            }
+        });
     </script>
 </body>
 </html>
