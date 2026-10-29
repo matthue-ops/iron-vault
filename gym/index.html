@@ -1296,27 +1296,15 @@
             },
 
             deleteOwner: async function(id) {
-    if (confirm(`Are you sure you want to delete gym tenant ${id} and all its associated data?`)) {
-        // 1. Remove owner from state & storage
-        const ownerToDelete = this.owners.find(o => o.id === id);
-        this.owners = this.owners.filter(o => o.id !== id);
-        await this.saveOwners();
-
-        // 2. Remove associated members from state & storage
-        this.members = this.members.filter(m => m.tenantId !== id && m.tenantToken !== ownerToDelete?.token);
-        await this.saveMembers();
-
-        // 3. Delete from Supabase tables securely
-        try {
-            await supabaseClient.from('owners').delete().eq('id', id);
-            await supabaseClient.from('members').delete().eq('tenant_id', id);
-        } catch(e) {
-            console.error("Error deleting tenant records from Supabase:", e);
-        }
-
-        this.renderDashboard();
-    }
-}
+                if (confirm(`Are you sure you want to delete gym tenant ${id}?`)) {
+                    this.owners = this.owners.filter(o => o.id !== id);
+                    await this.saveOwners();
+                    try {
+                        await supabaseClient.from('owners').delete().eq('id', id);
+                    } catch(e) {}
+                    this.renderDashboard();
+                }
+            },
 
             exportDataToZip: function() {
                 const zip = new JSZip();
