@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Command Center & Application Launchpad</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- JSZip Library for ZIP archive creation and extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --brand-primary: #10b981;
+            --bg-base: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.75);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-layer-group text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-black text-white text-base tracking-wider uppercase block">PROJECT COMMAND CENTER</span>
+                    <span class="text-[10px] text-slate-400 font-mono">Centralized Application Launchpad</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Toggle View Button (Hub vs Super Admin Console) -->
+                <button id="btn-toggle-view" onclick="indexApp.toggleMasterView()" class="hidden px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-amber-400"></i>
+                    <span id="toggle-view-label">Open Super Admin Tower</span>
+                </button>
+                <!-- LOGOUT BUTTON -->
+                <button id="btn-super-logout" onclick="indexApp.logout()" class="hidden px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
+                    <span>Sign Out</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="relative z-10 flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8">
+
+        <!-- VIEW 1: MASTER LAUNCHPAD HUB (DEFAULT LANDING) -->
+        <div id="view-hub-landing" class="space-y-8">
+            
+            <!-- HERO BANNER -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div class="space-y-2 text-center sm:text-left">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-block uppercase">Master Workspace</span>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white tracking-wide">Select Application to Launch</h2>
+                    <p class="text-xs sm:text-sm text-slate-400 max-w-xl">Welcome back! Access your deployed multi-tenant systems, operational dashboards, and management utilities below.</p>
+                </div>
+                <button onclick="indexApp.requestMasterAccess()" class="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center gap-2 flex-shrink-0">
+                    <i class="fa-solid fa-user-shield text-sm"></i>
+                    <span>Master Admin Login</span>
+                </button>
+            </div>
+
+            <!-- SECTION: SAAS & FITNESS PLATFORMS -->
+            <section class="space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-building-shield text-amber-400"></i> SaaS & Business Platforms
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    
+                    <!-- Iron Vault Gym SaaS Card -->
+                    <div class="glass-card rounded-3xl p-6 space-y-4 hover:border-amber-500/40 transition group flex flex-col justify-between">
+                        <div class="space-y-4">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center text-xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-dumbbell"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Iron Vault Gym SaaS</h4>
+                                <p class="text-xs text-slate-400 mt-1">Multi-tenant gym management system featuring branch white-label access, member QR attendance, and financial reporting.</p>
+                            </div>
+                        </div>
+                        <div class="pt-2 flex items-center gap-2">
+                            <a href="./gym/index.html" class="flex-grow py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs text-center uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>Launch Gym App</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- SECTION: EXPERIMENTAL & TRANSPORT TOOLS -->
+            <section class="space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-code-branch text-purple-400"></i> Experimental & Transport Tools
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    
+                    <!-- Placeholder Card for Jeep / Transport Coop App -->
+                    <div class="glass-card rounded-3xl p-6 space-y-4 border-dashed border-slate-800 opacity-70 hover:opacity-100 transition flex flex-col justify-between">
+                        <div class="space-y-4">
+                            <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/30 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-van-shuttle"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-300 text-base">Transport Coop System</h4>
+                                <p class="text-xs text-slate-500 mt-1">Reserved slot for TODA/JODA driver queueing, teller barcode scans, and cooperative management.</p>
+                            </div>
+                        </div>
+                        <div class="pt-2">
+                            <span class="block py-2 rounded-xl bg-slate-800/80 text-slate-400 font-mono text-[10px] text-center uppercase tracking-wider">
+                                Coming Soon / Ready for Files
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+
+        <!-- VIEW 2: SUPER ADMIN LOGIN SCREEN (HIDDEN BY DEFAULT) -->
+        <div id="super-auth-card" class="max-w-md mx-auto my-12 hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 mb-1">
+                        <i class="fa-solid fa-user-shield text-xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white">Master Authentication</h2>
+                    <p class="text-xs text-slate-400">Enter master credentials to manage gym tenants & owners</p>
+                </div>
+
+                <form onsubmit="indexApp.handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Master Email</label>
+                        <input type="email" id="super-email" value="master@ironvault.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Master Password</label>
+                        <input type="password" id="super-password" value="master123" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <button type="button" onclick="indexApp.showHubView()" class="w-1/3 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
+                            Back
+                        </button>
+                        <button type="submit" class="w-2/3 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
+                            Access Control Tower
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW 3: SUPER ADMIN DASHBOARD (VISIBLE WHEN LOGGED IN AS MASTER) -->
+        <div id="super-dashboard" class="space-y-6 hidden">
+            
+            <!-- METRICS ROW -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-dumbbell"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Registered Gym Tenants</span>
+                        <h3 id="stat-gyms" class="text-xl font-black text-white">0</h3>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Total System Members</span>
+                        <h3 id="stat-members" class="text-xl font-black text-white">0</h3>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Platform Version</span>
+                        <h3 class="text-xs font-bold text-slate-200 mt-1">v2.5 Subfolder Architecture</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REGISTER NEW GYM OWNER FORM (COLLAPSIBLE) -->
+            <div class="glass-card rounded-3xl overflow-hidden border border-amber-500/20 shadow-2xl">
+                <button onclick="indexApp.toggleDashboardSection('register')" class="w-full p-5 flex items-center justify-between text-left hover:bg-slate-800/40 transition">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-amber-400 text-base"></i>
+                        <h3 class="font-bold text-white text-sm">Register New Gym Owner Tenant</h3>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-mono hidden sm:inline">White-Label Onboarding</span>
+                        <i id="dash-toggle-icon-register" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                    </div>
+                </button>
+                <div id="dash-content-register" class="p-6 pt-0 space-y-4 hidden border-t border-slate-800/60 mt-1">
+                    <form onsubmit="indexApp.handleRegisterOwner(event)" class="space-y-4 pt-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Branch / Business Name</label>
+                                <input type="text" id="reg-gym-name" placeholder="e.g., Iron Vault Cebu Branch" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Full Name</label>
+                                <input type="text" id="reg-owner-name" placeholder="e.g., Juan Dela Cruz" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Login Email</label>
+                                <input type="email" id="reg-owner-email" placeholder="owner@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Temporary Passkey / Password</label>
+                                <input type="text" id="reg-owner-pass" placeholder="At least 6 characters" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- MEMBERSHIP TIER PRICING CONFIGURATION -->
+                        <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                            <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-tags"></i> Initial Membership Tier Pricing & Default Discounts
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">1-Day Pass Base (₱)</label>
+                                    <input type="number" id="reg-price-day" value="150" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">1-Week Pass Base (₱)</label>
+                                    <input type="number" id="reg-price-week" value="700" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">1-Month Unlimited Base (₱)</label>
+                                    <input type="number" id="reg-price-month" value="2500" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Student Discount (%)</label>
+                                    <input type="number" id="reg-discount-student" value="20" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Senior Discount (%)</label>
+                                    <input type="number" id="reg-discount-senior" value="20" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- INITIAL STAFF PROVISIONING (OPTIONAL) -->
+                        <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                            <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-user-shield"></i> Initial Staff Provisioning (Optional)
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Staff Full Name</label>
+                                    <input type="text" id="reg-staff-name" placeholder="e.g., Staff Jane" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Staff Login Email</label>
+                                    <input type="email" id="reg-staff-email" placeholder="staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Staff Password</label>
+                                    <input type="text" id="reg-staff-pass" placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GYM LOGO UPLOAD FIELD -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Logo Image (Optional)</label>
+                            <input type="file" id="reg-gym-logo" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
+                        </div>
+
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
+                                Create Gym Tenant Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- REGISTERED GYM OWNERS TABLE (COLLAPSIBLE) -->
+            <div class="glass-card rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
+                <button onclick="indexApp.toggleDashboardSection('tenants')" class="w-full p-5 flex items-center justify-between text-left hover:bg-slate-800/40 transition">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-building-shield text-amber-400 text-base"></i>
+                        <h3 class="font-bold text-white text-sm">Registered Gym Tenants & White-Label Access Links</h3>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400">Total Owners: <span id="owner-count" class="font-bold text-white">0</span></span>
+                        <i id="dash-toggle-icon-tenants" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                    </div>
+                </button>
+                <div id="dash-content-tenants" class="p-6 pt-0 space-y-4 hidden border-t border-slate-800/60 mt-1">
+                    <div class="overflow-x-auto pt-3">
+                        <table class="w-full text-left text-xs">
+                            <thead class="text-slate-400 border-b border-slate-800 uppercase font-semibold">
+                                <tr>
+                                    <th class="p-3">Tenant ID</th>
+                                    <th class="p-3">Gym Branch & Unified Portal Link</th>
+                                    <th class="p-3">Owner Name & Email</th>
+                                    <th class="p-3">Plaintext Password</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="owners-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+                                <!-- Dynamic Owner Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MASTER ZIP BACKUP & IMPORT / EXPORT BAR -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-file-zipper text-amber-400"></i> Master Platform ZIP Backup & Sync
+                    </h3>
+                    <p class="text-xs text-slate-400">Export master database archives containing all tenants and member rosters.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="indexApp.exportDataToZip()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Export Master ZIP</span>
+                    </button>
+
+                    <label class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 cursor-pointer transition flex items-center gap-2">
+                        <i class="fa-solid fa-upload text-amber-400"></i>
+                        <span>Import ZIP / JSON</span>
+                        <input type="file" id="file-import-input" accept=".zip,.json" onchange="indexApp.importDataFromFile(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- QR CODE MODAL -->
+    <div id="qr-code-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-sm rounded-3xl p-6 text-center space-y-4 border border-slate-800 shadow-2xl relative">
+            <button onclick="indexApp.closeQrModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition text-lg p-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-1">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-1">
+                    <i class="fa-solid fa-qrcode text-xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-white" id="qr-modal-title">Branch Access QR</h3>
+                <p class="text-[11px] text-slate-400 truncate px-2" id="qr-modal-url-text"></p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl inline-block shadow-inner">
+                <img id="qr-code-img" src="" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
+            </div>
+            <div class="pt-1">
+                <button onclick="indexApp.closeQrModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BRANCH INSPECTION MODAL -->
+    <div id="branch-inspect-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-4xl rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-800 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="indexApp.closeInspectModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-4 border-b border-slate-800 pb-4">
+                <div id="inspect-logo-container" class="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
+                    <i id="inspect-logo-icon" class="fa-solid fa-dumbbell"></i>
+                    <img id="inspect-logo-img" src="" alt="Logo" class="w-full h-full object-cover hidden">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 id="inspect-gym-name" class="text-lg font-black text-white">Gym Name</h3>
+                        <span id="inspect-tenant-id" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">GYM-001</span>
+                    </div>
+                    <p id="inspect-owner-info" class="text-xs text-slate-400 mt-0.5">Owner: Name (email@domain.com)</p>
+                </div>
+            </div>
+
+            <!-- TOGGLE 1: BRANCH PRICING & DEFAULT DISCOUNTS -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <button onclick="indexApp.toggleInspectSection('pricing')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
+                    <h4 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-tags"></i> Branch Pricing & Default Discounts
+                    </h4>
+                    <i id="toggle-icon-pricing" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                </button>
+                <div id="toggle-content-pricing" class="p-4 pt-0 space-y-2 hidden">
+                    <div id="inspect-pricing-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1 text-center">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- BRANCH STATS SUMMARY -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-mono">Branch Members</span>
+                    <h4 id="inspect-stat-members" class="text-xl font-black text-white mt-1">0</h4>
+                </div>
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-mono">Active Memberships</span>
+                    <h4 id="inspect-stat-active" class="text-xl font-black text-emerald-400 mt-1">0</h4>
+                </div>
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 uppercase font-mono">Total Branch Revenue</span>
+                    <h4 id="inspect-stat-revenue" class="text-xl font-black text-purple-400 mt-1">₱0.00</h4>
+                </div>
+            </div>
+
+            <!-- TOGGLE 1 (REORDERED): TENANT MEMBER ROSTER -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="w-full p-4 flex items-center justify-between">
+                    <button onclick="indexApp.toggleInspectSection('roster')" class="flex items-center gap-2 text-left hover:opacity-80 transition flex-grow">
+                        <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-users text-emerald-400"></i> Tenant Member Roster
+                        </h4>
+                        <i id="toggle-icon-roster" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                    </button>
+                    <!-- Reports & Analytics button with path updated to point inside gym folder -->
+                    <a id="inspect-reports-btn" href="#" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-md flex-shrink-0">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>Open Full Reports & Analytics</span>
+                    </a>
+                </div>
+                <div id="toggle-content-roster" class="p-4 pt-0 space-y-3 hidden">
+                    <div class="overflow-x-auto border border-slate-800 rounded-2xl">
+                        <table class="w-full text-left text-xs">
+                            <thead class="text-slate-400 border-b border-slate-800 bg-slate-900/50 uppercase font-semibold">
+                                <tr>
+                                    <th class="p-3">Member ID</th>
+                                    <th class="p-3">Full Name</th>
+                                    <th class="p-3">Classification</th>
+                                    <th class="p-3">Email</th>
+                                    <th class="p-3">Password</th>
+                                    <th class="p-3">Plan</th>
+                                    <th class="p-3">Wallet Balance</th>
+                                    <th class="p-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inspect-members-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOGGLE 2: BRANCH STAFF ACCOUNTS MANAGEMENT -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <button onclick="indexApp.toggleInspectSection('staff')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
+                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield"></i> Branch Staff Accounts Management
+                    </h4>
+                    <i id="toggle-icon-staff" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                </button>
+                <div id="toggle-content-staff" class="p-4 pt-0 space-y-3 hidden">
+                    <div id="inspect-staff-list" class="space-y-2 max-h-40 overflow-y-auto text-xs">
+                        <!-- Dynamic staff list -->
+                    </div>
+                    <form onsubmit="indexApp.handleInspectAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
+                        <input type="text" id="inspect-new-staff-name" placeholder="Staff Name" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <input type="email" id="inspect-new-staff-email" placeholder="staff@gym.com" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <input type="text" id="inspect-new-staff-pass" placeholder="Password" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow">
+                            Add Staff
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TOGGLE 3: TENANT ZIP BACKUP & RESTORE -->
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                <button onclick="indexApp.toggleInspectSection('zip')" class="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition">
+                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-file-zipper"></i> Tenant ZIP Backup & Restore
+                    </h4>
+                    <i id="toggle-icon-zip" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                </button>
+                <div id="toggle-content-zip" class="p-4 pt-0 space-y-3 hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <p class="text-[11px] text-slate-400">Export or restore backup archives for this individual tenant only.</p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="indexApp.exportTenantZip()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Export Tenant ZIP</span>
+                            </button>
+                            <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 cursor-pointer transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-upload text-amber-400"></i>
+                                <span>Import Tenant ZIP</span>
+                                <input type="file" id="tenant-zip-import-input" accept=".zip" onchange="indexApp.importTenantZip(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="indexApp.closeInspectModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                    Close Inspection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT TENANT MODAL -->
+    <div id="edit-owner-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-800 shadow-2xl relative my-8">
+            <button onclick="indexApp.closeEditModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Edit Gym Tenant Account</h3>
+                    <p class="text-xs text-slate-400">Update business details, owner contacts, pricing, discounts, or logo</p>
+                </div>
+            </div>
+
+            <form onsubmit="indexApp.handleUpdateOwner(event)" class="space-y-4">
+                <input type="hidden" id="edit-owner-id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Branch Name</label>
+                        <input type="text" id="edit-gym-name" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Full Name</label>
+                        <input type="text" id="edit-owner-name" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Owner Login Email</label>
+                        <input type="email" id="edit-owner-email" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                        <input type="text" id="edit-owner-pass" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <h4 class="font-bold text-amber-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-tags"></i> Membership Pricing & Default Discounts
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">1-Day Base (₱)</label>
+                            <input type="number" id="edit-price-day" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">1-Week Base (₱)</label>
+                            <input type="number" id="edit-price-week" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">1-Month Base (₱)</label>
+                            <input type="number" id="edit-price-month" required min="0" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">Student Disc (%)</label>
+                            <input type="number" id="edit-discount-student" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">Senior Disc (%)</label>
+                            <input type="number" id="edit-discount-senior" required min="0" max="100" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">Update Gym Logo Image (Optional)</label>
+                    <div class="flex items-center gap-3">
+                        <img id="edit-logo-preview" src="" alt="Logo Preview" class="w-10 h-10 rounded-xl object-cover border border-slate-700 hidden">
+                        <input type="file" id="edit-gym-logo" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="indexApp.closeEditModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow-lg">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900">
+        <p>© 2026 Master Application Hub • Project Command Center</p>
+    </footer>
+
+    <!-- LOGIC CONTROLLER -->
+    <script>
+        const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
+        const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
+        const SUPER_SESSION_KEY = 'ironvault_super_session';
+
+        const indexApp = {
+            owners: [],
+            members: [],
+            visiblePasswords: {},
+            currentInspectOwnerId: null,
+
+            generateUniqueToken: function(length = 24) {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = '';
+                for (let i = 0; i < length; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            },
+
+            init: async function() {
+                await this.loadData();
+                this.checkSession();
+            },
+
+            loadData: async function() {
+                let loadedOwners = [];
+                let loadedMembers = [];
+
+                try {
+                    const { data: ownersData, error: ownersError } = await supabaseClient.from('owners').select('*');
+                    if (!ownersError && ownersData) {
+                        loadedOwners = ownersData.map(o => ({
+                            id: o.id,
+                            gymName: o.gym_name,
+                            ownerName: o.owner_name,
+                            email: o.email,
+                            password: o.password,
+                            token: o.token,
+                            logo: o.logo,
+                            status: o.status,
+                            pricing: o.pricing,
+                            staff: o.staff,
+                            auditLogs: o.audit_logs,
+                            dateCreated: o.date_created
+                        }));
+                    }
+                } catch(e) {
+                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
+                    if (ownersData) loadedOwners = JSON.parse(ownersData);
+                }
+
+                try {
+                    const { data: membersData, error: membersError } = await supabaseClient.from('members').select('*');
+                    if (!membersError && membersData) {
+                        loadedMembers = membersData.map(m => ({
+                            id: m.id,
+                            tenantId: m.tenant_id,
+                            tenantToken: m.tenant_token,
+                            name: m.name,
+                            email: m.email,
+                            phone: m.phone,
+                            password: m.password,
+                            classification: m.classification,
+                            discountPercentage: m.discount_percentage,
+                            plan: m.plan,
+                            cardBarcode: m.card_barcode,
+                            walletBalance: m.wallet_balance,
+                            amount: m.amount,
+                            scansUsed: m.scans_used,
+                            lastScannedDate: m.last_scanned_date,
+                            expirationDate: m.expiration_date,
+                            status: m.status,
+                            dateJoined: m.date_joined,
+                            avatar: m.avatar
+                        }));
+                    }
+                } catch(e) {
+                    const membersData = localStorage.getItem(MEMBERS_STORAGE_KEY);
+                    if (membersData) loadedMembers = JSON.parse(membersData);
+                }
+
+                if (!loadedOwners || loadedOwners.length === 0) {
+                    this.owners = [];
+                } else {
+                    let updated = false;
+                    this.owners = loadedOwners.map(owner => {
+                        if (!owner.token) {
+                            owner.token = this.generateUniqueToken(24);
+                            updated = true;
+                        }
+                        if (!owner.staff) {
+                            owner.staff = [];
+                            updated = true;
+                        }
+                        
+                        if (!owner.pricing) {
+                            const oldPrices = owner.prices || {};
+                            owner.pricing = {
+                                day: oldPrices.dayPass !== undefined ? oldPrices.dayPass : 150,
+                                week: oldPrices.weekPass !== undefined ? oldPrices.weekPass : 700,
+                                month: oldPrices.monthPass !== undefined ? oldPrices.monthPass : 2500,
+                                studentDiscount: oldPrices.studentDiscount !== undefined ? oldPrices.studentDiscount : 20,
+                                seniorDiscount: oldPrices.seniorDiscount !== undefined ? oldPrices.seniorDiscount : 20
+                            };
+                            updated = true;
+                        } else {
+                            if (owner.pricing.studentDiscount === undefined) {
+                                owner.pricing.studentDiscount = 20;
+                                updated = true;
+                            }
+                            if (owner.pricing.seniorDiscount === undefined) {
+                                owner.pricing.seniorDiscount = 20;
+                                updated = true;
+                            }
+                        }
+                        return owner;
+                    });
+                    if (updated) {
+                        this.saveOwners();
+                    }
+                }
+
+                this.members = loadedMembers;
+            },
+
+            saveOwners: async function() {
+                localStorage.setItem(OWNERS_STORAGE_KEY, JSON.stringify(this.owners));
+                try {
+                    for (const o of this.owners) {
+                        await supabaseClient.from('owners').upsert({
+                            id: o.id,
+                            gym_name: o.gymName,
+                            owner_name: o.ownerName,
+                            email: o.email,
+                            password: o.password,
+                            token: o.token,
+                            logo: o.logo || '',
+                            status: o.status || 'ACTIVE',
+                            pricing: o.pricing,
+                            staff: o.staff || [],
+                            audit_logs: o.auditLogs || [],
+                            date_created: o.dateCreated || new Date().toISOString()
+                        });
+                    }
+                } catch(e) {}
+            },
+
+            saveMembers: async function() {
+                localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(this.members));
+                try {
+                    for (const m of this.members) {
+                        await supabaseClient.from('members').upsert({
+                            id: m.id,
+                            tenant_id: m.tenantId,
+                            tenant_token: m.tenantToken,
+                            name: m.name,
+                            email: m.email,
+                            phone: m.phone,
+                            password: m.password,
+                            classification: m.classification || 'Regular',
+                            discount_percentage: m.discountPercentage || 0,
+                            plan: m.plan || 'Not Selected',
+                            card_barcode: m.cardBarcode,
+                            wallet_balance: m.walletBalance || 0,
+                            amount: m.amount || 0,
+                            scans_used: m.scansUsed || 0,
+                            last_scanned_date: m.lastScannedDate,
+                            expiration_date: m.expirationDate,
+                            status: m.status || 'ACTIVE',
+                            date_joined: m.dateJoined,
+                            avatar: m.avatar
+                        });
+                    }
+                } catch(e) {}
+            },
+
+            checkSession: function() {
+                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
+                if (isLogged === 'true') {
+                    document.getElementById('view-hub-landing').classList.add('hidden');
+                    document.getElementById('super-auth-card').classList.add('hidden');
+                    document.getElementById('super-dashboard').classList.remove('hidden');
+                    document.getElementById('btn-super-logout').classList.remove('hidden');
+                    document.getElementById('btn-toggle-view').classList.remove('hidden');
+                    document.getElementById('toggle-view-label').innerText = "Return to Master Hub";
+                    this.renderDashboard();
+                }
+            },
+
+            requestMasterAccess: function() {
+                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
+                if (isLogged === 'true') {
+                    this.showDashboardView();
+                } else {
+                    document.getElementById('view-hub-landing').classList.add('hidden');
+                    document.getElementById('super-dashboard').classList.add('hidden');
+                    document.getElementById('super-auth-card').classList.remove('hidden');
+                }
+            },
+
+            showHubView: function() {
+                document.getElementById('super-auth-card').classList.add('hidden');
+                document.getElementById('super-dashboard').classList.add('hidden');
+                document.getElementById('view-hub-landing').classList.remove('hidden');
+                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
+                if (isLogged === 'true') {
+                    document.getElementById('btn-toggle-view').classList.remove('hidden');
+                    document.getElementById('toggle-view-label').innerText = "Open Super Admin Tower";
+                }
+            },
+
+            showDashboardView: function() {
+                document.getElementById('view-hub-landing').classList.add('hidden');
+                document.getElementById('super-auth-card').classList.add('hidden');
+                document.getElementById('super-dashboard').classList.remove('hidden');
+                document.getElementById('btn-super-logout').classList.remove('hidden');
+                document.getElementById('btn-toggle-view').classList.remove('hidden');
+                document.getElementById('toggle-view-label').innerText = "Return to Master Hub";
+                this.renderDashboard();
+            },
+
+            toggleMasterView: function() {
+                const hub = document.getElementById('view-hub-landing');
+                if (hub.classList.contains('hidden')) {
+                    this.showHubView();
+                } else {
+                    this.showDashboardView();
+                }
+            },
+
+            handleLogin: function(e) {
+                e.preventDefault();
+                const email = document.getElementById('super-email').value.trim();
+                const pass = document.getElementById('super-password').value;
+
+                if (email === 'master@ironvault.com' && pass === 'master123') {
+                    sessionStorage.setItem(SUPER_SESSION_KEY, 'true');
+                    document.getElementById('super-auth-card').classList.add('hidden');
+                    document.getElementById('btn-super-logout').classList.remove('hidden');
+                    this.showDashboardView();
+                } else {
+                    alert("Invalid Master Credentials!");
+                }
+            },
+
+            logout: function() {
+                sessionStorage.removeItem(SUPER_SESSION_KEY);
+                document.getElementById('super-dashboard').classList.add('hidden');
+                document.getElementById('btn-super-logout').classList.add('hidden');
+                document.getElementById('btn-toggle-view').classList.add('hidden');
+                this.showHubView();
+            },
+
+            renderDashboard: function() {
+                document.getElementById('stat-gyms').innerText = this.owners.length;
+                document.getElementById('stat-members').innerText = this.members.length;
+                document.getElementById('owner-count').innerText = this.owners.length;
+
+                this.renderOwnersTable();
+            },
+
+            toggleDashboardSection: function(sectionKey) {
+                const content = document.getElementById(`dash-content-${sectionKey}`);
+                const icon = document.getElementById(`dash-toggle-icon-${sectionKey}`);
+                if (!content || !icon) return;
+
+                if (content.classList.contains('hidden')) {
+                    content.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                } else {
+                    content.classList.add('hidden');
+                    icon.classList.remove('rotate-180');
+                }
+            },
+
+            renderOwnersTable: function() {
+                const tbody = document.getElementById('owners-tbody');
+                if (this.owners.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No gym tenants registered yet.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = this.owners.map(owner => {
+                    const isShow = this.visiblePasswords[owner.id] || false;
+                    const passDisplay = isShow ? owner.password : '••••••••';
+                    const iconClass = isShow ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+                    
+                    const origin = window.location.origin === 'null' || window.location.origin.startsWith('file://') ? '' : window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+                    // Updated member portal link pointing to gym/ subfolder
+                    const memberPortalUrl = `${origin}gym/memberlogin.html?key=${owner.token}`;
+
+                    const logoHtml = owner.logo 
+                        ? `<img src="${owner.logo}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0">` 
+                        : `<div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0"><i class="fa-solid fa-dumbbell"></i></div>`;
+
+                    return `
+                        <tr class="hover:bg-slate-900/50 transition">
+                            <td class="p-3 font-mono font-bold text-amber-400">${owner.id}</td>
+                            <td class="p-3">
+                                <div class="flex items-center gap-2.5">
+                                    ${logoHtml}
+                                    <div class="space-y-1">
+                                        <div class="font-semibold text-white">${owner.gymName}</div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <a href="./gym/memberlogin.html?key=${owner.token}" target="_blank" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                                gym/memberlogin.html?key=${owner.token.substring(0, 10)}...
+                                            </a>
+                                            <button onclick="indexApp.copyToClipboard('${memberPortalUrl}', this)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition" title="Copy Link">
+                                                <i class="fa-regular fa-copy"></i> Copy
+                                            </button>
+                                            <button onclick="indexApp.openQrModal('${memberPortalUrl}', '${owner.gymName}')" class="px-2 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-semibold transition" title="Generate QR Code">
+                                                <i class="fa-solid fa-qrcode"></i> QR
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-3">
+                                <div class="text-white">${owner.ownerName}</div>
+                                <div class="text-[11px] text-slate-400">${owner.email}</div>
+                            </td>
+                            <td class="p-3 font-mono text-amber-300">
+                                <span class="mr-2">${passDisplay}</span>
+                                <button onclick="indexApp.toggleOwnerPassword('${owner.id}')" class="text-slate-400 hover:text-white" title="Toggle Password">
+                                    <i class="${iconClass}"></i>
+                                </button>
+                            </td>
+                            <td class="p-3">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${owner.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+                                    ${owner.status}
+                                </span>
+                            </td>
+                            <td class="p-3 text-right space-y-1 sm:space-y-0 sm:space-x-1">
+                                <button onclick="indexApp.openInspectModal('${owner.id}')" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Inspect Branch & Staff">
+                                    <i class="fa-solid fa-eye"></i> View Branch
+                                </button>
+                                <button onclick="indexApp.openEditModal('${owner.id}')" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px]" title="Edit Tenant Details">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                                </button>
+                                <button onclick="indexApp.toggleOwnerStatus('${owner.id}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">
+                                    ${owner.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                                </button>
+                                <button onclick="indexApp.deleteOwner('${owner.id}')" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            copyToClipboard: function(text, btnElement) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalHTML = btnElement.innerHTML;
+                    btnElement.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> Copied';
+                    btnElement.classList.add('bg-emerald-500/20', 'text-emerald-300');
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalHTML;
+                        btnElement.classList.remove('bg-emerald-500/20', 'text-emerald-300');
+                    }, 2000);
+                }).catch(err => {
+                    alert("Failed to copy text: " + err);
+                });
+            },
+
+            openQrModal: function(url, gymName) {
+                document.getElementById('qr-modal-title').innerText = `${gymName} Access Portal`;
+                document.getElementById('qr-modal-url-text').innerText = url;
+                const qrImg = document.getElementById('qr-code-img');
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+                document.getElementById('qr-code-modal').classList.remove('hidden');
+            },
+
+            closeQrModal: function() {
+                document.getElementById('qr-code-modal').classList.add('hidden');
+            },
+
+            toggleInspectSection: function(sectionKey) {
+                const content = document.getElementById(`toggle-content-${sectionKey}`);
+                const icon = document.getElementById(`toggle-icon-${sectionKey}`);
+                if (!content || !icon) return;
+
+                if (content.classList.contains('hidden')) {
+                    content.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                } else {
+                    content.classList.add('hidden');
+                    icon.classList.remove('rotate-180');
+                }
+            },
+
+            openInspectModal: function(ownerId) {
+                const owner = this.owners.find(o => o.id === ownerId);
+                if (!owner) return;
+                this.currentInspectOwnerId = owner.id;
+
+                document.getElementById('inspect-gym-name').innerText = owner.gymName;
+                document.getElementById('inspect-tenant-id').innerText = owner.id;
+                document.getElementById('inspect-owner-info').innerText = `Owner: ${owner.ownerName} (${owner.email})`;
+
+                const reportsBtn = document.getElementById('inspect-reports-btn');
+                if (reportsBtn) {
+                    // Updated reports link pointing to gym/reports.html with &from=index to return here
+                    reportsBtn.href = `./gym/reports.html?key=${owner.token}&from=index`;
+                }
+
+                const logoImg = document.getElementById('inspect-logo-img');
+                const logoIcon = document.getElementById('inspect-logo-icon');
+                if (owner.logo) {
+                    logoImg.src = owner.logo;
+                    logoImg.classList.remove('hidden');
+                    logoIcon.classList.add('hidden');
+                } else {
+                    logoImg.classList.add('hidden');
+                    logoIcon.classList.remove('hidden');
+                }
+
+                const pricing = owner.pricing || { day: 150, week: 700, month: 2500, studentDiscount: 20, seniorDiscount: 20 };
+                const pricingGrid = document.getElementById('inspect-pricing-grid');
+                pricingGrid.innerHTML = `
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[9px] text-slate-400 uppercase block">1-Day Base</span>
+                        <h5 class="text-sm font-black text-emerald-400 font-mono">₱${Number(pricing.day || 150).toLocaleString()}</h5>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[9px] text-slate-400 uppercase block">1-Week Base</span>
+                        <h5 class="text-sm font-black text-emerald-400 font-mono">₱${Number(pricing.week || 700).toLocaleString()}</h5>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[9px] text-slate-400 uppercase block">1-Month Base</span>
+                        <h5 class="text-sm font-black text-emerald-400 font-mono">₱${Number(pricing.month || 2500).toLocaleString()}</h5>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[9px] text-slate-400 uppercase block">Student Disc</span>
+                        <h5 class="text-sm font-black text-amber-400 font-mono">${Number(pricing.studentDiscount !== undefined ? pricing.studentDiscount : 20)}%</h5>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                        <span class="text-[9px] text-slate-400 uppercase block">Senior Disc</span>
+                        <h5 class="text-sm font-black text-amber-400 font-mono">${Number(pricing.seniorDiscount !== undefined ? pricing.seniorDiscount : 20)}%</h5>
+                    </div>
+                `;
+
+                this.renderInspectStaffList(owner);
+
+                const branchMembers = this.members.filter(m => (m.tenantId || 'GYM-001') === owner.id || (m.tenantToken && m.tenantToken === owner.token));
+                document.getElementById('inspect-stat-members').innerText = branchMembers.length;
+                
+                const activeCount = branchMembers.filter(m => m.status === 'ACTIVE').length;
+                document.getElementById('inspect-stat-active').innerText = activeCount;
+
+                const totalRev = branchMembers.reduce((sum, m) => sum + (m.amount || 0), 0);
+                document.getElementById('inspect-stat-revenue').innerText = `₱${totalRev.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+                const tbody = document.getElementById('inspect-members-tbody');
+                if (branchMembers.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500 italic">No members registered under this branch yet.</td></tr>`;
+                } else {
+                    tbody.innerHTML = branchMembers.map(m => {
+                        const classification = m.classification || 'Regular';
+                        const discountPercentage = m.discountPercentage !== undefined ? m.discountPercentage : 0;
+                        const badgeText = classification === 'Regular' ? 'Regular' : `${classification} (${discountPercentage}%)`;
+                        const memberPassword = m.password || 'gym12345';
+
+                        return `
+                            <tr class="hover:bg-slate-900/50 transition">
+                                <td class="p-3 font-mono font-bold text-emerald-400">${m.id}</td>
+                                <td class="p-3 font-semibold text-white">${m.name}</td>
+                                <td class="p-3">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                        ${badgeText}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-slate-400">${m.email}</td>
+                                <td class="p-3 font-mono text-amber-300">${memberPassword}</td>
+                                <td class="p-3">${m.plan || 'Not Selected'}</td>
+                                <td class="p-3 font-mono font-bold text-emerald-400">₱${(m.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                <td class="p-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${m.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+                                        ${m.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                document.getElementById('branch-inspect-modal').classList.remove('hidden');
+            },
+
+            renderInspectStaffList: function(owner) {
+                const container = document.getElementById('inspect-staff-list');
+                const staffList = owner.staff || [];
+
+                if (staffList.length === 0) {
+                    container.innerHTML = `<p class="text-slate-500 italic">No staff accounts registered for this branch yet.</p>`;
+                    return;
+                }
+
+                container.innerHTML = staffList.map((s, idx) => `
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white">${s.name}</span>
+                            <span class="text-[10px] text-slate-400 block">${s.email} (Pass: ${s.password})</span>
+                        </div>
+                        <button onclick="indexApp.handleInspectDeleteStaff(${idx})" class="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `).join('');
+            },
+
+            handleInspectAddStaff: async function(e) {
+                e.preventDefault();
+                if (!this.currentInspectOwnerId) return;
+
+                const owner = this.owners.find(o => o.id === this.currentInspectOwnerId);
+                if (!owner) return;
+
+                const name = document.getElementById('inspect-new-staff-name').value.trim();
+                const email = document.getElementById('inspect-new-staff-email').value.trim();
+                const password = document.getElementById('inspect-new-staff-pass').value.trim();
+
+                if (!owner.staff) owner.staff = [];
+
+                if (owner.staff.some(s => s.email.toLowerCase() === email.toLowerCase()) || owner.email.toLowerCase() === email.toLowerCase()) {
+                    alert("A staff member or owner with this email already exists!");
+                    return;
+                }
+
+                owner.staff.push({
+                    name,
+                    email,
+                    password,
+                    dateCreated: new Date().toISOString().split('T')[0]
+                });
+
+                await this.saveOwners();
+                this.renderInspectStaffList(owner);
+
+                document.getElementById('inspect-new-staff-name').value = '';
+                document.getElementById('inspect-new-staff-email').value = '';
+                document.getElementById('inspect-new-staff-pass').value = '';
+                alert(`Staff account for ${name} added successfully!`);
+            },
+
+            handleInspectDeleteStaff: async function(idx) {
+                if (!this.currentInspectOwnerId) return;
+                const owner = this.owners.find(o => o.id === this.currentInspectOwnerId);
+                if (!owner || !owner.staff) return;
+
+                const staffMember = owner.staff[idx];
+                if (confirm(`Are you sure you want to delete staff account ${staffMember.name}?`)) {
+                    owner.staff.splice(idx, 1);
+                    await this.saveOwners();
+                    this.renderInspectStaffList(owner);
+                }
+            },
+
+            closeInspectModal: function() {
+                this.currentInspectOwnerId = null;
+                document.getElementById('branch-inspect-modal').classList.add('hidden');
+            },
+
+            openEditModal: function(id) {
+                const owner = this.owners.find(o => o.id === id);
+                if (!owner) return;
+
+                document.getElementById('edit-owner-id').value = owner.id;
+                document.getElementById('edit-gym-name').value = owner.gymName;
+                document.getElementById('edit-owner-name').value = owner.ownerName;
+                document.getElementById('edit-owner-email').value = owner.email;
+                document.getElementById('edit-owner-pass').value = owner.password;
+
+                const pricing = owner.pricing || { day: 150, week: 700, month: 2500, studentDiscount: 20, seniorDiscount: 20 };
+                document.getElementById('edit-price-day').value = pricing.day !== undefined ? pricing.day : 150;
+                document.getElementById('edit-price-week').value = pricing.week !== undefined ? pricing.week : 700;
+                document.getElementById('edit-price-month').value = pricing.month !== undefined ? pricing.month : 2500;
+                document.getElementById('edit-discount-student').value = pricing.studentDiscount !== undefined ? pricing.studentDiscount : 20;
+                document.getElementById('edit-discount-senior').value = pricing.seniorDiscount !== undefined ? pricing.seniorDiscount : 20;
+
+                const logoPreview = document.getElementById('edit-logo-preview');
+                if (owner.logo) {
+                    logoPreview.src = owner.logo;
+                    logoPreview.classList.remove('hidden');
+                } else {
+                    logoPreview.classList.add('hidden');
+                }
+
+                document.getElementById('edit-gym-logo').value = '';
+                document.getElementById('edit-owner-modal').classList.remove('hidden');
+            },
+
+            closeEditModal: function() {
+                document.getElementById('edit-owner-modal').classList.add('hidden');
+            },
+
+            handleUpdateOwner: async function(e) {
+                e.preventDefault();
+                const id = document.getElementById('edit-owner-id').value;
+                const owner = this.owners.find(o => o.id === id);
+                if (!owner) return;
+
+                const gymName = document.getElementById('edit-gym-name').value.trim();
+                const ownerName = document.getElementById('edit-owner-name').value.trim();
+                const email = document.getElementById('edit-owner-email').value.trim();
+                const password = document.getElementById('edit-owner-pass').value.trim();
+                
+                const day = parseFloat(document.getElementById('edit-price-day').value) || 150;
+                const week = parseFloat(document.getElementById('edit-price-week').value) || 700;
+                const month = parseFloat(document.getElementById('edit-price-month').value) || 2500;
+                const studentDiscount = parseFloat(document.getElementById('edit-discount-student').value) || 20;
+                const seniorDiscount = parseFloat(document.getElementById('edit-discount-senior').value) || 20;
+
+                const logoInput = document.getElementById('edit-gym-logo');
+
+                if (this.owners.some(o => o.email === email && o.id !== id)) {
+                    alert("Another gym tenant with this email already exists!");
+                    return;
+                }
+
+                const applyUpdates = async (newLogoBase64) => {
+                    owner.gymName = gymName;
+                    owner.ownerName = ownerName;
+                    owner.email = email;
+                    owner.password = password;
+                    owner.pricing = { day, week, month, studentDiscount, seniorDiscount };
+                    if (newLogoBase64 !== null) {
+                        owner.logo = newLogoBase64;
+                    }
+
+                    await this.saveOwners();
+                    this.renderDashboard();
+                    this.closeEditModal();
+                    alert(`Successfully updated tenant details for "${gymName}"!`);
+                };
+
+                if (logoInput.files && logoInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = async function(uploadEvent) {
+                        await applyUpdates(uploadEvent.target.result);
+                    };
+                    reader.readAsDataURL(logoInput.files[0]);
+                } else {
+                    await applyUpdates(null);
+                }
+            },
+
+            handleRegisterOwner: async function(e) {
+                e.preventDefault();
+                const gymName = document.getElementById('reg-gym-name').value.trim();
+                const ownerName = document.getElementById('reg-owner-name').value.trim();
+                const email = document.getElementById('reg-owner-email').value.trim();
+                const password = document.getElementById('reg-owner-pass').value.trim();
+                
+                const day = parseFloat(document.getElementById('reg-price-day').value) || 150;
+                const week = parseFloat(document.getElementById('reg-price-week').value) || 700;
+                const month = parseFloat(document.getElementById('reg-price-month').value) || 2500;
+                const studentDiscount = parseFloat(document.getElementById('reg-discount-student').value) || 20;
+                const seniorDiscount = parseFloat(document.getElementById('reg-discount-senior').value) || 20;
+
+                const staffName = document.getElementById('reg-staff-name').value.trim();
+                const staffEmail = document.getElementById('reg-staff-email').value.trim();
+                const staffPass = document.getElementById('reg-staff-pass').value.trim();
+
+                const logoInput = document.getElementById('reg-gym-logo');
+
+                if (password.length < 6) {
+                    alert("Password must be at least 6 characters long.");
+                    return;
+                }
+
+                if (this.owners.some(o => o.email === email)) {
+                    alert("A gym tenant with this email already exists!");
+                    return;
+                }
+
+                const nextNum = this.owners.length + 1;
+                const newId = `GYM-${String(nextNum).padStart(3, '0')}`;
+                const newToken = this.generateUniqueToken(24);
+
+                const processRegistration = async (logoBase64) => {
+                    const initialStaff = [];
+                    if (staffName && staffEmail && staffPass) {
+                        initialStaff.push({
+                            name: staffName,
+                            email: staffEmail,
+                            password: staffPass,
+                            dateCreated: new Date().toISOString().split('T')[0]
+                        });
+                    }
+
+                    const newOwner = {
+                        id: newId,
+                        token: newToken,
+                        gymName,
+                        ownerName,
+                        email,
+                        password,
+                        pricing: { day, week, month, studentDiscount, seniorDiscount },
+                        staff: initialStaff,
+                        logo: logoBase64 || '',
+                        status: 'ACTIVE',
+                        dateCreated: new Date().toISOString().split('T')[0]
+                    };
+
+                    this.owners.push(newOwner);
+                    await this.saveOwners();
+                    this.renderDashboard();
+
+                    document.getElementById('reg-gym-name').value = '';
+                    document.getElementById('reg-owner-name').value = '';
+                    document.getElementById('reg-owner-email').value = '';
+                    document.getElementById('reg-owner-pass').value = '';
+                    document.getElementById('reg-staff-name').value = '';
+                    document.getElementById('reg-staff-email').value = '';
+                    document.getElementById('reg-staff-pass').value = '';
+                    document.getElementById('reg-gym-logo').value = '';
+
+                    alert(`Successfully registered white-labeled gym tenant: ${gymName} (${newId})!`);
+                };
+
+                if (logoInput.files && logoInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = async function(uploadEvent) {
+                        await processRegistration(uploadEvent.target.result);
+                    };
+                    reader.readAsDataURL(logoInput.files[0]);
+                } else {
+                    await processRegistration('');
+                }
+            },
+
+            toggleOwnerPassword: function(id) {
+                this.visiblePasswords[id] = !this.visiblePasswords[id];
+                this.renderOwnersTable();
+            },
+
+            toggleOwnerStatus: async function(id) {
+                const owner = this.owners.find(o => o.id === id);
+                if (owner) {
+                    owner.status = owner.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+                    await this.saveOwners();
+                    this.renderOwnersTable();
+                }
+            },
+
+            deleteOwner: async function(id) {
+                if (confirm(`Are you sure you want to delete gym tenant ${id}?`)) {
+                    this.owners = this.owners.filter(o => o.id !== id);
+                    await this.saveOwners();
+                    try {
+                        await supabaseClient.from('owners').delete().eq('id', id);
+                    } catch(e) {}
+                    this.renderDashboard();
+                }
+            },
+
+            exportDataToZip: function() {
+                const zip = new JSZip();
+                zip.file("ironvault_owners_export.json", JSON.stringify(this.owners, null, 2));
+                zip.file("ironvault_members_export.json", JSON.stringify(this.members, null, 2));
+
+                zip.generateAsync({ type: "blob" }).then(function(content) {
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(content);
+                    link.download = `IronVault_Master_SaaS_Backup_${new Date().toISOString().split('T')[0]}.zip`;
+                    link.click();
+                });
+            },
+
+            exportTenantZip: function() {
+                if (!this.currentInspectOwnerId) return;
+                const owner = this.owners.find(o => o.id === this.currentInspectOwnerId);
+                if (!owner) return;
+
+                const branchMembers = this.members.filter(m => (m.tenantId || 'GYM-001') === owner.id || (m.tenantToken && m.tenantToken === owner.token));
+
+                const zip = new JSZip();
+                zip.file("tenant_owner_export.json", JSON.stringify([owner], null, 2));
+                zip.file("tenant_members_export.json", JSON.stringify(branchMembers, null, 2));
+
+                zip.generateAsync({ type: "blob" }).then(function(content) {
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(content);
+                    link.download = `${owner.gymName.replace(/[^a-zA-Z0-9]/g, '_')}_Backup_${new Date().toISOString().split('T')[0]}.zip`;
+                    link.click();
+                });
+            },
+
+            importTenantZip: async function(e) {
+                const file = e.target.files[0];
+                if (!file || !this.currentInspectOwnerId) return;
+                const currentOwnerId = this.currentInspectOwnerId;
+
+                JSZip.loadAsync(file).then(async (zip) => {
+                    const ownerFile = zip.file("tenant_owner_export.json");
+                    const membersFile = zip.file("tenant_members_export.json");
+
+                    if (ownerFile) {
+                        const content = await ownerFile.async("string");
+                        try {
+                            const importedOwners = JSON.parse(content);
+                            if (Array.isArray(importedOwners) && importedOwners.length > 0) {
+                                const importedOwner = importedOwners[0];
+                                importedOwner.id = currentOwnerId;
+                                this.owners = this.owners.map(o => o.id === currentOwnerId ? importedOwner : o);
+                                await this.saveOwners();
+                            }
+                        } catch(e) {}
+                    }
+
+                    if (membersFile) {
+                        const content = await membersFile.async("string");
+                        try {
+                            const importedMembers = JSON.parse(content);
+                            if (Array.isArray(importedMembers)) {
+                                const otherMembers = this.members.filter(m => (m.tenantId || 'GYM-001') !== currentOwnerId && m.tenantToken !== this.owners.find(o => o.id === currentOwnerId)?.token);
+                                const updatedImportedMembers = importedMembers.map(m => {
+                                    m.tenantId = currentOwnerId;
+                                    m.tenantToken = this.owners.find(o => o.id === currentOwnerId)?.token || m.tenantToken;
+                                    return m;
+                                });
+                                this.members = [...otherMembers, ...updatedImportedMembers];
+                                await this.saveMembers();
+                            }
+                        } catch(e) {}
+                    }
+
+                    setTimeout(async () => {
+                        await this.loadData();
+                        this.renderDashboard();
+                        this.openInspectModal(currentOwnerId);
+                        alert("Tenant backup archive successfully imported!");
+                    }, 200);
+
+                }).catch(() => {
+                    alert("Error opening tenant ZIP archive.");
+                });
+            },
+
+            importDataFromFile: function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const fileName = file.name.toLowerCase();
+
+                if (fileName.endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const imported = JSON.parse(event.target.result);
+                            if (Array.isArray(imported)) {
+                                this.members = imported;
+                                await this.saveMembers();
+                                this.renderDashboard();
+                                alert("Successfully imported members dataset!");
+                            }
+                        } catch(err) {
+                            alert("Invalid JSON file format.");
+                        }
+                    };
+                    reader.readAsText(file);
+                } else if (fileName.endsWith('.zip')) {
+                    JSZip.loadAsync(file).then(async (zip) => {
+                        const ownersFile = zip.file("ironvault_owners_export.json");
+                        const membersFile = zip.file("ironvault_members_export.json");
+
+                        if (ownersFile) {
+                            const content = await ownersFile.async("string");
+                            try {
+                                const importedOwners = JSON.parse(content);
+                                if (Array.isArray(importedOwners)) {
+                                    this.owners = importedOwners;
+                                    await this.saveOwners();
+                                }
+                            } catch(e) {}
+                        }
+
+                        if (membersFile) {
+                            const content = await membersFile.async("string");
+                            try {
+                                const importedMembers = JSON.parse(content);
+                                if (Array.isArray(importedMembers)) {
+                                    this.members = importedMembers;
+                                    await this.saveMembers();
+                                }
+                            } catch(e) {}
+                        }
+
+                        setTimeout(async () => {
+                            await this.loadData();
+                            this.renderDashboard();
+                            alert("Master platform backup successfully restored from ZIP archive!");
+                        }, 200);
+
+                    }).catch(() => {
+                        alert("Error opening ZIP archive.");
+                    });
+                }
+            }
+        };
+
+        window.onload = function() {
+            indexApp.init();
+        };
+    </script>
+</body>
+</html>
