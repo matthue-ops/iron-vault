@@ -2518,12 +2518,25 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles,tenant){
- const {data:{user},error:ue}=await supabaseClient.auth.getUser();
- if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
- const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
- if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
- return r;
+async function ivRequireRole(roles, tenant) {
+ // The portal's sessionStorage role is UI state, not proof of Supabase authorization.
+ // A member login in another tab can replace the shared Supabase Auth session.
+ const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+ if (authError || !user) {
+   throw new Error('No authenticated admin/staff session. Sign out and sign in again through the Admin / Staff tab.');
+ }
+ let query = supabaseClient.from('iv_user_roles')
+   .select('user_id,tenant_id,role')
+   .eq('user_id', user.id)
+   .in('role', roles);
+ if (tenant) query = query.eq('tenant_id', tenant);
+ const { data: matches, error: roleError } = await query.limit(1);
+ if (roleError) throw new Error('Could not verify admin/staff permissions: ' + roleError.message);
+ if (!matches || matches.length === 0) {
+   throw new Error('Supabase is signed in as ' + (user.email || 'another account') +
+     ', which has no Admin / Staff role for this gym. Sign out, then sign in using the Admin / Staff tab.');
+ }
+ return matches[0];
 }
 
 adminApp.addModalCredits=async function(amount){
