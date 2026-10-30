@@ -515,7 +515,7 @@
                     this.currentMember.walletBalance = 0;
                 }
 
-                // Check if plan has expired; if so, clear active plan state
+                // Check if plan has expired relative to end of day (Asia/Manila)
                 const options = { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' };
                 const formatter = new Intl.DateTimeFormat([], options);
                 const parts = formatter.formatToParts(new Date());
@@ -718,7 +718,7 @@
                 const expiryContainer = document.getElementById('expiration-container');
                 const expiryElem = document.getElementById('profile-card-expiry');
                 if (m.expirationDate) {
-                    expiryElem.innerText = m.expirationDate;
+                    expiryElem.innerText = `${m.expirationDate} (Ends 12:00 AM Midnight)`;
                     expiryContainer.classList.remove('hidden');
                 } else {
                     expiryContainer.classList.add('hidden');
@@ -771,7 +771,7 @@
 
                 const currentPlan = this.currentMember.plan;
                 if (currentPlan && currentPlan !== 'Not Selected') {
-                    this.showAlert(`You are already subscribed to the ${currentPlan} plan. Plan changes are restricted once subscribed.`, false);
+                    this.showAlert(`You are currently subscribed to the ${currentPlan} plan.`, false);
                     return;
                 }
 
@@ -796,24 +796,40 @@
                     return;
                 }
 
-                const today = new Date();
-                let expiryDate = new Date();
+                // Calculate expiration date anchored to end of day (12:00 AM midnight expiration)
+                const now = new Date();
+                let expiryDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+                
                 if (planName === '1-Day Pass') {
-                    expiryDate.setDate(today.getDate());
+                    // Expires at the end of today (midnight)
+                    expiryDate.setDate(expiryDate.getDate());
                 } else if (planName === '1-Week Pass') {
-                    expiryDate.setDate(today.getDate() + 7);
+                    // Expires 7 days later at midnight
+                    expiryDate.setDate(expiryDate.getDate() + 7);
                 } else if (planName === '1-Month Unlimited') {
-                    expiryDate.setDate(today.getDate() + 30);
+                    // Expires 30 days later at midnight
+                    expiryDate.setDate(expiryDate.getDate() + 30);
                 }
+
+                const options = { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' };
+                const formatter = new Intl.DateTimeFormat([], options);
+                const parts = formatter.formatToParts(expiryDate);
+                let expYear, expMonth, expDay;
+                parts.forEach(pt => {
+                    if (pt.type === 'year') expYear = pt.value;
+                    if (pt.type === 'month') expMonth = pt.value;
+                    if (pt.type === 'day') expDay = pt.value;
+                });
+                const expiryStr = `${expYear}-${expMonth}-${expDay}`;
 
                 this.currentMember.walletBalance = currentWallet - cost;
                 this.currentMember.plan = planName;
                 this.currentMember.amount = (this.currentMember.amount || 0) + cost;
-                this.currentMember.expirationDate = expiryDate.toISOString().split('T')[0];
+                this.currentMember.expirationDate = expiryStr;
 
                 await this.saveData();
                 this.renderProfile();
-                this.showAlert(`Plan updated! Deducted ₱${cost.toLocaleString()} from account credits. Subscribed to ${planName} until ${this.currentMember.expirationDate}.`, true);
+                this.showAlert(`Plan updated! Deducted ₱${cost.toLocaleString()} from account credits. Subscribed to ${planName} until ${expiryStr} (12:00 AM Midnight).`, true);
             },
 
             handleAvatarUpload: async function(e) {
@@ -855,15 +871,12 @@
                 }
 
                 if (!this.currentMember.expirationDate || todayStr > this.currentMember.expirationDate) {
-                    let newExpiry = new Date();
-                    if (this.currentMember.plan === '1-Month Unlimited') {
-                        newExpiry.setDate(newExpiry.getDate() + 30);
-                    } else if (this.currentMember.plan === '1-Week Pass') {
-                        newExpiry.setDate(newExpiry.getDate() + 7);
-                    }
-                    this.currentMember.expirationDate = newExpiry.toISOString().split('T')[0];
+                    this.currentMember.plan = 'Not Selected';
+                    this.currentMember.expirationDate = null;
                     await this.saveData();
                     this.renderProfile();
+                    this.showAlert("Your subscription plan has expired at midnight. Please select a new plan.", false);
+                    return;
                 }
 
                 // Reset lastScannedDate if it belongs to a past day
@@ -872,8 +885,17 @@
                     await this.saveData();
                 }
 
+                // Restriction 3: Once a member already used a QR for that day (or generated/scanned), block generating a new one
                 if (this.currentMember.lastScannedDate === todayStr) {
-                    this.showAlert("Notice: Your QR code for today has already been scanned and entry cleared!", true);
+                    this.showAlert("You have already used your QR code/entry for today. New QR generation is restricted for the rest of the day.", false);
+                    return;
+                }
+
+                // Also prevent re-generating if a QR container already displays today's QR and hasn't been cleared/scanned yet
+                const qrDateBadge = document.getElementById('qr-date-badge');
+                if (qrDateBadge && qrDateBadge.innerText.includes(todayStr) && !document.getElementById('qr-wrapper').classList.contains('hidden')) {
+                    this.showAlert("You have already generated your QR code for today.", false);
+                    return;
                 }
 
                 // Generate payload anchored to Asia/Manila date string
@@ -894,7 +916,9 @@
                 document.getElementById('qr-date-badge').innerText = `Date: ${todayStr}`;
                 document.getElementById('qr-wrapper').classList.remove('hidden');
                 document.getElementById('qr-wrapper').classList.add('flex');
-                document.getElementById('btn-generate-qr').innerText = "Regenerate Today's QR";
+                document.getElementById('btn-generate-qr').innerText = "QR Generated For Today";
+                document.getElementById('btn-generate-qr').disabled = true;
+                document.getElementById('btn-generate-qr').classList.add('opacity-50', 'cursor-not-allowed');
             },
 
             handleProfileUpdate: async function(e) {
