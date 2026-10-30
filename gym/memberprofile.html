@@ -316,11 +316,16 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New Password (Optional)</label>
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New Password (Optional, 8+ characters)</label>
                                 <input type="password" id="edit-password" placeholder="Leave blank to keep current" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                             </div>
                         </div>
 
+                        <div class="space-y-1">
+                            <label class="block text-xs font-medium text-slate-300">Current Password (required only when changing password)</label>
+                            <input type="password" id="edit-current-password" autocomplete="current-password" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none" />
+                            <p id="iv-email-verification-status" class="text-[11px] text-slate-400">Email verification status: checking...</p>
+                        </div>
                         <div class="flex justify-end pt-2">
                             <button type="submit" class="px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg">
                                 Save Profile Changes
@@ -481,7 +486,7 @@
                         name: this.currentMember.name,
                         email: this.currentMember.email,
                         phone: this.currentMember.phone,
-                        password: this.currentMember.password,
+                        password: null,
                         classification: this.currentMember.classification || 'Regular',
                         discount_percentage: this.currentMember.discountPercentage || 0,
                         plan: this.currentMember.plan || 'Not Selected',
@@ -506,6 +511,15 @@
                 }
 
                 this.currentMember = this.allMembersSystem.find(m => m.id === activeId || m.email === activeId);
+                // Once the corrected email is verified in Auth, synchronize the member profile.
+                // This does not change member IDs, balances, subscriptions or QR credentials.
+                if (this.currentMember) {
+                    const {data:{user}} = await supabaseClient.auth.getUser();
+                    if (user?.email_confirmed_at && user.email && user.email.toLowerCase() !== (this.currentMember.email || '').toLowerCase()) {
+                        this.currentMember.email = user.email;
+                        await this.saveData();
+                    }
+                }
                 if (!this.currentMember) {
                     this.redirectWithToken();
                     return;
@@ -924,23 +938,41 @@
             handleProfileUpdate: async function(e) {
                 e.preventDefault();
                 if (!this.currentMember) return;
-
-                const name = document.getElementById('edit-name').value.trim();
-                const email = document.getElementById('edit-email').value.trim();
-                const phone = document.getElementById('edit-phone').value.trim();
-                const password = document.getElementById('edit-password').value;
-
-                this.currentMember.name = name;
-                this.currentMember.email = email;
-                this.currentMember.phone = phone;
-                if (password && password.length >= 6) {
-                    this.currentMember.password = password;
-                }
-
-                await this.saveData();
-                this.renderProfile();
-                this.showAlert("Profile information updated successfully!", true);
-                document.getElementById('edit-password').value = '';
+                try {
+                    const {data:{user},error:userError} = await supabaseClient.auth.getUser();
+                    if (userError || !user) throw Error('Please sign in again before changing account settings.');
+                    const name = document.getElementById('edit-name').value.trim();
+                    const email = document.getElementById('edit-email').value.trim().toLowerCase();
+                    const phone = document.getElementById('edit-phone').value.trim();
+                    const password = document.getElementById('edit-password').value;
+                    const currentPassword = document.getElementById('edit-current-password').value;
+                    if (password) {
+                        if (password.length < 8) throw Error('New password must have at least 8 characters.');
+                        if (!currentPassword) throw Error('Enter your current password to change it.');
+                        const {error:verifyError} = await supabaseClient.auth.signInWithPassword({email:user.email,password:currentPassword});
+                        if (verifyError) throw Error('Current password is incorrect.');
+                        const {error:passwordError} = await supabaseClient.auth.updateUser({password});
+                        if (passwordError) throw passwordError;
+                    }
+                    let pendingEmail = false;
+                    if (email !== (user.email || '').toLowerCase()) {
+                        const {error:emailError} = await supabaseClient.auth.updateUser({email});
+                        if (emailError) throw emailError;
+                        pendingEmail = true;
+                    }
+                    this.currentMember.name = name;
+                    this.currentMember.phone = phone;
+                    // Do not update the member record email until Supabase Auth verifies the new address.
+                    this.currentMember.email = user.email;
+                    delete this.currentMember.password;
+                    await this.saveData();
+                    this.renderProfile();
+                    document.getElementById('edit-email').value = email;
+                    document.getElementById('edit-password').value = '';
+                    document.getElementById('edit-current-password').value = '';
+                    this.showAlert(pendingEmail ? 'Profile saved. Confirm the new email using the verification link before it becomes your login email.' : 'Profile information updated successfully!',true);
+                    ivRefreshEmailVerification();
+                } catch(error) { this.showAlert(error.message || 'Unable to update account.',false); }
             },
 
             showAlert: function(msg, isSuccess = true) {
@@ -981,6 +1013,13 @@
             }
         };
 
+        async function ivRefreshEmailVerification() {
+            const status = document.getElementById('iv-email-verification-status');
+            if (!status) return;
+            const {data:{user}} = await supabaseClient.auth.getUser();
+            status.textContent = user ? ('Email: ' + (user.email || 'Not set') + ' — ' + (user.email_confirmed_at ? 'Verified' : 'Not verified')) : 'Email verification status unavailable. Please sign in.';
+        }
+        window.addEventListener('load', () => setTimeout(ivRefreshEmailVerification, 600));
         window.onload = function() {
             profileApp.init();
         };
