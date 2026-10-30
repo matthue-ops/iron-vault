@@ -236,7 +236,7 @@
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                                 <i class="fa-solid fa-lock text-xs"></i>
                             </span>
-                            <input type="password" id="signup-password" required minlength="6" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <input type="password" id="signup-password" required minlength="8" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
                             <button type="button" onclick="app.togglePasswordVisibility('signup-password', 'pwd-icon-2')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
                                 <i id="pwd-icon-2" class="fa-solid fa-eye text-xs"></i>
                             </button>
@@ -736,6 +736,54 @@ app.handleAdminLoginSubmit=async function(e){e.preventDefault();
  catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
 };
 
+</script>
+
+<script>
+// Iron Vault member Auth: self-registration creates an Auth user; SQL trigger links member/role.
+app.handleSignUpSubmit = async function(event) {
+  event.preventDefault();
+  if (!this.currentTenantId || !this.matchedOwnerRecord?.token) return this.showAlert('Invalid gym link.');
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim().toLowerCase();
+  const phone = document.getElementById('signup-phone').value.trim();
+  const password = document.getElementById('signup-password').value;
+  if (password.length < 8) return this.showAlert('Use a password of at least 8 characters.');
+  const button = document.getElementById('btn-submit-signup'); button.disabled = true;
+  try {
+    const {data,error} = await supabaseClient.auth.signUp({
+      email,password,
+      options:{data:{iv_member_signup:true,iv_tenant_token:this.matchedOwnerRecord.token,iv_member_name:name,iv_member_phone:phone},
+      emailRedirectTo:new URL('memberlogin.html'+window.location.search,location.href).href}
+    });
+    if (error) throw error;
+    if (!data?.user) throw Error('Account could not be created.');
+    document.getElementById('auth-signup-form').reset();
+    this.switchTab('SIGNIN');
+    this.showAlert('Registration submitted. Check your email to confirm your account, then wait for gym approval.',true);
+  } catch(err) {this.showAlert(err.message || 'Registration failed.');}
+  finally {button.disabled = false;}
+};
+app.handleForgotPassword = async function(event) {
+  event.preventDefault();
+  const email = document.getElementById('signin-identifier').value.trim();
+  if (!email.includes('@')) return this.showAlert('Enter your registered email address first.');
+  const {error} = await supabaseClient.auth.resetPasswordForEmail(email,{
+    redirectTo:new URL('memberlogin.html'+window.location.search,location.href).href
+  });
+  this.showAlert(error ? error.message : 'If this email is registered, a recovery email will arrive shortly.',!error);
+};
+// Password recovery redirect returns to this portal; allow the member to set a new password.
+supabaseClient.auth.onAuthStateChange((event)=>{
+  if(event !== 'PASSWORD_RECOVERY') return;
+  setTimeout(async()=>{
+    const password=prompt('Enter your new password (at least 8 characters):');
+    if(!password) return;
+    if(password.length<8) return app.showAlert('Password must be at least 8 characters.');
+    const {error}=await supabaseClient.auth.updateUser({password});
+    app.showAlert(error ? error.message : 'Password changed. You can now sign in.',!error);
+    if(!error) await supabaseClient.auth.signOut();
+  },0);
+});
 </script>
 </body>
 </html>
