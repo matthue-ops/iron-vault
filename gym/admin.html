@@ -703,36 +703,12 @@
                 </div>
             </div>
 
-            <!-- COLLAPSIBLE REGISTERED PASSWORD -->
-            <div class="bg-slate-900/70 border border-purple-500/20 rounded-2xl overflow-hidden">
-                <button type="button" onclick="adminApp.toggleProfileSection('password-section')" class="w-full p-3.5 text-left font-bold text-purple-300 text-xs flex items-center justify-between hover:bg-slate-800/50 transition">
-                    <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-key"></i> Registered Password
-                    </span>
-                    <i id="password-section-icon" class="fa-solid fa-chevron-down text-slate-400"></i>
-                </button>
-
-                <div id="password-section" class="hidden p-3.5 pt-0 space-y-2 border-t border-purple-500/20 mt-1">
-                    <div class="flex items-center justify-between pt-2">
-                        <span class="text-[11px] text-slate-400">View or Change Security Password</span>
-                        <button onclick="adminApp.togglePasswordVisibility()" class="text-[11px] text-purple-400 hover:text-purple-300 transition flex items-center gap-1">
-                            <i id="eye-icon" class="fa-solid fa-eye"></i>
-                            <span id="eye-label">Show Password</span>
-                        </button>
-                    </div>
-
-                    <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 font-mono text-xs text-amber-300 flex items-center justify-between">
-                        <span id="modal-password-text">••••••••</span>
-                        <span class="text-[9px] text-slate-500 uppercase tracking-wider font-sans">Plaintext View</span>
-                    </div>
-
-                    <div class="flex gap-2 pt-1">
-                        <input type="text" id="modal-reset-pass-input" placeholder="Enter new password to reset..." class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                        <button onclick="adminApp.handleAdminResetPassword()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] uppercase transition flex-shrink-0">
-                            Reset Pass
-                        </button>
-                    </div>
-                </div>
+            <!-- ACCOUNT RECOVERY: no password viewing or direct password editing -->
+            <div class="bg-slate-900/70 border border-purple-500/20 rounded-2xl p-3.5 space-y-2">
+                <h4 class="font-bold text-purple-300 text-xs"><i class="fa-solid fa-shield-halved"></i> Account Recovery</h4>
+                <p class="text-[11px] text-slate-400">Members manage passwords privately. A reset link is sent to their verified email.</p>
+                <button type="button" onclick="adminApp.sendMemberPasswordReset()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px]">Send Password Reset Email</button>
+                <p class="text-[11px] text-slate-400">To correct an unconfirmed or incorrect email, enter the new address under Edit Member Information. This requires the secure email-correction Edge Function.</p>
             </div>
 
             <div class="flex justify-end pt-1">
@@ -2323,10 +2299,6 @@
                 // Ensure collapsible sections start collapsed
                 document.getElementById('edit-info-section').classList.add('hidden');
                 document.getElementById('edit-info-section-icon').className = 'fa-solid fa-chevron-down text-slate-400';
-                document.getElementById('password-section').classList.add('hidden');
-                document.getElementById('password-section-icon').className = 'fa-solid fa-chevron-down text-slate-400';
-
-                this.updatePasswordDisplay(member.password);
                 document.getElementById('member-profile-modal').classList.remove('hidden');
             },
 
@@ -2355,7 +2327,23 @@
                 if (!member) return;
 
                 member.name = document.getElementById('edit-member-name').value.trim();
-                member.email = document.getElementById('edit-member-email').value.trim();
+                const proposedEmail = document.getElementById('edit-member-email').value.trim().toLowerCase();
+                if (proposedEmail !== (member.email || '').toLowerCase()) {
+                    try {
+                        await ivRequireRole(['owner','staff'],this.currentTenantId);
+                        const {data,error} = await supabaseClient.functions.invoke('iv-admin-correct-member-email', {
+                            body:{member_id:member.id,tenant_id:this.currentTenantId,new_email:proposedEmail}
+                        });
+                        if (error) throw error;
+                        if (!data?.ok) throw Error(data?.error || 'Email correction was not accepted.');
+                        // The Edge Function updates Auth and the member record together.
+                        member.email = proposedEmail;
+                        alert('Email corrected. The member must verify the new email before using password recovery.');
+                    } catch(error) {
+                        alert('Email was NOT changed: ' + (error.message || String(error)) + '. Deploy the secure email-correction Edge Function first.');
+                        return;
+                    }
+                }
                 member.phone = document.getElementById('edit-member-phone').value.trim();
                 member.plan = document.getElementById('edit-member-plan').value;
                 member.classification = document.getElementById('edit-member-classification').value;
@@ -2370,49 +2358,17 @@
                 alert(`Member details updated successfully!`);
             },
 
-            togglePasswordVisibility: function() {
-                if (!this.activeModalMemberId) return;
+            sendMemberPasswordReset: async function() {
                 const member = this.members.find(m => m.id === this.activeModalMemberId);
-                if (!member) return;
-                this.isPasswordVisible = !this.isPasswordVisible;
-                this.updatePasswordDisplay(member.password);
-            },
-
-            updatePasswordDisplay: function(actualPassword) {
-                const passTextElem = document.getElementById('modal-password-text');
-                const eyeIcon = document.getElementById('eye-icon');
-                const eyeLabel = document.getElementById('eye-label');
-
-                if (this.isPasswordVisible) {
-                    passTextElem.innerText = actualPassword || 'No Password Set';
-                    eyeIcon.className = 'fa-solid fa-eye-slash';
-                    eyeLabel.innerText = 'Hide Password';
-                } else {
-                    passTextElem.innerText = '••••••••';
-                    eyeIcon.className = 'fa-solid fa-eye';
-                    eyeLabel.innerText = 'Show Password';
-                }
-            },
-
-            handleAdminResetPassword: async function() {
-                if (!this.activeModalMemberId) return;
-                const member = this.members.find(m => m.id === this.activeModalMemberId);
-                if (!member) return;
-
-                const inputPass = document.getElementById('modal-reset-pass-input').value.trim();
-                if (!inputPass || inputPass.length < 6) {
-                    alert("Please enter a new password of at least 6 characters.");
-                    return;
-                }
-
-                if (confirm(`Reset password for ${member.name}?`)) {
-                    member.password = inputPass;
-                    await this.saveMembers();
-                    this.updatePasswordDisplay(member.password);
-                    document.getElementById('modal-reset-pass-input').value = '';
-                    this.logAudit('Password Reset', `Reset password for member ${member.name} (${member.id})`);
-                    alert(`Password updated successfully!`);
-                }
+                if (!member || !member.email || !confirm('Send a password recovery link to ' + member.email + '?')) return;
+                try {
+                    await ivRequireRole(['owner','staff'],this.currentTenantId);
+                    const redirectTo = new URL('memberlogin.html?key=' + encodeURIComponent(this.matchedOwnerRecord?.token || ''),location.href).href;
+                    const {error} = await supabaseClient.auth.resetPasswordForEmail(member.email,{redirectTo});
+                    if (error) throw error;
+                    this.logAudit('Password Recovery Requested','Recovery email requested for ' + member.id);
+                    alert('If the member has an eligible verified email, a recovery link will arrive shortly.');
+                } catch(error) { alert('Could not request recovery email: ' + error.message); }
             },
 
             addModalCredits: async function(amount) {
