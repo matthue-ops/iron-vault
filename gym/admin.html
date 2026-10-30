@@ -601,8 +601,9 @@
                     <span id="modal-member-balance" class="text-xl font-black text-emerald-400">₱0.00</span>
                 </div>
 
-                <div class="space-y-2 pt-1 border-t border-slate-800/80">
+                <div id="modal-cash-topup-section" class="space-y-2 pt-1 border-t border-slate-800/80">
                     <label class="block text-[11px] font-medium text-slate-300">Quick Counter Cash Top Up</label>
+                    <p id="modal-topup-approval-notice" class="hidden text-[11px] font-semibold text-amber-300">Approve this member first before accepting a cash top-up.</p>
                     <div class="grid grid-cols-3 gap-2">
                         <button onclick="adminApp.addModalCredits(100)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱100</button>
                         <button onclick="adminApp.addModalCredits(500)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱500</button>
@@ -2303,6 +2304,12 @@
 
                 document.getElementById('modal-member-balance').innerText = `₱${(member.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
+                // Cash top-ups are available only after registration approval.
+                const canTopUp = String(member.status || '').toUpperCase() === 'ACTIVE';
+                const topupSection = document.getElementById('modal-cash-topup-section');
+                topupSection.querySelectorAll('button, input').forEach(el => { el.disabled = !canTopUp; el.classList.toggle('opacity-40', !canTopUp); el.classList.toggle('cursor-not-allowed', !canTopUp); });
+                document.getElementById('modal-topup-approval-notice').classList.toggle('hidden', canTopUp);
+
                 document.getElementById('edit-member-name').value = member.name;
                 document.getElementById('edit-member-email').value = member.email;
                 document.getElementById('edit-member-phone').value = member.phone || '';
@@ -2541,8 +2548,13 @@ async function ivRequireRole(roles, tenant) {
 
 adminApp.addModalCredits=async function(amount){
  const id=this.activeModalMemberId,m=this.members.find(x=>x.id===id);if(!m||!Number.isFinite(+amount)||+amount<=0)return;
+ // Check the current database status, not cached roster data, before processing cash.
+ try{
+ await ivRequireRole(['owner','staff'],this.currentTenantId);
+ const {data:record,error:memberError}=await supabaseClient.from('members').select('id,tenant_id,status').eq('id',id).eq('tenant_id',this.currentTenantId).single();
+ if(memberError || !record)throw new Error('Unable to verify this member’s approval status. No top-up was made.');
+ if(String(record.status || '').toUpperCase() !== 'ACTIVE')throw new Error('Approve this member first before adding wallet credits.');
  if(!confirm('Add '+ivMoney(amount)+' to '+m.name+'?'))return;
- try{await ivRequireRole(['owner','staff'],this.currentTenantId);
  const {data,error}=await supabaseClient.rpc('iv_topup',{p_member_id:id,p_amount:+amount,p_request_id:crypto.randomUUID()});
  if(error)throw error;m.walletBalance=+data;await this.loadMembers();this.openProfileModal(id);alert('Top-up recorded: '+ivMoney(amount));}
  catch(e){alert('Top-up failed: '+e.message);}
