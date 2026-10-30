@@ -230,9 +230,12 @@
 
         <!-- TABLE SECTION 1: FINANCIAL REVENUE LOG -->
         <div id="section-financial-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
-            <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-                <i class="fa-solid fa-receipt text-emerald-400"></i> Financial Revenue & Member Wallet Balances Log
-            </h3>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-receipt text-emerald-400"></i> Financial Revenue & Member Wallet Balances Log
+                </h3>
+                <button id="btn-unearned-credits" onclick="reportsApp.toggleUnearnedCredits()" class="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold">Show Members with Unearned Credits</button>
+            </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -255,9 +258,15 @@
 
         <!-- TABLE SECTION 2: ATTENDANCE & UTILIZATION LOG -->
         <div id="section-attendance-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
-            <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-                <i class="fa-solid fa-door-open text-purple-400"></i> Attendance & Utilization Log (Door Entry & Scan History)
-            </h3>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-door-open text-purple-400"></i> Attendance & Utilization Log
+                </h3>
+                <div class="flex gap-2">
+                    <button id="btn-attendance-checkins" onclick="reportsApp.showAttendanceView('checkins')" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold">Member Check-Ins</button>
+                    <button id="btn-attendance-logins" onclick="reportsApp.showAttendanceView('logins')" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold">Admin & Staff Login / Sign Out</button>
+                </div>
+            </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -266,8 +275,8 @@
                             <th class="p-3">Member ID</th>
                             <th class="p-3">Full Name</th>
                             <th class="p-3">Plan Type</th>
-                            <th class="p-3">Last Check-In Date</th>
-                            <th class="p-3">Total Scans Used</th>
+                            <th class="p-3">Check-In Date & Time</th>
+                            <th class="p-3">Entry Log ID</th>
                             <th class="p-3">Plan Expiry / Days Left</th>
                             <th class="p-3">Status</th>
                         </tr>
@@ -279,9 +288,15 @@
 
         <!-- TABLE SECTION 3: SYSTEM AUDIT LOGS TAB -->
         <div id="section-audit-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
-            <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-                <i class="fa-solid fa-list-check text-purple-400"></i> System Audit & Activity Logs
-            </h3>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-purple-400"></i> System Audit & Activity Logs
+                </h3>
+                <div class="flex gap-2">
+                    <button id="btn-audit-audit" onclick="reportsApp.showAuditView('audit')" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold">Audit</button>
+                    <button id="btn-audit-activity" onclick="reportsApp.showAuditView('activity')" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold">Activity</button>
+                </div>
+            </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -321,6 +336,9 @@
             currentTenant: null,
             isFromSuperAdmin: false,
             currentTab: 'financial',
+            showCreditsOnly: false,
+            attendanceView: 'checkins',
+            auditView: 'audit',
 
             init: async function() {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -422,7 +440,9 @@
                             expirationDate: m.expiration_date,
                             status: m.status,
                             dateJoined: m.date_joined,
-                            avatar: m.avatar
+                            avatar: m.avatar,
+                            paymentHistory: m.payment_history || m.paymentHistory || m.transactions || m.transaction_history || [],
+                            scanHistory: m.scan_history || m.scanHistory || m.attendance_logs || m.attendanceLogs || []
                         }));
                     }
                 } catch(e) {}
@@ -521,121 +541,210 @@
                 this.filterAndRenderReport(startStr, endStr);
             },
 
+            moneyValue: function(value) {
+                if (value === null || value === undefined || value === '') return 0;
+                const n = Number(String(value).replace(/[₱,\s]/g, '').replace(/[^\d.-]/g, ''));
+                return Number.isFinite(n) ? n : 0;
+            },
+
             extractMemberAmount: function(m) {
-                if (!m.plan || m.plan === 'Not Selected') return 0;
-                if (m.amount !== undefined && !isNaN(m.amount)) return Number(m.amount);
-                if (m.price !== undefined && !isNaN(m.price)) return Number(m.price);
-                if (m.amountPaid !== undefined && !isNaN(m.amountPaid)) return Number(m.amountPaid);
-                return 0; 
+                for (const value of [m.amount, m.price, m.amountPaid, m.amount_paid, m.payment_amount]) {
+                    const n = this.moneyValue(value);
+                    if (n > 0) return n;
+                }
+                return 0;
+            },
+
+            getPaymentEvents: function() {
+                const events = [];
+                const logs = this.currentTenant && Array.isArray(this.currentTenant.auditLogs) ? this.currentTenant.auditLogs : [];
+                logs.forEach((l, i) => {
+                    const action = String(l.action || '').toLowerCase();
+                    const details = String(l.details || '');
+                    if (!/(payment|paid|top.?up|recharge|purchase|cash collected)/i.test(action + ' ' + details)) return;
+                    const amountMatch = (String(l.amount ?? '') || details).match(/[₱P]?\s*([\d,]+(?:\.\d{1,2})?)/);
+                    const amount = this.moneyValue(l.amount ?? (amountMatch ? amountMatch[1] : 0));
+                    events.push({
+                        id: l.id || `AUD-${i + 1}`,
+                        memberId: l.memberId || l.member_id || '',
+                        name: l.memberName || l.member_name || '',
+                        plan: l.plan || l.details || l.action || 'Payment',
+                        amount,
+                        timestamp: l.timestamp || '',
+                        user: l.user || 'System',
+                        action: l.action || 'Payment',
+                        details
+                    });
+                });
+                this.branchMembers.forEach(m => {
+                    const history = Array.isArray(m.paymentHistory) ? m.paymentHistory : [];
+                    history.forEach((t, i) => events.push({
+                        id: t.id || `${m.id}-PAY-${i + 1}`, memberId: m.id, name: m.name,
+                        plan: t.plan || t.description || m.plan || 'Payment',
+                        amount: this.moneyValue(t.amount ?? t.amountPaid ?? t.amount_paid ?? t.price),
+                        timestamp: t.timestamp || t.date || t.created_at || t.createdAt || m.dateJoined || '',
+                        user: t.user || 'System', action: t.action || 'Payment', details: t.details || ''
+                    }));
+                });
+                // Use individual transaction history when available; only use member summary as legacy fallback.
+                if (!events.length) {
+                    this.branchMembers.forEach(m => {
+                        if (this.extractMemberAmount(m) > 0 && m.dateJoined) events.push({
+                            id: `${m.id}-INITIAL`, memberId: m.id, name: m.name, plan: m.plan || 'Pass purchase',
+                            amount: this.extractMemberAmount(m), timestamp: m.dateJoined, user: 'System',
+                            action: 'Initial payment', details: 'Legacy member payment record'
+                        });
+                    });
+                }
+                return events;
+            },
+
+            getCheckinEvents: function() {
+                const events = [];
+                this.branchMembers.forEach(m => {
+                    const history = Array.isArray(m.scanHistory) ? m.scanHistory : [];
+                    history.forEach((entry, i) => {
+                        const timestamp = typeof entry === 'string' ? entry : (entry.timestamp || entry.scanned_at || entry.date || entry.created_at || '');
+                        if (timestamp) events.push({ member: m, timestamp, id: entry.id || `${m.id}-SCAN-${i + 1}` });
+                    });
+                    // Legacy schema only stores last check-in and cumulative scans, not individual timestamps.
+                    if (!history.length && m.lastScannedDate) events.push({ member: m, timestamp: m.lastScannedDate, id: `${m.id}-LAST` });
+                });
+                return events;
+            },
+
+            isInRange: function(value, startStr, endStr) {
+                if (!value) return false;
+                const date = new Date(value);
+                const day = isNaN(date.getTime()) ? String(value).split('T')[0] : date.toISOString().split('T')[0];
+                return day >= startStr && day <= endStr;
             },
 
             filterAndRenderReport: function(startStr, endStr) {
-                const filtered = this.branchMembers.filter(m => {
-                    if (!m.plan || m.plan === 'Not Selected') return false;
-                    const recordDate = m.dateJoined ? m.dateJoined.split('T')[0] : '';
-                    if (!recordDate) return false;
-                    return recordDate >= startStr && recordDate <= endStr;
-                });
-
-                const totalRevenue = filtered.reduce((acc, curr) => acc + this.extractMemberAmount(curr), 0);
-                const totalCredits = this.branchMembers.reduce((acc, curr) => acc + (curr.walletBalance !== undefined && !isNaN(curr.walletBalance) ? Number(curr.walletBalance) : 0), 0);
-                const totalRegistrations = filtered.length;
-                const activeSubs = filtered.filter(m => m.status === 'ACTIVE' && m.plan && m.plan !== 'Not Selected').length;
+                const paymentEvents = this.getPaymentEvents().filter(e => this.isInRange(e.timestamp, startStr, endStr));
+                const eventRevenue = paymentEvents.reduce((sum, e) => sum + e.amount, 0);
+                // Legacy member records store only the current/initial paid amount. Use them
+                // for the revenue metric when no amount-bearing transaction log exists.
+                const legacyRevenue = this.branchMembers
+                    .filter(m => this.isInRange(m.dateJoined, startStr, endStr))
+                    .reduce((sum, m) => sum + this.extractMemberAmount(m), 0);
+                const totalRevenue = eventRevenue > 0 ? eventRevenue : legacyRevenue;
+                const totalCredits = this.branchMembers.reduce((sum, m) => sum + this.moneyValue(m.walletBalance), 0);
+                const filteredMembers = this.branchMembers.filter(m => this.isInRange(m.dateJoined, startStr, endStr) && m.plan && m.plan !== 'Not Selected');
+                const totalRegistrations = filteredMembers.length;
+                const activeSubs = this.branchMembers.filter(m => m.status === 'ACTIVE' && m.plan && m.plan !== 'Not Selected').length;
 
                 document.getElementById('metric-revenue').innerText = `₱${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 document.getElementById('metric-credits').innerText = `₱${totalCredits.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 document.getElementById('metric-registrations').innerText = totalRegistrations;
                 document.getElementById('metric-subscriptions').innerText = activeSubs;
 
-                const attendanceFiltered = this.branchMembers.filter(m => {
-                    if (!m.lastScannedDate) return false;
-                    return m.lastScannedDate >= startStr && m.lastScannedDate <= endStr;
-                });
-
-                const totalScans = attendanceFiltered.reduce((acc, curr) => acc + (curr.scansUsed || 0), 0);
-                document.getElementById('metric-scans').innerText = totalScans;
-                document.getElementById('metric-active-visitors').innerText = attendanceFiltered.length;
+                const checkins = this.getCheckinEvents().filter(e => this.isInRange(e.timestamp, startStr, endStr));
+                document.getElementById('metric-scans').innerText = checkins.length;
+                document.getElementById('metric-active-visitors').innerText = new Set(checkins.map(e => e.member.id)).size;
                 document.getElementById('metric-total-roster').innerText = this.branchMembers.length;
 
-                const rawAuditLogs = this.currentTenant && this.currentTenant.auditLogs ? this.currentTenant.auditLogs : [];
-                const auditFiltered = rawAuditLogs.filter(l => {
-                    if (!l.timestamp) return true;
-                    try {
-                        const logDateObj = new Date(l.timestamp);
-                        if (isNaN(logDateObj.getTime())) return true;
-                        const logDateStr = logDateObj.toISOString().split('T')[0];
-                        return logDateStr >= startStr && logDateStr <= endStr;
-                    } catch(e) {
-                        return true;
-                    }
-                });
-
+                const rawAuditLogs = this.currentTenant && Array.isArray(this.currentTenant.auditLogs) ? this.currentTenant.auditLogs : [];
+                const auditFiltered = rawAuditLogs.filter(l => !l.timestamp || this.isInRange(l.timestamp, startStr, endStr));
                 document.getElementById('metric-audit-count').innerText = `${auditFiltered.length} Logs`;
 
-                this.renderFinancialTable(filtered);
-                this.renderAttendanceTable(attendanceFiltered);
+                this.renderFinancialTable(paymentEvents, startStr, endStr);
+                this.renderAttendanceTable(checkins);
+                this.renderLoginTable(auditFiltered);
                 this.renderAuditTable(auditFiltered);
             },
 
-            renderFinancialTable: function(list) {
+            toggleUnearnedCredits: function() {
+                this.showCreditsOnly = !this.showCreditsOnly;
+                const btn = document.getElementById('btn-unearned-credits');
+                btn.innerText = this.showCreditsOnly ? 'Show All Financial Logs' : 'Show Members with Unearned Credits';
+                const dates = [document.getElementById('filter-date-start').value, document.getElementById('filter-date-end').value];
+                this.filterAndRenderReport(dates[0], dates[1]);
+            },
+
+            showAttendanceView: function(view) {
+                this.attendanceView = view;
+                document.getElementById('btn-attendance-checkins').className = view === 'checkins' ? 'px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold' : 'px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold';
+                document.getElementById('btn-attendance-logins').className = view === 'logins' ? 'px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold' : 'px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold';
+                this.onDateFilterChange();
+            },
+
+            showAuditView: function(view) {
+                this.auditView = view;
+                document.getElementById('btn-audit-audit').className = view === 'audit' ? 'px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold' : 'px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold';
+                document.getElementById('btn-audit-activity').className = view === 'activity' ? 'px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold' : 'px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold';
+                this.onDateFilterChange();
+            },
+
+            renderFinancialTable: function(events) {
                 const tbody = document.getElementById('financial-tbody');
-                if (list.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 italic">No financial transactions found for this date range. Click 'All-Time View' above to show all records.</td></tr>`;
+                const list = this.showCreditsOnly
+                    ? this.branchMembers.filter(m => this.moneyValue(m.walletBalance) > 0).map(m => ({
+                        memberId: m.id, name: m.name, plan: m.plan || 'Wallet credit',
+                        amount: 0, timestamp: m.dateJoined || '', credit: this.moneyValue(m.walletBalance), status: m.status
+                    }))
+                    : events.map(e => {
+                        const member = this.branchMembers.find(m => String(m.id) === String(e.memberId));
+                        return { ...e, member, credit: member ? this.moneyValue(member.walletBalance) : 0, status: member ? member.status : 'RECORDED' };
+                    });
+                if (!list.length) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 italic">${this.showCreditsOnly ? 'No members have unearned credit balances.' : 'No individual financial transactions found for this date range.'}</td></tr>`;
                     return;
                 }
+                tbody.innerHTML = list.map(e => `
+                    <tr class="hover:bg-slate-900/50 transition">
+                        <td class="p-3 font-mono font-bold text-emerald-400">${e.memberId || 'N/A'}</td>
+                        <td class="p-3 font-semibold text-white">${e.name || 'Member not identified'}</td>
+                        <td class="p-3">${e.member?.classification || 'Regular'}</td>
+                        <td class="p-3 font-medium text-white">${e.plan || 'Payment'}</td>
+                        <td class="p-3 font-mono font-bold text-emerald-400">₱${this.moneyValue(e.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-3 font-mono font-bold text-cyan-400">₱${this.moneyValue(e.credit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-3 font-mono text-slate-400">${e.timestamp ? new Date(e.timestamp).toLocaleString() : 'N/A'}</td>
+                        <td class="p-3">${e.status || 'RECORDED'}</td>
+                    </tr>`).join('');
+            },
 
-                tbody.innerHTML = list.map(m => {
-                    const displayAmount = this.extractMemberAmount(m);
-                    const walletBal = m.walletBalance !== undefined && !isNaN(m.walletBalance) ? Number(m.walletBalance) : 0;
-                    const joinDate = m.dateJoined ? m.dateJoined.split('T')[0] : 'N/A';
-
-                    return `
-                        <tr class="hover:bg-slate-900/50 transition">
-                            <td class="p-3 font-mono font-bold text-emerald-400">${m.id || 'MEM-0000'}</td>
-                            <td class="p-3 font-semibold text-white">${m.name || 'Unnamed Member'}</td>
-                            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">${m.classification || 'Regular'}</span></td>
-                            <td class="p-3 font-medium text-white">${m.plan || '1-Day Pass'}</td>
-                            <td class="p-3 font-mono font-bold text-emerald-400">₱${displayAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                            <td class="p-3 font-mono font-bold text-cyan-400">₱${walletBal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                            <td class="p-3 font-mono text-slate-400">${joinDate}</td>
-                            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${m.status || 'ACTIVE'}</span></td>
-                        </tr>
-                    `;
+            renderAttendanceTable: function(events) {
+                const tbody = document.getElementById('attendance-tbody');
+                if (this.attendanceView === 'logins') return;
+                if (!events.length) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">No individual member check-in records found for this date range.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = events.map(e => {
+                    const m = e.member;
+                    let daysLeft = 'No Plan';
+                    if (m.expirationDate) {
+                        const diff = Math.ceil((new Date(m.expirationDate).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
+                        daysLeft = diff < 0 ? 'Expired' : diff === 0 ? 'Expires Today' : `${diff} days left`;
+                    }
+                    return `<tr class="hover:bg-slate-900/50 transition">
+                        <td class="p-3 font-mono font-bold text-purple-400">${m.id}</td>
+                        <td class="p-3 font-semibold text-white">${m.name || ''}</td>
+                        <td class="p-3">${m.plan || 'Active Pass'}</td>
+                        <td class="p-3 font-mono text-slate-300">${new Date(e.timestamp).toLocaleString()}</td>
+                        <td class="p-3 font-mono text-slate-300">${e.id}</td>
+                        <td class="p-3 font-mono font-bold text-emerald-400">${daysLeft}</td>
+                        <td class="p-3">${m.status || 'ACTIVE'}</td>
+                    </tr>`;
                 }).join('');
             },
 
-            renderAttendanceTable: function(list) {
+            renderLoginTable: function(logs) {
+                if (this.attendanceView !== 'logins') return;
                 const tbody = document.getElementById('attendance-tbody');
-                if (list.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">No door check-ins or scans recorded for this date range.</td></tr>`;
+                const loginLogs = logs.filter(l => /(login|log in|sign.?in|logout|log out|sign.?out)/i.test(`${l.action || ''} ${l.details || ''}`));
+                if (!loginLogs.length) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">No admin or staff login/sign-out logs found for this date range.</td></tr>`;
                     return;
                 }
-
-                tbody.innerHTML = list.map(m => {
-                    let daysLeftStr = 'No Plan';
-                    if (m.expirationDate) {
-                        const today = new Date();
-                        today.setHours(0,0,0,0);
-                        const expiry = new Date(m.expirationDate);
-                        expiry.setHours(0,0,0,0);
-                        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                        if (diffDays < 0) daysLeftStr = 'Expired';
-                        else if (diffDays === 0) daysLeftStr = 'Expires Today';
-                        else daysLeftStr = `${diffDays} day${diffDays === 1 ? '' : 's'} left`;
-                    }
-
-                    return `
-                        <tr class="hover:bg-slate-900/50 transition">
-                            <td class="p-3 font-mono font-bold text-purple-400">${m.id}</td>
-                            <td class="p-3 font-semibold text-white">${m.name}</td>
-                            <td class="p-3">${m.plan || 'Active Pass'}</td>
-                            <td class="p-3 font-mono text-slate-300">${m.lastScannedDate || 'N/A'}</td>
-                            <td class="p-3 font-mono font-bold text-amber-400">${m.scansUsed || 0} scans</td>
-                            <td class="p-3 font-mono font-bold text-emerald-400">${daysLeftStr}</td>
-                            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">${m.status || 'ACTIVE'}</span></td>
-                        </tr>
-                    `;
-                }).join('');
+                tbody.innerHTML = loginLogs.map(l => `<tr>
+                    <td class="p-3 font-mono">${l.id || '—'}</td>
+                    <td class="p-3 font-semibold text-white">${this.resolveUserDisplay(l.user)}</td>
+                    <td class="p-3">${l.role || 'Admin / Staff'}</td>
+                    <td class="p-3 font-mono">${l.timestamp ? new Date(l.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td class="p-3">${l.action || ''}</td><td class="p-3">${l.details || ''}</td><td class="p-3">Recorded</td>
+                </tr>`).join('');
             },
 
             resolveUserDisplay: function(userRaw) {
@@ -670,22 +779,19 @@
 
             renderAuditTable: function(logs) {
                 const tbody = document.getElementById('audit-tbody');
-                if (logs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">No system audit logs recorded for this date range. Click 'All-Time View' above to show all logs.</td></tr>`;
+                const isPayment = l => /(payment|paid|top.?up|recharge|purchase|cash collected)/i.test(`${l.action || ''} ${l.details || ''}`);
+                const filteredLogs = logs.filter(l => this.auditView === 'audit' ? isPayment(l) : !isPayment(l));
+                if (!filteredLogs.length) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">No ${this.auditView === 'audit' ? 'top-up or payment audit' : 'non-payment activity'} logs found for this date range.</td></tr>`;
                     return;
                 }
-
-                tbody.innerHTML = logs.map(l => {
-                    const formattedUser = this.resolveUserDisplay(l.user);
-                    return `
-                        <tr class="hover:bg-slate-900/50 transition">
-                            <td class="p-3 font-mono text-slate-400 text-[11px]">${l.timestamp}</td>
-                            <td class="p-3 font-semibold text-emerald-400">${formattedUser}</td>
-                            <td class="p-3 font-bold text-white">${l.action}</td>
-                            <td class="p-3 text-slate-300">${l.details}</td>
-                        </tr>
-                    `;
-                }).join('');
+                tbody.innerHTML = filteredLogs.map(l => `
+                    <tr class="hover:bg-slate-900/50 transition">
+                        <td class="p-3 font-mono text-slate-400 text-[11px]">${l.timestamp ? new Date(l.timestamp).toLocaleString() : 'N/A'}</td>
+                        <td class="p-3 font-semibold text-emerald-400">${this.resolveUserDisplay(l.user)}</td>
+                        <td class="p-3 font-bold text-white">${l.action || ''}</td>
+                        <td class="p-3 text-slate-300">${l.details || ''}</td>
+                    </tr>`).join('');
             },
 
             goBack: function() {
