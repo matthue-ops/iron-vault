@@ -500,7 +500,7 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-slate-300 mb-1">Account Password (Optional)</label>
-                    <input type="text" id="new-member-password" value="gym12345" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
+                    <input type="text" id="new-member-password" value="" minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -1977,58 +1977,29 @@
 
             handleAdminAddMember: async function(e) {
                 e.preventDefault();
-                await this.loadMembers();
-
                 const name = document.getElementById('new-member-name').value.trim();
                 const phone = document.getElementById('new-member-phone').value.trim();
-                let email = document.getElementById('new-member-email').value.trim();
+                const email = document.getElementById('new-member-email').value.trim().toLowerCase();
+                const password = document.getElementById('new-member-password').value;
                 const classification = document.getElementById('new-member-classification').value;
-                const discountPercentage = parseFloat(document.getElementById('new-member-discount').value) || 0;
+                const discountPercentage = Number(document.getElementById('new-member-discount').value) || 0;
                 const plan = document.getElementById('new-member-plan').value;
                 const cardBarcode = document.getElementById('new-member-barcode').value.trim();
-                const password = document.getElementById('new-member-password').value.trim() || 'gym12345';
-
-                if (!email) {
-                    const sanitizedPhone = phone.replace(/\D/g, '') || Math.floor(1000 + Math.random() * 9000);
-                    email = `walkin_${sanitizedPhone}@ironvault.com`;
-                }
-
-                if (this.allMembersSystem.some(m => m.email.toLowerCase() === email.toLowerCase() && (m.tenantId || 'GYM-001') === this.currentTenantId)) {
-                    alert("A member with this email or phone record already exists!");
-                    return;
-                }
-
-                const now = new Date();
-                let expiryDate = new Date();
-                if (plan === '1-Day Pass') expiryDate.setDate(now.getDate());
-                else if (plan === '1-Week Pass') expiryDate.setDate(now.getDate() + 7);
-                else if (plan === '1-Month Unlimited') expiryDate.setDate(now.getDate() + 30);
-                else expiryDate = null;
-
-                const todayStr = now.toISOString().split('T')[0];
-
-                const newMember = {
-                    id: 'MEM-' + Math.floor(1000 + Math.random() * 9000),
-                    tenantId: this.currentTenantId,
-                    tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
-                    name, email, phone, password, classification, discountPercentage, plan, cardBarcode,
-                    walletBalance: 0,
-                    amount: 0,
-                    scansUsed: 0,
-                    lastScannedDate: null,
-                    expirationDate: expiryDate ? expiryDate.toISOString().split('T')[0] : null,
-                    status: 'ACTIVE',
-                    dateJoined: todayStr
-                };
-
-                this.allMembersSystem.push(newMember);
-                this.members.push(newMember);
-                await this.saveMembers();
-                
-                this.closeAddMemberModal();
-                await this.loadMembers();
-                this.logAudit('Express Walk-In', `Registered member ${name} (${newMember.id})`);
-                alert(`MEMBER REGISTRATION SUCCESS!\n\nRegistered ${name} (${newMember.id})\nPlan: ${plan}\nStatus: ACTIVE`);
+                if (!email || !email.includes('@')) return alert('A real email address is required for member login and recovery.');
+                if (password.length < 8) return alert('Set a password of at least 8 characters.');
+                try {
+                    await ivRequireRole(['owner','staff'], this.currentTenantId);
+                    const {data,error} = await supabaseClient.functions.invoke('iv-create-member', {
+                        body:{tenant_id:this.currentTenantId,name,email,phone,password,classification,
+                              discount_percentage:discountPercentage,plan,card_barcode:cardBarcode}
+                    });
+                    if(error) throw Error(error.message || 'Member provisioning failed');
+                    if(data?.error) throw Error(data.error);
+                    if(!data?.member_id) throw Error('Server did not confirm member creation.');
+                    this.closeAddMemberModal();
+                    await this.loadMembers();
+                    alert('Member created with Supabase Authentication. Member ID: '+data.member_id);
+                } catch(err) { alert('Member registration failed: '+err.message); }
             },
 
             quickApproveMember: async function(id) {
