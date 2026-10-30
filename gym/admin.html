@@ -2542,5 +2542,44 @@
             }
         });
     </script>
+<script>
+
+const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function ivRequireRole(roles,tenant){
+ const {data:{user},error:ue}=await supabaseClient.auth.getUser();
+ if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
+ const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
+ if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
+ return r;
+}
+
+adminApp.addModalCredits=async function(amount){
+ const id=this.activeModalMemberId,m=this.members.find(x=>x.id===id);if(!m||!Number.isFinite(+amount)||+amount<=0)return;
+ if(!confirm('Add '+ivMoney(amount)+' to '+m.name+'?'))return;
+ try{await ivRequireRole(['owner','staff'],this.currentTenantId);
+ const {data,error}=await supabaseClient.rpc('iv_topup',{p_member_id:id,p_amount:+amount,p_request_id:crypto.randomUUID()});
+ if(error)throw error;m.walletBalance=+data;await this.loadMembers();this.openProfileModal(id);alert('Top-up recorded: '+ivMoney(amount));}
+ catch(e){alert('Top-up failed: '+e.message);}
+};
+adminApp.finalizeDeskCheckIn=async function(id,plan){
+ try{await ivRequireRole(['owner','staff'],this.currentTenantId);
+ const {error}=await supabaseClient.rpc('iv_checkin',{p_member_id:id,p_method:'manual'});if(error)throw error;
+ await this.loadMembers();this.closeManualCheckInModal();this.searchManualCheckIn();alert('Check-in recorded successfully.');}
+ catch(e){alert('Check-in failed: '+e.message);}
+};
+const ivOriginalLogAudit=adminApp.logAudit;
+adminApp.logAudit=async function(action,details){
+ try{await supabaseClient.rpc('iv_log_event',{p_tenant:this.currentTenantId,p_event:String(action),p_details:String(details)});}catch(e){console.error('Activity log error',e);}
+ return ivOriginalLogAudit.call(this,action,details);
+};
+const ivOriginalAdminLogout=adminApp.logoutAdmin;
+adminApp.logoutAdmin=async function(){
+ if(this.currentTenantId)await supabaseClient.rpc('iv_staff_event',{p_tenant:this.currentTenantId,p_event:'logout'});
+ await supabaseClient.auth.signOut();return ivOriginalAdminLogout.call(this);
+};
+
+</script>
 </body>
 </html>
