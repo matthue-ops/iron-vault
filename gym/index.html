@@ -189,8 +189,8 @@
                                 <input type="email" id="reg-owner-email" placeholder="owner@gym.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Temporary Passkey / Password</label>
-                                <input type="text" id="reg-owner-pass" placeholder="At least 6 characters" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">Initial Supabase Auth Password</label>
+                                <input type="password" id="reg-owner-pass" placeholder="At least 8 characters" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                             </div>
                         </div>
 
@@ -239,7 +239,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-[10px] text-slate-400 mb-1">Staff Password</label>
-                                    <input type="text" id="reg-staff-pass" placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                    <input type="password" id="reg-staff-pass" placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
                                 </div>
                             </div>
                         </div>
@@ -279,7 +279,7 @@
                                     <th class="p-3">Tenant ID</th>
                                     <th class="p-3">Gym Branch & Unified Portal Link</th>
                                     <th class="p-3">Owner Name & Email</th>
-                                    <th class="p-3">Plaintext Password</th>
+                                    <th class="p-3">Auth Status</th>
                                     <th class="p-3">Status</th>
                                     <th class="p-3 text-right">Actions</th>
                                 </tr>
@@ -449,7 +449,7 @@
                     <form onsubmit="indexApp.handleInspectAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
                         <input type="text" id="inspect-new-staff-name" placeholder="Staff Name" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
                         <input type="email" id="inspect-new-staff-email" placeholder="staff@gym.com" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                        <input type="text" id="inspect-new-staff-pass" placeholder="Password" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <input type="password" id="inspect-new-staff-pass" placeholder="Password" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
                         <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow">
                             Add Staff
                         </button>
@@ -530,7 +530,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
-                        <input type="text" id="edit-owner-pass" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="text" id="edit-owner-pass" disabled placeholder="Managed in Supabase Auth" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                     </div>
                 </div>
 
@@ -834,7 +834,7 @@
 
                 tbody.innerHTML = this.owners.map(owner => {
                     const isShow = this.visiblePasswords[owner.id] || false;
-                    const passDisplay = isShow ? owner.password : '••••••••';
+                    const passDisplay = 'Supabase Auth';
                     const iconClass = isShow ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
                     
                     const origin = window.location.origin === 'null' || window.location.origin.startsWith('file://') ? '' : window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
@@ -1050,7 +1050,7 @@
                     <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
                         <div>
                             <span class="font-bold text-white">${s.name}</span>
-                            <span class="text-[10px] text-slate-400 block">${s.email} (Pass: ${s.password})</span>
+                            <span class="text-[10px] text-slate-400 block">${s.email} · Supabase Auth</span>
                         </div>
                         <button onclick="indexApp.handleInspectDeleteStaff(${idx})" class="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
                             <i class="fa-solid fa-trash"></i> Delete
@@ -1119,7 +1119,7 @@
                 document.getElementById('edit-gym-name').value = owner.gymName;
                 document.getElementById('edit-owner-name').value = owner.ownerName;
                 document.getElementById('edit-owner-email').value = owner.email;
-                document.getElementById('edit-owner-pass').value = owner.password;
+                document.getElementById('edit-owner-pass').value = '';
 
                 const pricing = owner.pricing || { day: 150, week: 700, month: 2500, studentDiscount: 20, seniorDiscount: 20 };
                 document.getElementById('edit-price-day').value = pricing.day !== undefined ? pricing.day : 150;
@@ -1172,7 +1172,6 @@
                     owner.gymName = gymName;
                     owner.ownerName = ownerName;
                     owner.email = email;
-                    owner.password = password;
                     owner.pricing = { day, week, month, studentDiscount, seniorDiscount };
                     if (newLogoBase64 !== null) {
                         owner.logo = newLogoBase64;
@@ -1513,6 +1512,67 @@ indexApp.checkSession=async function(){try{await ivRequireRole(['super_admin']);
  catch(_){sessionStorage.removeItem(SUPER_SESSION_KEY);}};
 indexApp.logout=async function(){await supabaseClient.auth.signOut();sessionStorage.removeItem(SUPER_SESSION_KEY);location.reload();};
 
+</script>
+
+<script>
+// Tenant account provisioning uses a trusted Supabase Edge Function. The browser
+// never receives the service-role key or calls admin.createUser directly.
+async function ivProvisionTenant(payload) {
+  await ivRequireRole(['super_admin']);
+  const { data, error } = await supabaseClient.functions.invoke('provision-gym-tenant', { body: payload });
+  if (error) {
+    let message = error.message;
+    try { const response = error.context; if (response?.json) message = (await response.json()).error || message; } catch (_) {}
+    throw new Error(message);
+  }
+  if (!data?.ok) throw new Error(data?.error || 'Provisioning failed');
+  return data;
+}
+indexApp.handleRegisterOwner = async function(event) {
+  event.preventDefault();
+  const form = event.target, button = form.querySelector('button[type="submit"]');
+  const val = id => document.getElementById(id).value.trim();
+  const staff = { name: val('reg-staff-name'), email: val('reg-staff-email'), password: document.getElementById('reg-staff-pass').value };
+  if ((staff.name || staff.email || staff.password) && !(staff.name && staff.email && staff.password)) { alert('Complete all staff fields or leave all blank.'); return; }
+  const logoFile = document.getElementById('reg-gym-logo').files[0];
+  if (logoFile && logoFile.size > 500000) { alert('Please use a logo smaller than 500 KB.'); return; }
+  const logo = logoFile ? await new Promise((resolve,reject)=>{ const r = new FileReader(); r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(logoFile); }) : '';
+  const payload = { mode:'create', gymName:val('reg-gym-name'), ownerName:val('reg-owner-name'), email:val('reg-owner-email'), password:document.getElementById('reg-owner-pass').value,
+    logo, pricing:{ day:Number(val('reg-price-day')),week:Number(val('reg-price-week')),month:Number(val('reg-price-month')),studentDiscount:Number(val('reg-discount-student')),seniorDiscount:Number(val('reg-discount-senior')) } };
+  button.disabled=true;
+  try {
+    const result = await ivProvisionTenant(payload);
+    let staffNote = '';
+    if (staff.name) {
+      try { await ivProvisionTenant({ mode:'staff', tenantId:result.tenantId, ...staff }); }
+      catch(e) { staffNote = '\nStaff setup failed: '+e.message+'\nYou can add the staff member from View Branch later.'; }
+    }
+    await this.loadData();this.renderDashboard();form.reset();
+    alert('Gym tenant '+result.tenantId+' created. Owner can now sign in using the supplied email/password.'+staffNote);
+  } catch(e) { alert('Gym registration failed: '+e.message); }
+  finally {button.disabled=false;}
+};
+indexApp.handleInspectAddStaff = async function(event) {
+  event.preventDefault();
+  const id=this.currentInspectOwnerId;
+  if (!id) return;
+  const name=document.getElementById('inspect-new-staff-name').value.trim();
+  const email=document.getElementById('inspect-new-staff-email').value.trim();
+  const password=document.getElementById('inspect-new-staff-pass').value;
+  try {
+    await ivProvisionTenant({mode:'staff',tenantId:id,name,email,password});
+    await this.loadData();
+    const owner=this.owners.find(o=>o.id===id);
+    if(owner)this.renderInspectStaffList(owner);
+    event.target.reset();alert('Staff Supabase Auth account created.');
+  } catch(e) {alert('Staff provisioning failed: '+e.message);}
+};
+// Existing tenant repair: run from the browser console while signed in as super admin:
+// await ivRepairExistingTenant('GYM-001','owner@example.com','new-strong-password','Owner Name')
+window.ivRepairExistingTenant = async (tenantId,email,password,ownerName) => {
+  const result=await ivProvisionTenant({mode:'repair',tenantId,email,password,ownerName});
+  await indexApp.loadData();indexApp.renderDashboard();return result;
+};
 </script>
 </body>
 </html>
