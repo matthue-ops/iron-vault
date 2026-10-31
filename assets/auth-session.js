@@ -48,6 +48,21 @@
         matches.sort((a, b) => requested.indexOf(a.role) - requested.indexOf(b.role));
         return Object.freeze({...matches[0]});
     }
+    async function requireFinancialReport(client, tenantId) {
+        if (!tenantId) throw failure('REPORT_CONTEXT_REQUIRED', 'Select a gym before opening financial reports.');
+        const role = await requireRole(client, {
+            roles: ['super_admin', 'owner', 'staff'], tenantId, allowGlobalSuperAdmin: true
+        });
+        const {data, error} = await client.rpc('iv_can_read_financial_reports', {p_tenant: tenantId});
+        if (error || data !== true) {
+            throw failure('REPORT_ACCESS_DENIED', 'Financial reporting is not authorized or its security migration is unavailable.');
+        }
+        const {data: identity, error: identityError} = await client.auth.getUser();
+        if (identityError || identity?.user?.id !== role.user_id) {
+            throw failure('ACTOR_CHANGED', 'The authenticated account changed. Open the report again.');
+        }
+        return role;
+    }
     function clearState(session, cache) {
         for (const key of sessionKeys) session?.removeItem(key);
         for (const key of cacheKeys) cache?.removeItem(key);
@@ -61,7 +76,7 @@
             clearState(session, cache);
         }
     }
-    const api = Object.freeze({requireRole, clearState, signOut});
+    const api = Object.freeze({requireRole, requireFinancialReport, clearState, signOut});
     root.IronVaultAuth = api;
     if (typeof module === 'object' && module.exports) module.exports = api;
 })(globalThis);

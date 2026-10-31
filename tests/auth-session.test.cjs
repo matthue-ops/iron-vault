@@ -98,3 +98,19 @@ test('failed logout is reported and does not leave the private application cache
     assert.equal(session.getItem('ironvault_super_session'),null);assert.equal(cache.getItem('ironvault_members_db'),null);
 });
 module.exports={client,row,storage};
+test('staff financial-report access is a fresh backend decision rather than a role flag',async()=>{
+ const c=client([row('staff')]);let enabled=false,calls=0;
+ c.api.rpc=async(name,args)=>{calls++;assert.equal(name,'iv_can_read_financial_reports');assert.equal(args.p_tenant,'gym-a');return {data:enabled,error:null}};
+ await assert.rejects(auth.requireFinancialReport(c.api,'gym-a'),{code:'REPORT_ACCESS_DENIED'});
+ enabled=true;await auth.requireFinancialReport(c.api,'gym-a');
+ enabled=false;await assert.rejects(auth.requireFinancialReport(c.api,'gym-a'),{code:'REPORT_ACCESS_DENIED'});
+ assert.equal(calls,3);
+});
+test('an administrator still requires a working backend report gate and cannot fall back on migration errors',async()=>{
+ const c=client([row('owner')]);c.api.rpc=async()=>({data:null,error:{code:'PGRST202'}});
+ await assert.rejects(auth.requireFinancialReport(c.api,'gym-a'),{code:'REPORT_ACCESS_DENIED'});
+});
+test('report permission cannot be reused after the Auth identity changes',async()=>{
+ const c=client([row('owner')]);c.api.rpc=async()=>{c.state.user={id:'other'};return {data:true,error:null}};
+ await assert.rejects(auth.requireFinancialReport(c.api,'gym-a'),{code:'ACTOR_CHANGED'});
+});

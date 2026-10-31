@@ -37,6 +37,7 @@
     </script>
 
     <style>
+        body.iv-auth-pending { visibility:hidden; }
         :root {
             --brand-primary: #10b981;
             --bg-base: #090d16;
@@ -94,7 +95,7 @@
     </style>
     <script src="../assets/auth-session.js"></script>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
     <!-- TOP HEADER / NAV BAR -->
     <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3 no-print">
@@ -140,7 +141,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <button onclick="window.print()" class="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg">
+                <button onclick="reportsApp.printReport()" class="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg">
                     <i class="fa-solid fa-print"></i>
                     <span>Print Current View</span>
                 </button>
@@ -324,130 +325,37 @@
             currentTab: 'financial',
 
             init: async function() {
-                const urlParams = new URLSearchParams(window.location.search);
-                const keyParam = urlParams.get('key');
-                const fromParam = urlParams.get('from');
-
-                if (fromParam === 'index' || fromParam === 'superadmin') {
-                    this.isFromSuperAdmin = true;
-                    const backLabel = document.getElementById('back-btn-label');
-                    if (backLabel) backLabel.innerText = fromParam === 'index' ? "Back to Master Control" : "Back to Super Admin";
-                }
-
-                await this.loadTenantAndData(keyParam);
-
-                const todayStr = new Date().toISOString().split('T')[0];
-                document.getElementById('filter-date-start').value = todayStr;
-                document.getElementById('filter-date-end').value = todayStr;
-
-                this.onDateFilterChange();
+                document.body?.classList.add('iv-auth-pending');
+                this.ivClear();
+                try {
+                    this.authenticatedRole=await ivRequireRole(['owner','staff','super_admin']);
+                    const params=new URLSearchParams(location.search);
+                    this.isFromSuperAdmin=['index','superadmin'].includes(params.get('from'));
+                    await this.loadTenantAndData(params.get('key'));
+                    const today=ivDate(new Date());
+                    document.getElementById('filter-date-start').value=today;
+                    document.getElementById('filter-date-end').value=today;
+                    await this.filterAndRenderReport(today,today);
+                } catch(error){this.ivDeny(error);}
             },
 
             loadTenantAndData: async function(keyParam) {
-                const tenantId = sessionStorage.getItem(ACTIVE_TENANT_KEY);
-                let loadedOwners = [];
-
-                try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
-                    if (!error && data) {
-                        loadedOwners = data.map(o => ({
-                            id: o.id,
-                            gymName: o.gym_name,
-                            ownerName: o.owner_name,
-                            email: o.email,
-                            password: o.password,
-                            token: o.token,
-                            logo: o.logo,
-                            status: o.status,
-                            pricing: o.pricing,
-                            staff: o.staff,
-                            auditLogs: o.audit_logs,
-                            dateCreated: o.date_created
-                        }));
-                    }
-                } catch(e) {}
-
-                if (loadedOwners.length === 0) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
-                    }
-                }
-
-                if (loadedOwners.length > 0) {
-                    if (keyParam) {
-                        this.currentTenant = loadedOwners.find(o => o.token === keyParam);
-                    }
-                    if (!this.currentTenant && tenantId) {
-                        this.currentTenant = loadedOwners.find(o => o.id === tenantId);
-                    }
-                    if (!this.currentTenant) {
-                        this.currentTenant = loadedOwners[0];
-                    }
-                }
-
-                if (this.currentTenant) {
-                    const gymName = this.currentTenant.gymName || 'GYM';
-                    document.getElementById('header-gym-title').innerText = `${gymName} REPORTS & ANALYTICS`;
-                    document.getElementById('report-gym-name').innerText = gymName;
-                    document.getElementById('page-title').innerText = `${gymName} - Reports`;
-                    if (this.currentTenant.logo) {
-                        const img = document.getElementById('header-logo-img');
-                        const icon = document.getElementById('header-logo-icon');
-                        img.src = this.currentTenant.logo;
-                        img.classList.remove('hidden');
-                        icon.classList.add('hidden');
-                    }
-                }
-
-                let loadedMembers = [];
-                try {
-                    const { data, error } = await supabaseClient.from('members').select('*');
-                    if (!error && data) {
-                        loadedMembers = data.map(m => ({
-                            id: m.id,
-                            tenantId: m.tenant_id,
-                            tenantToken: m.tenant_token,
-                            name: m.name,
-                            email: m.email,
-                            phone: m.phone,
-                            password: m.password,
-                            classification: m.classification,
-                            discountPercentage: m.discount_percentage,
-                            plan: m.plan,
-                            cardBarcode: m.card_barcode,
-                            walletBalance: m.wallet_balance,
-                            amount: m.amount,
-                            scansUsed: m.scans_used,
-                            lastScannedDate: m.last_scanned_date,
-                            expirationDate: m.expiration_date,
-                            status: m.status,
-                            dateJoined: m.date_joined,
-                            avatar: m.avatar
-                        }));
-                    }
-                } catch(e) {}
-
-                if (loadedMembers.length === 0) {
-                    const membersData = localStorage.getItem(MEMBERS_STORAGE_KEY);
-                    if (membersData) {
-                        try { loadedMembers = JSON.parse(membersData); } catch(e) {}
-                    }
-                }
-
-                this.allMembers = loadedMembers;
-
-                const activeTId = this.currentTenant ? this.currentTenant.id : null;
-                const activeToken = this.currentTenant ? this.currentTenant.token : null;
-
-                this.branchMembers = this.allMembers.filter(m => {
-                    if (activeTId && m.tenantId === activeTId) return true;
-                    if (activeToken && m.tenantToken === activeToken) return true;
-                    if (!m.tenantId && !m.tenantToken) return true;
-                    return false;
-                });
-
-                document.getElementById('report-generated-timestamp').innerText = new Date().toLocaleString();
+                const role=this.authenticatedRole;
+                let query=supabaseClient.from('owners').select('id,gym_name,token,logo,status');
+                if(keyParam)query=query.eq('token',keyParam);
+                else if(role.tenant_id)query=query.eq('id',role.tenant_id);
+                else throw new Error('Open a specific gym report link.');
+                if(role.role!=='super_admin')query=query.eq('id',role.tenant_id);
+                const {data,error}=await query;
+                if(error||data?.length!==1)throw new Error('This gym is unavailable or unauthorized.');
+                const gym=data[0];
+                this.currentTenant={id:gym.id,gymName:gym.gym_name,token:gym.token,logo:gym.logo};
+                await this.ivRequireReport();
+                for(const id of ['header-gym-title','report-gym-name','page-title'])
+                    document.getElementById(id).innerText=gym.gym_name+' REPORTS';
+                if(gym.logo){document.getElementById('header-logo-img').src=gym.logo;
+                    document.getElementById('header-logo-img').classList.remove('hidden');
+                    document.getElementById('header-logo-icon').classList.add('hidden');}
             },
 
             switchTab: function(tabName) {
@@ -528,54 +436,6 @@
                 if (m.price !== undefined && !isNaN(m.price)) return Number(m.price);
                 if (m.amountPaid !== undefined && !isNaN(m.amountPaid)) return Number(m.amountPaid);
                 return 0; 
-            },
-
-            filterAndRenderReport: function(startStr, endStr) {
-                const filtered = this.branchMembers.filter(m => {
-                    if (!m.plan || m.plan === 'Not Selected') return false;
-                    const recordDate = m.dateJoined ? m.dateJoined.split('T')[0] : '';
-                    if (!recordDate) return false;
-                    return recordDate >= startStr && recordDate <= endStr;
-                });
-
-                const totalRevenue = filtered.reduce((acc, curr) => acc + this.extractMemberAmount(curr), 0);
-                const totalCredits = this.branchMembers.reduce((acc, curr) => acc + (curr.walletBalance !== undefined && !isNaN(curr.walletBalance) ? Number(curr.walletBalance) : 0), 0);
-                const totalRegistrations = filtered.length;
-                const activeSubs = filtered.filter(m => m.status === 'ACTIVE' && m.plan && m.plan !== 'Not Selected').length;
-
-                document.getElementById('metric-revenue').innerText = `₱${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-                document.getElementById('metric-credits').innerText = `₱${totalCredits.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-                document.getElementById('metric-registrations').innerText = totalRegistrations;
-                document.getElementById('metric-subscriptions').innerText = activeSubs;
-
-                const attendanceFiltered = this.branchMembers.filter(m => {
-                    if (!m.lastScannedDate) return false;
-                    return m.lastScannedDate >= startStr && m.lastScannedDate <= endStr;
-                });
-
-                const totalScans = attendanceFiltered.reduce((acc, curr) => acc + (curr.scansUsed || 0), 0);
-                document.getElementById('metric-scans').innerText = totalScans;
-                document.getElementById('metric-active-visitors').innerText = attendanceFiltered.length;
-                document.getElementById('metric-total-roster').innerText = this.branchMembers.length;
-
-                const rawAuditLogs = this.currentTenant && this.currentTenant.auditLogs ? this.currentTenant.auditLogs : [];
-                const auditFiltered = rawAuditLogs.filter(l => {
-                    if (!l.timestamp) return true;
-                    try {
-                        const logDateObj = new Date(l.timestamp);
-                        if (isNaN(logDateObj.getTime())) return true;
-                        const logDateStr = logDateObj.toISOString().split('T')[0];
-                        return logDateStr >= startStr && logDateStr <= endStr;
-                    } catch(e) {
-                        return true;
-                    }
-                });
-
-                document.getElementById('metric-audit-count').innerText = `${auditFiltered.length} Logs`;
-
-                this.renderFinancialTable(filtered);
-                this.renderAttendanceTable(attendanceFiltered);
-                this.renderAuditTable(auditFiltered);
             },
 
             renderFinancialTable: function(list) {
@@ -719,19 +579,38 @@ async function ivRequireRole(roles, tenant){
 }
 
 reportsApp.ivMode='audit';
-const ivOldReportInit=reportsApp.init;
-reportsApp.init=async function(){
- await ivOldReportInit.call(this);
- try{const role=await ivRequireRole(['owner','staff','super_admin'],this.currentTenant?.id);
- if(!this.currentTenant&&role.tenant_id)throw Error('Tenant unavailable');
- await this.ivLoadLogs();this.onDateFilterChange();}
- catch(e){console.error(e);alert('Reporting access: '+e.message);}
+reportsApp.ivClear=function(){
+ this.ivRequest=(this.ivRequest||0)+1;
+ this.ivFinance=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
+ this.allMembers=[];this.branchMembers=[];
+ for(const id of ['financial-tbody','attendance-tbody','audit-tbody'])document.getElementById(id).textContent='';
+ for(const id of ['metric-revenue','metric-credits','metric-registrations','metric-subscriptions',
+  'metric-scans','metric-active-visitors','metric-total-roster','metric-audit-count'])document.getElementById(id).textContent='0';
+};
+reportsApp.ivDeny=function(error){
+ this.ivRequest=(this.ivRequest||0)+1;
+ this.ivClear();document.body?.classList.add('iv-auth-pending');
+ IronVaultAuth.clearState(sessionStorage,localStorage);
+ alert('Reporting access: '+error.message);
+ const token=this.currentTenant?.token||new URLSearchParams(location.search).get('key');
+ location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+};
+reportsApp.ivRequireReport=async function(){
+ const role=await IronVaultAuth.requireFinancialReport(supabaseClient,this.currentTenant?.id);
+ if(this.authenticatedRole&&role.user_id!==this.authenticatedRole.user_id)throw new Error('The signed-in account changed.');
+ return role;
 };
 reportsApp.ivLoadLogs=async function(){
- const id=this.currentTenant?.id;if(!id)return;
+ await this.ivRequireReport();
+ const id=this.currentTenant.id;
  const fetch=async table=>{const {data,error}=await supabaseClient.from(table).select('*').eq('tenant_id',id).order('created_at',{ascending:false}).limit(10000);if(error)throw error;return data||[];};
- [this.ivFinance,this.ivAttendance,this.ivActivity,this.ivSessions]=await Promise.all([
- fetch('iv_financial_transactions'),fetch('iv_attendance_logs'),fetch('iv_activity_logs'),fetch('iv_staff_sessions')]);
+ const {data:members,error:memberError}=await supabaseClient.from('members')
+  .select('id,tenant_id,name,classification,plan,wallet_balance,status').eq('tenant_id',id);
+ if(memberError)throw memberError;
+ const logs=await Promise.all([fetch('iv_financial_transactions'),fetch('iv_attendance_logs'),fetch('iv_activity_logs'),fetch('iv_staff_sessions')]);
+ await this.ivRequireReport();
+ return {logs,members:(members||[]).map(m=>({id:m.id,tenantId:m.tenant_id,name:m.name,
+  classification:m.classification,plan:m.plan,walletBalance:m.wallet_balance,status:m.status}))};
 };
 reportsApp.ivRender=async function(start,end){
  if(!this.ivFinance)return;
@@ -756,10 +635,28 @@ reportsApp.ivRender=async function(start,end){
  document.getElementById('metric-audit-count').textContent=auditRows.length+' Logs';
  document.getElementById('audit-tbody').innerHTML=auditRows.map(a=>row([formatTime(a.created_at),a.actor_id||'System',a.event,a.details||''])).join('')||'<tr><td colspan="4" class="p-6 text-center">No logs in range.</td></tr>';
 };
-const ivOldFilter=reportsApp.filterAndRenderReport;
-reportsApp.filterAndRenderReport=function(start,end){ivOldFilter.call(this,start,end);this.ivRender(start,end);};
+reportsApp.filterAndRenderReport=async function(start,end){
+ const request=(this.ivRequest||0)+1;this.ivRequest=request;
+ document.body?.classList.add('iv-auth-pending');
+ try{
+  const result=await this.ivLoadLogs();
+  if(request!==this.ivRequest)return;
+  [this.ivFinance,this.ivAttendance,this.ivActivity,this.ivSessions]=result.logs;
+  this.branchMembers=result.members;this.allMembers=result.members;
+  await this.ivRender(start,end);
+  document.body?.classList.remove('iv-auth-pending');
+ }catch(error){if(request===this.ivRequest)this.ivDeny(error);}
+};
+reportsApp.printReport=async function(){try{await this.ivRequireReport();window.print();}catch(error){this.ivDeny(error);}};
+window.addEventListener('pageshow',event=>{if(event.persisted)reportsApp.init();});
+window.addEventListener('focus',()=>{if(reportsApp.currentTenant)reportsApp.ivRequireReport().catch(error=>reportsApp.ivDeny(error));});
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&reportsApp.authenticatedRole&&session?.user?.id!==reportsApp.authenticatedRole.user_id))
+  reportsApp.ivDeny(new Error('The authenticated session changed.'));
+});
 reportsApp.ivChoose=function(mode){this.ivMode=mode;this.switchTab('audit');};
-reportsApp.ivCredits=function(){
+reportsApp.ivCredits=async function(){
+ try{await this.ivRequireReport();}catch(error){this.ivDeny(error);return;}
  const positive=this.branchMembers.filter(m=>Number(m.walletBalance)>0);
  const lines=positive.map(m=>m.name+' ('+m.id+'): '+ivMoney(m.walletBalance));
  alert('MEMBERS WITH UNEARNED CREDITS ('+positive.length+')\n\n'+(lines.join('\n')||'No positive balances.'));

@@ -1,0 +1,12 @@
+[
+  {
+    "table": "iv_attendance_logs",
+    "policy": "iv_attendance_read",
+    "qual_md5": "4f1b6a06b40b29210463540731851fd4"
+  },
+  {
+    "table": "iv_financial_transactions",
+    "policy": "iv_financial_read",
+    "qual_md5": "4f1b6a06b40b29210463540731851fd4"
+  }
+]

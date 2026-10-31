@@ -73,6 +73,7 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/staff-report-permissions.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -778,6 +779,7 @@
             <!-- REGISTERED STAFF CONTENT TAB -->
             <div id="staff-content-list" class="hidden space-y-2">
                 <div id="existing-staff-list" class="max-h-60 overflow-y-auto space-y-2 text-xs touch-scroll"></div>
+                <p class="text-xs font-bold">Financial report access</p><div id="staff-report-permissions"></div>
                 <div class="pt-2">
                     <button type="button" onclick="adminApp.closeStaffSignupModal()" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
                         Close
@@ -1059,6 +1061,7 @@
                 sessionStorage.setItem(ACTIVE_ROLE_KEY,role.role==='owner'?'admin':'staff');
                 sessionStorage.removeItem(SIGNED_OUT_KEY);
                 this.applyUIRoleVisibility(role.role==='owner'?'admin':'staff');
+                await this.refreshFinancialReportAccess();
                 await this.loadMembers();
             },
 
@@ -1084,13 +1087,21 @@
                 }
             },
 
-            openReportsPage: function() {
-                const token = this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '';
-                if (token) {
-                    window.location.href = `reports.html?key=${token}`;
-                } else {
-                    window.location.href = 'reports.html';
+            refreshFinancialReportAccess: async function() {
+                const button=document.getElementById('btn-reports-analytics');
+                button?.classList.add('hidden');
+                try {
+                    await IronVaultAuth.requireFinancialReport(supabaseClient,this.currentTenantId);
+                    button?.classList.remove('hidden');return true;
+                } catch(error){return false;}
+            },
+
+            openReportsPage: async function() {
+                if(!await this.refreshFinancialReportAccess()){
+                    alert('Financial reports require current administrator-granted access and verified security migrations.');return;
                 }
+                const token=this.matchedOwnerRecord?.token;
+                location.href='reports.html'+(token?'?key='+encodeURIComponent(token):'');
             },
 
             logoutAdmin: function() {
@@ -1171,10 +1182,13 @@
 
             openStaffSignupModal: async function() {
                 if (!this.currentTenantId) return;
+                try {await ivRequireRole(['owner'],this.currentTenantId);}
+                catch(error){alert(error.message);return;}
 
                 try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
-                    if (!error && data) {
+                    const { data, error } = await supabaseClient.from('owners').select('*').eq('id',this.currentTenantId);
+                    if (error || !data?.length) throw new Error('Gym staff data is unavailable.');
+                    if (data) {
                         this.allOwnersSystem = data.map(o => ({
                             id: o.id,
                             gymName: o.gym_name,
@@ -1193,18 +1207,12 @@
                         if (refreshed) this.matchedOwnerRecord = refreshed;
                     }
                 } catch(e) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try {
-                            this.allOwnersSystem = JSON.parse(ownersData);
-                            const refreshed = this.allOwnersSystem.find(o => o.id === this.currentTenantId);
-                            if (refreshed) this.matchedOwnerRecord = refreshed;
-                        } catch(err) {}
-                    }
+                    alert('Unable to verify gym staff data. Please try again.');return;
                 }
 
                 this.switchStaffTab('register');
                 this.renderExistingStaffList();
+                await IronVaultStaffReports.render(supabaseClient,this.currentTenantId,'staff-report-permissions');
                 document.getElementById('staff-signup-modal').classList.remove('hidden');
             },
 

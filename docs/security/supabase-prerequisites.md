@@ -4,11 +4,9 @@ No Supabase project was accessed. No SQL or Supabase CLI command was executed. M
 
 ## Supplied exports: reviewed, no repeat requested
 
-All 11 supplied 2A–4F CSVs were reviewed. Raw CSVs remain outside the checkout; the non-secret findings and exact source fingerprints are in inspection-review-20261101.md. The 4A file contains provider counts only; its first Auth summary result is missing. The 4E file contains cross-tenant email count only; its first within-tenant duplicate result is missing.
+All 11 supplied 2A–4F exports and all supplied M1–M7 result files are reviewed. The previously missing Auth summary and within-tenant duplicate counts are now supplied. See inspection-review-m1-m7-20261101.md. Do not repeat these exports or the completed remaining_authorization_checks script.
 
-Only missing results/dependencies are requested in `supabase/inspection/20261101_remaining_authorization_checks.sql`. Run/export each SELECT separately if the results do not already exist. This also covers previously uninspected role/history-table privileges and policies, role vocabulary, schema CREATE/default privileges, and the known event-trigger binding. The existing trigger-dependency inspection covers types, constraints/FKs and additional trigger functions; the already supplied signup function is excluded from the definition request.
-
-Do not rerun the complete 2A–4F inspection. Return any errors unchanged; do not change the schema to satisfy an inspection. Redact embedded secrets, hashes/tokens, SMTP credentials and real recovery links from source/configuration returned later.
+Only the targeted SELECT-only default_acl_compatibility.sql (executor/creator memberships and private namespace) and trigger_dependencies.sql T1–T5 dependencies remain requested. Return labeled results and errors unchanged. Redact credentials, tokens and recovery links from any sources/configuration shared.
 
 ## Existing Edge Function source
 
@@ -43,6 +41,7 @@ Dashboard section labels can vary by version. Report the settings without saving
 | Authentication → Sessions | Configured session lifetime/inactivity/single-session controls and desired multi-tab behavior. |
 | Authentication → Auth Hooks | Which hooks are enabled, their purpose, and redacted source for custom hooks; whether email delivery is intercepted. |
 | Authentication → Rate Limits / Attack Protection | Current signup/recovery/login throttling and CAPTCHA enabled/disabled/provider; no CAPTCHA secret. |
+| Project Settings → Data API | Exposed schemas and max-row limit only; keep ironvault_private unexposed. |
 | Project Settings → JWT/Signing Keys, if relevant | Legacy versus asymmetric signing mode and JWT expiry configuration only; never signing secrets/private keys. |
 | Authentication → other enabled Providers | Provider names and any identity-linking behavior used by current test accounts; no provider secrets. |
 

@@ -68,6 +68,7 @@
     </style>
     <script src="../assets/auth-session.js"></script>
     <script src="../assets/super-admin-session.js"></script>
+    <script src="../assets/staff-report-permissions.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -445,6 +446,7 @@
                 </button>
                 <div id="toggle-content-staff" class="p-4 pt-0 space-y-3 hidden">
                     <div id="inspect-staff-list" class="space-y-2 max-h-40 overflow-y-auto text-xs">
+                <p class="text-xs font-bold">Financial report access</p><div id="inspect-report-permissions"></div>
                         <!-- Dynamic staff list -->
                     </div>
                     <!-- Add Staff Form Inside Inspect Modal -->
@@ -999,6 +1001,7 @@
                 }
 
                 document.getElementById('branch-inspect-modal').classList.remove('hidden');
+                IronVaultStaffReports.render(supabaseClient,ownerId,'inspect-report-permissions');
             },
 
             renderInspectStaffList: function(owner) {

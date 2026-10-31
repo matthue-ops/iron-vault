@@ -1,46 +1,27 @@
 # Phase 1 implementation status
 
-This is a **draft prerequisite/session foundation**, not the completed Phase 1 security release. Do not deploy it as a remediation for the reported public ALL policies or RPC grants. Main baseline: de6de04. Earlier unverified application/SQL/Edge Function drafts are preserved in stash `4032323` and excluded from this branch.
+Prepared on security/phase1-auth-authorization for review in PR #2. **Incomplete; not deployed and no database migration applied or assumed applied.** Main baseline de6de04. Follow AGENTS.md. All existing accounts, balances, history and records remain untouched.
 
-## Implemented without assuming new database objects
+## Prepared application changes
 
-- Shared browser role resolution calls Supabase getUser and reads the existing iv_user_roles fields already used by main. It does not accept browser roles, another user's rows, unscoped branch roles or ambiguous tenant/member bindings. Global Super Admin access is explicit.
-- Both master entry points use one Auth-backed session controller. The root embedded-credential bypass is removed; private master data loads after role verification and is checked again before rendering. Logout, denied access and Auth-identity changes clear private UI/cache state.
-- Admin initialization no longer defaults an absent role to admin. It verifies a role before tenant discovery, derives UI role from the verified binding, and scopes tenant/roster queries. Private roster/tenant caches are not a fallback for denial or empty results in these paths.
-- Public member login only queries selected branding fields and no longer downloads/caches a member roster or retains superseded browser-password authentication handlers.
-- Member profile data reads bind member ID and tenant to the verified role; branding queries are scoped and limited to branding fields. Member logout calls Supabase signOut and clears private state.
-- Existing helper wrappers on member login, admin, profile and reports now use shared role resolution. This is a UI/session gate, not the still-pending database authorization implementation.
-- Camera/upload QR admissions now call the reviewed existing iv_checkin RPC instead of bulk-upserting profiles; Manila date validation replaces the UTC comparison. This does not implement signed passes or strengthen the RPC body.
-- Added a dependency-free Node security/regression suite. `npm test` completed successfully: 53 passed, 0 failed, 0 skipped. These are mocked SDK/controller, syntax and SQL text/contract checks, not database integration tests. SQL/PLpgSQL syntax parsing also passed with pglast 8.7 without SQL execution. No hosted-database tests have been run.
+Shared Supabase getUser/iv_user_roles authorization replaces embedded credentials and administrator defaults. Master, admin and member workflows verify roles and scope private reads; logout/identity changes clear private state. Public member login avoids downloading rosters. QR admission uses the existing reviewed iv_checkin RPC instead of bulk profile writes; the RPC body and signed-pass enforcement remain pending.
 
-## Changed files and purpose
+The M4-backed reporting changes now require a fresh backend financial permission before queries, render, print and cached credit display. Reports scope every query, reject arbitrary tenant/cache fallback and include ledger totals independently of absent member profiles. Owner/Super Admin controls list and grant/revoke scoped staff report access through the new audited RPCs. Ordinary staff can retain desk/check-in access without report access. Reports fail closed until the new APIs exist; coordinate 005–007 manual confirmation before application release. Client controls supplement RLS, never replace it.
 
-| Files | Purpose |
-| --- | --- |
-| assets/auth-session.js | Shared verified-identity/role resolution and scoped application-state cleanup/sign-out. |
-| assets/super-admin-session.js | Shared guarded session/controller behavior for both master entry points. |
-| index.html, gym/index.html | Install the shared master controller and remove embedded-credential/browser-only login handlers. |
-| gym/admin.html | Fail-closed initialization, verified UI role, scoped private reads and no denied-query cache fallback. |
-| gym/memberlogin.html | Shared roles, selected public branding and removal of obsolete roster/password handlers. |
-| gym/memberprofile.html | Shared roles, member/tenant-bound reads, scoped branding and actual Supabase logout. |
-| gym/reports.html | Shared role helper only; report permissions/query restructuring are blocked pending database evidence. |
-| tests/*.test.cjs, package.json | Native Node role, session, actual-controller and syntax regressions. |
-| .gitignore | Keep local dependencies and .env secrets out of commits. |
-| docs/security/*.md | Target architecture, prerequisites, migration/reset manifest and test/release gates. |
-| supabase/inspection/*.sql | SELECT-only missing-summary, authority/history-table and trigger/schema dependency inspection for manual execution. |
-| supabase/migrations/*.sql and README.md | Two reviewed, grant-only non-destructive migrations with drift/privilege guards, manual order and recovery notes; neither applied. |
-| tests/fixtures/inspection-function-contract.json | Non-secret exact function signatures and definition fingerprints from the supplied CSV; no raw exports or account details. |
+Affected application files: assets/auth-session.js, assets/super-admin-session.js, assets/staff-report-permissions.js, index.html, gym/index.html, gym/admin.html, gym/memberlogin.html, gym/memberprofile.html and gym/reports.html. Native Node tests cover role/session/controllers, scanner, report permissions/revocation and safe permission controls. Current result: 75 passed, none failed/skipped. All 10 SQL files and contained SQL/PLpgSQL bodies parse with pglast 8.7; this does not execute SQL or establish hosted correctness.
 
-## Blocked work and known risks
+## Prepared database changes
 
-All 11 supplied 2A–4F CSVs were reviewed. Exact policies, grants and eight function definitions are now known at that snapshot; see inspection-review-20261101.md. The first summary result in each of 4A/4E is missing. Role/history-table authorization, types/constraints/indexes/trigger attachments, deployed Edge Functions and Auth settings remain missing. The two narrow ACL files are evidence-backed; broader replacements remain blocked. No old draft is treated as deployed evidence.
+Seven separately reviewable files are documented in supabase/migrations/README.md. 001/002 narrow existing privileges; 003/004 harden only future public-schema defaults for postgres/optional supabase_admin; 005 protects role/history direct writes; 006 adds an isolated explicit staff report permission mechanism; 007 corrects financial/attendance cross-tenant policy errors. 004 depends on managed-creator authority and is optional, not a prerequisite to urgent 005–007. Global PUBLIC EXECUTE defaults still require explicit per-function revokes in every new migration. No existing data deletion, table/column removal, account reset or broad rebuild is included.
 
-Unrestricted direct API access, definer safety, database-side report permission/revocation, independent branch identity provisioning, wallet/ledger atomicity/idempotency, signed passes, retained-history member deletion, protected import/restore and existing legacy plaintext credential storage are **not fixed by this stage**. Reports still retain their legacy load/render order and role-only staff check; they must not be treated as implementing the newly required explicit staff report permission. Financial mutation paths and backend deletion semantics have not been rewritten. Existing live SQL/RLS remains unchanged; the prepared files have not been applied.
+## Evidence and outstanding gates
 
-Sessions retain the current Supabase storage configuration until Auth callback requirements are supplied. Browser Back/profile restoration re-enters the verified initialization gates and cached views are hidden until authorization completes. Hosted callback/session behavior and every mutation path still require final backend enforcement and integration tests. Multiple memberships without an explicit tenant selection fail closed rather than selecting an arbitrary role. A Super Admin row with a non-null tenant is treated as invalid global authority until the actual assignments are reviewed; current account compatibility must be checked before activation. Existing tenant link resolution and branding must be tested against the eventual public-branding interface/RLS before release.
+All 2A–4F and M1–M7 exports are reviewed. M1 confirms seven confirmed password accounts; M2 no duplicate email within a tenant; M3 four members, two owners and one global Super Admin, no staff. M4 confirms the severe self-comparison policy defect; M6 event-trigger behavior is preserved; M7 defaults are handled narrowly. See inspection-review-m1-m7-20261101.md for evidence and the post-application identity test matrix.
 
-Two non-destructive grant-only migrations are prepared for manual review, in supabase/migrations/README.md order. No speculative policy/financial/identity replacement or destructive reset SQL was generated. See migrations-and-verification.md for ordered proposed deliverables and the separate optional reset procedure. No SQL, Supabase account operation, deployment or merge was executed.
+Still required: T1–T5 types/constraints/indexes/trigger dependencies, targeted default-creator/executor compatibility results, deployed Edge Function bundles/helpers/JWT settings and non-secret Auth/SMTP/recovery/redirect/hooks configuration. Exact retrieval steps are in supabase-prerequisites.md. No older draft is treated as deployed truth; stash 4032323 remains excluded.
 
-## Next input
+Owners/members public ALL policies, legacy credential columns, direct financial summaries/generic audit details, wallet/purchase amount validation and idempotency, full identity provisioning/branch-independent passwords, signed passes, secure import/restore and retained-history deletion are not fixed by this stage. Existing reporting row limits can still truncate large reports and require later pagination. Remaining backend definitions must be inspected before replacement. Existing test data gives no justification for a reset.
 
-Supply only the specifically missing summary/dependency results, redacted deployed Edge Function source and the checklist values in supabase-prerequisites.md. Do not rerun the complete supplied 2A–4F exports. The branch-independent account and normal-deletion/reporting decisions are already recorded and will not be asked again. Continue affected implementation after those exact dependencies are established.
+No SQL, live Supabase operation, deployment or merge was performed. Hosted integration is pending approval and manual migration confirmation; mock tests are not evidence of deployed RLS enforcement.
+
+Local Chromium checks with mocked Supabase and external requests passed: granted staff can render ledger totals, ungranted staff are denied, and revocation blocks printing. No Supabase endpoint was contacted.

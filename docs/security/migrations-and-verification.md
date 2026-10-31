@@ -1,5 +1,7 @@
 # Migration, reset and release gates
 
+Current implementation/evidence update: M1–M7 are now reviewed. See [current status](phase1-status.md), [inspection findings](inspection-review-m1-m7-20261101.md) and [manual migration order](../../supabase/migrations/README.md). These supersede earlier statements below that report permissions or M1–M7 evidence are wholly unavailable. Files 003–007 are prepared, not applied; T1–T5, creator compatibility and deployed Edge/Auth evidence remain pending. No reset is justified or included.
+
 Status: the supplied 2A–4F exports have been reviewed. Two narrow non-destructive grant migrations are prepared, not applied. Broader policy/financial/identity changes are blocked on missing role/history authorization, types/constraints/indexes/triggers, Edge Function source and Auth configuration. No old SQL draft is treated as deployed truth.
 
 ## Prepared files, manual execution order

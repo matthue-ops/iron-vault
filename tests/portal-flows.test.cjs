@@ -3,13 +3,13 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
-function portal(file,{user=null,roles=[],owners=[],members=[],search='?key=token-a'}={}){
+function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
  function element(id){if(!elements.has(id))elements.set(id,{value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   const entry={table,fields:null,filters:[]};calls.push(entry);
-  const q={select(fields){entry.fields=fields;return q},eq(k,v){entry.filters.push([k,v]);return q},then(resolve){const rows=table==='iv_user_roles'?roles:table==='owners'?owners:table==='members'?members:[];resolve({data:rows.filter(row=>entry.filters.every(([k,v])=>row[k]===v)),error:null})}};return q;
+  const q={select(fields){entry.fields=fields;return q},eq(k,v){entry.filters.push([k,v]);return q},order(){return q},limit(){return q},then(resolve){const rows=table==='iv_user_roles'?roles:table==='owners'?owners:table==='members'?members:(records[table]||[]);resolve({data:rows.filter(row=>entry.filters.every(([k,v])=>row[k]===v)),error:null})}};return q;
  }};
  const context={console,Intl,Date,URL,URLSearchParams,crypto,tailwind:{},supabase:{createClient:()=>client},document:{body:element('body'),getElementById:element,createElement:()=>element('created'),documentElement:{style:{setProperty(){}}}},sessionStorage:storage,localStorage:storage,alert:message=>alerts.push(message),addEventListener:(name,fn)=>{events[name]=fn},setTimeout:()=>0,location:{search,href:'https://app.example.invalid/'+file+search,replace:url=>redirects.push(url)}};
  context.window=context;vm.createContext(context);
@@ -141,4 +141,49 @@ test('an activity-note failure cannot undo or misreport a confirmed QR admission
   ?{data:'timestamp',error:null}:{data:null,error:{message:'note unavailable'}};
  await p.app.processScannedCode('member-a|2026-11-01');
  assert.equal(p.results.at(-1).ok,true);assert.match(p.results.at(-1).description,/Activity note unavailable/);
+});
+function reportFixture(role='owner',enabled=true){
+ const p=portal('gym/reports.html',{user:{id:'report-user'},roles:[{user_id:'report-user',role,tenant_id:role==='super_admin'?null:'gym-a'}],
+  owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A'}],members:[{id:'member-a',tenant_id:'gym-a',name:'Member',wallet_balance:100}],
+  records:{iv_financial_transactions:[{id:'tx',tenant_id:'gym-a',member_id:'deleted-member',kind:'topup',amount:125,created_at:'2026-11-01T03:00:00+08:00'}]}});
+ const permission={enabled,calls:0};p.client.rpc=async(name,args)=>{assert.equal(name,'iv_can_read_financial_reports');assert.equal(args.p_tenant,'gym-a');permission.calls++;return {data:permission.enabled,error:null}};
+ class Clock extends Date{constructor(...args){super(...(args.length?args:['2026-11-01T12:00:00+08:00']))}}
+ p.context.Date=Clock;return {...p,permission,app:p.get('reportsApp')};
+}
+test('report initialization denies anonymous access before private or branding queries',async()=>{
+ const p=portal('gym/reports.html');await p.get('reportsApp').init();assert.equal(p.calls.length,0);assert.equal(p.redirects.length,1);
+});
+test('ordinary staff cannot load financial/member/log data without backend permission',async()=>{
+ const p=reportFixture('staff',false);await p.app.init();
+ assert.ok(p.calls.every(c=>c.table==='iv_user_roles'||c.table==='owners'));assert.equal(p.redirects.length,1);
+});
+for(const role of ['owner','staff','super_admin']){
+ test(`report workflow remains available to authorized ${role} and includes ledger entries whose member profile is absent`,async()=>{
+  const p=reportFixture(role,true);await p.app.init();assert.equal(p.redirects.length,0);
+  assert.equal(p.app.ivFinance.length,1);assert.match(p.element('metric-revenue').textContent,/125/);
+  const dataCalls=p.calls.filter(c=>c.table!=='iv_user_roles'&&c.table!=='owners');
+  assert.ok(dataCalls.length>=5);assert.ok(dataCalls.every(c=>c.filters.some(([k,v])=>k==='tenant_id'&&v==='gym-a')));
+  assert.ok(!p.calls.find(c=>c.table==='members').fields.includes('password'));
+ });
+}
+test('financial permission revocation clears cached results and blocks subsequent print and refresh',async()=>{
+ const p=reportFixture('staff',true);await p.app.init();let prints=0;p.context.print=()=>{prints++};
+ p.permission.enabled=false;await p.app.printReport();assert.equal(prints,0);assert.equal(p.app.ivFinance.length,0);
+ assert.equal(p.element('financial-tbody').textContent,'');
+ await p.app.filterAndRenderReport('2026-11-01','2026-11-01');assert.equal(p.app.ivFinance.length,0);
+});
+test('reporting has no first-gym or private-cache fallback on a wrong-tenant link',async()=>{
+ const p=reportFixture('owner',true);p.context.location.search='?key=wrong';
+ p.storage.setItem('ironvault_owners_db',JSON.stringify([{id:'gym-b',token:'wrong'}]));
+ await p.app.init();assert.equal(p.permission.calls,0);assert.equal(p.redirects.length,1);
+});
+test('report backend missing during staged deployment fails closed before member or history reads',async()=>{
+ const p=reportFixture('owner',true);p.client.rpc=async()=>({data:null,error:{code:'PGRST202'}});await p.app.init();
+ assert.ok(!p.calls.some(c=>c.table==='members'||c.table.startsWith('iv_financial')));assert.equal(p.redirects.length,1);
+});
+test('denied report navigation keeps ordinary staff in the desk portal',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'desk'},roles:[{user_id:'desk',role:'staff',tenant_id:'gym-a'}]});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.matchedOwnerRecord={token:'token-a'};
+ p.client.rpc=async()=>({data:false,error:null});const before=p.context.location.href;
+ await app.openReportsPage();assert.equal(p.context.location.href,before);assert.equal(p.alerts.length,1);
 });
