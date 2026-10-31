@@ -2,11 +2,13 @@
 
 No Supabase project was accessed. No SQL or Supabase CLI command was executed. Main and the advertised documentation branch contain no Edge Function source. The checkout is not shallow; no tracked backend source was found in the available repository history. Earlier unverified local drafts are preserved in stash, not reused as deployed definitions.
 
-## Existing exports: transfer, do not repeat
+## Supplied exports: reviewed, no repeat requested
 
-The owner confirmed that CSV exports 2A, 2B, 2C, 3A, 3B and 4A–4F exist in another ChatGPT conversation and will be supplied separately. Return those existing files/results here. No repeat of those inspections is requested. Keep complete function signatures/definitions and policy expressions, but redact embedded secrets. Do not supply password hashes, access/refresh tokens, service-role keys, SMTP passwords or real recovery links.
+All 11 supplied 2A–4F CSVs were reviewed. Raw CSVs remain outside the checkout; the non-secret findings and exact source fingerprints are in inspection-review-20261101.md. The 4A file contains provider counts only; its first Auth summary result is missing. The 4E file contains cross-tenant email count only; its first within-tenant duplicate result is missing.
 
-The reported summary is insufficient to write exact replacement policies, RPC overloads or ledger migrations. No repository SQL file is assumed to match the deployed project.
+Only missing results/dependencies are requested in `supabase/inspection/20261101_remaining_authorization_checks.sql`. Run/export each SELECT separately if the results do not already exist. This also covers previously uninspected role/history-table privileges and policies, role vocabulary, schema CREATE/default privileges, and the known event-trigger binding. The existing trigger-dependency inspection covers types, constraints/FKs and additional trigger functions; the already supplied signup function is excluded from the definition request.
+
+Do not rerun the complete 2A–4F inspection. Return any errors unchanged; do not change the schema to satisfy an inspection. Redact embedded secrets, hashes/tokens, SMTP credentials and real recovery links from source/configuration returned later.
 
 ## Existing Edge Function source
 

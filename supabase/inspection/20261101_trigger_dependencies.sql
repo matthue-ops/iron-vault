@@ -23,7 +23,7 @@ JOIN pg_namespace pn ON pn.oid=p.pronamespace
 WHERE NOT t.tgisinternal
 ORDER BY table_schema, table_name, trigger_name;
 
--- T2: Definitions of those trigger functions, not just SECURITY DEFINER routines.
+-- T2: Only additional trigger functions not already supplied in 3B.
 WITH targets(schema_name, table_name) AS (
   VALUES ('auth','users'), ('public','owners'), ('public','members'),
     ('public','iv_user_roles'), ('public','iv_financial_transactions'),
@@ -42,6 +42,7 @@ SELECT pn.nspname AS function_schema, p.proname AS function_name,
   pg_get_functiondef(p.oid) AS definition
 FROM functions f JOIN pg_proc p ON p.oid=f.oid
 JOIN pg_namespace pn ON pn.oid=p.pronamespace
+WHERE p.oid IS DISTINCT FROM to_regprocedure('public.iv_member_auth_signup()')::oid
 ORDER BY function_schema, function_name, arguments;
 
 -- T3: Constraints on the known tables plus incoming foreign-key dependencies.
@@ -56,7 +57,7 @@ SELECT c.conrelid::regclass AS table_name, c.conname AS constraint_name,
 FROM pg_constraint c
 WHERE c.conrelid IN (SELECT oid FROM targets)
    OR c.confrelid IN (SELECT oid FROM targets)
-ORDER BY table_name::text, constraint_name;
+ORDER BY c.conrelid::regclass::text, c.conname;
 
 -- T4: Only if table-column/default exports were not already collected.
 SELECT table_name,ordinal_position,column_name,data_type,udt_name,
@@ -65,3 +66,10 @@ FROM information_schema.columns
 WHERE table_schema='public' AND table_name IN ('owners','members','iv_user_roles',
   'iv_financial_transactions','iv_attendance_logs','iv_activity_logs','iv_staff_sessions')
 ORDER BY table_name,ordinal_position;
+
+-- T5: Standalone indexes (a request-id unique index need not be a constraint).
+SELECT schemaname,tablename,indexname,indexdef
+FROM pg_indexes WHERE schemaname='public'
+ AND tablename IN ('owners','members','iv_user_roles','iv_financial_transactions',
+   'iv_attendance_logs','iv_activity_logs','iv_staff_sessions')
+ORDER BY tablename,indexname;

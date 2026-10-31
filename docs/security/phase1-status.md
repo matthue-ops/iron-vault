@@ -10,7 +10,8 @@ This is a **draft prerequisite/session foundation**, not the completed Phase 1 s
 - Public member login only queries selected branding fields and no longer downloads/caches a member roster or retains superseded browser-password authentication handlers.
 - Member profile data reads bind member ID and tenant to the verified role; branding queries are scoped and limited to branding fields. Member logout calls Supabase signOut and clears private state.
 - Existing helper wrappers on member login, admin, profile and reports now use shared role resolution. This is a UI/session gate, not the still-pending database authorization implementation.
-- Added a dependency-free Node security/regression suite. `npm test` completed successfully: 42 passed, 0 failed, 0 skipped. These are mocked SDK/controller and syntax checks, not database integration tests. No hosted-database tests have been run.
+- Camera/upload QR admissions now call the reviewed existing iv_checkin RPC instead of bulk-upserting profiles; Manila date validation replaces the UTC comparison. This does not implement signed passes or strengthen the RPC body.
+- Added a dependency-free Node security/regression suite. `npm test` completed successfully: 53 passed, 0 failed, 0 skipped. These are mocked SDK/controller, syntax and SQL text/contract checks, not database integration tests. SQL/PLpgSQL syntax parsing also passed with pglast 8.7 without SQL execution. No hosted-database tests have been run.
 
 ## Changed files and purpose
 
@@ -26,18 +27,20 @@ This is a **draft prerequisite/session foundation**, not the completed Phase 1 s
 | tests/*.test.cjs, package.json | Native Node role, session, actual-controller and syntax regressions. |
 | .gitignore | Keep local dependencies and .env secrets out of commits. |
 | docs/security/*.md | Target architecture, prerequisites, migration/reset manifest and test/release gates. |
-| supabase/inspection/20261101_trigger_dependencies.sql | Optional narrowly scoped SELECT-only trigger/schema dependency inspection for manual execution. |
+| supabase/inspection/*.sql | SELECT-only missing-summary, authority/history-table and trigger/schema dependency inspection for manual execution. |
+| supabase/migrations/*.sql and README.md | Two reviewed, grant-only non-destructive migrations with drift/privilege guards, manual order and recovery notes; neither applied. |
+| tests/fixtures/inspection-function-contract.json | Non-secret exact function signatures and definition fingerprints from the supplied CSV; no raw exports or account details. |
 
 ## Blocked work and known risks
 
-The 2A–4F CSVs are in a different conversation. Deployed Edge Function source and Auth configuration are absent. The exact schema/trigger dependency results are also unavailable. Do not guess new policies, grant replacements, RPC signatures or contact-email delivery behavior from old drafts.
+All 11 supplied 2A–4F CSVs were reviewed. Exact policies, grants and eight function definitions are now known at that snapshot; see inspection-review-20261101.md. The first summary result in each of 4A/4E is missing. Role/history-table authorization, types/constraints/indexes/trigger attachments, deployed Edge Functions and Auth settings remain missing. The two narrow ACL files are evidence-backed; broader replacements remain blocked. No old draft is treated as deployed evidence.
 
-Unrestricted direct API access, definer safety, database-side report permission/revocation, independent branch identity provisioning, wallet/ledger atomicity/idempotency, signed passes, retained-history member deletion, protected import/restore and existing legacy plaintext credential storage are **not fixed by this stage**. Reports still retain their legacy load/render order and role-only staff check; they must not be treated as implementing the newly required explicit staff report permission. Financial mutation paths and backend deletion semantics have not been rewritten. Existing SQL/RLS remains unchanged.
+Unrestricted direct API access, definer safety, database-side report permission/revocation, independent branch identity provisioning, wallet/ledger atomicity/idempotency, signed passes, retained-history member deletion, protected import/restore and existing legacy plaintext credential storage are **not fixed by this stage**. Reports still retain their legacy load/render order and role-only staff check; they must not be treated as implementing the newly required explicit staff report permission. Financial mutation paths and backend deletion semantics have not been rewritten. Existing live SQL/RLS remains unchanged; the prepared files have not been applied.
 
 Sessions retain the current Supabase storage configuration until Auth callback requirements are supplied. Browser Back/profile restoration re-enters the verified initialization gates and cached views are hidden until authorization completes. Hosted callback/session behavior and every mutation path still require final backend enforcement and integration tests. Multiple memberships without an explicit tenant selection fail closed rather than selecting an arbitrary role. A Super Admin row with a non-null tenant is treated as invalid global authority until the actual assignments are reviewed; current account compatibility must be checked before activation. Existing tenant link resolution and branding must be tested against the eventual public-branding interface/RLS before release.
 
-No database-change migration or destructive reset SQL is generated from incomplete evidence. See migrations-and-verification.md for ordered proposed deliverables and the separate optional reset procedure. No SQL, Supabase account operation, deployment or merge was executed.
+Two non-destructive grant-only migrations are prepared for manual review, in supabase/migrations/README.md order. No speculative policy/financial/identity replacement or destructive reset SQL was generated. See migrations-and-verification.md for ordered proposed deliverables and the separate optional reset procedure. No SQL, Supabase account operation, deployment or merge was executed.
 
 ## Next input
 
-Supply the existing inspection exports (no rerun requested), redacted deployed function source and the checklist values in supabase-prerequisites.md. The branch-independent account and normal-deletion/reporting decisions are already recorded and will not be asked again. Continue affected implementation after those exact dependencies are established.
+Supply only the specifically missing summary/dependency results, redacted deployed Edge Function source and the checklist values in supabase-prerequisites.md. Do not rerun the complete supplied 2A–4F exports. The branch-independent account and normal-deletion/reporting decisions are already recorded and will not be asked again. Continue affected implementation after those exact dependencies are established.

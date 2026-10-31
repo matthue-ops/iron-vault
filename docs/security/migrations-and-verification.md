@@ -1,10 +1,17 @@
 # Migration, reset and release gates
 
-Status: blocked on the existing CSVs, deployed backend source and Auth configuration. **There are no executable database-change migrations in this branch.** Creating speculative replacements from the earlier drafts would violate the instruction to stop affected work rather than guess.
+Status: the supplied 2A–4F exports have been reviewed. Two narrow non-destructive grant migrations are prepared, not applied. Broader policy/financial/identity changes are blocked on missing role/history authorization, types/constraints/indexes/triggers, Edge Function source and Auth configuration. No old SQL draft is treated as deployed truth.
 
-## Proposed files in manual execution order
+## Prepared files, manual execution order
 
-Exact SQL, prerequisites, verification and recovery sections will be written after evidence review. These names are a manifest, not scripts that have been created or applied.
+1. `supabase/migrations/202611010001_restrict_table_truncate.sql`
+2. `supabase/migrations/202611010002_restrict_function_execution.sql`
+
+Both change privileges only, preserve records/accounts/function bodies, and contain transactional assertions plus read-only verification. The second checks exact reviewed definition fingerprints. Review prerequisites/recovery in `supabase/migrations/README.md`; neither file was executed. They do not fix table CRUD policies, financial business logic or staff reporting permissions.
+
+## Subsequent proposed files, after missing dependencies
+
+The following broader files remain a manifest, not scripts that have been created or applied. They follow the two prepared ACL migrations after remaining dependency review. Optional destructive files are separate and not required by default.
 
 | Order | Proposed separate file | Classification and gate |
 | --- | --- | --- |
@@ -24,7 +31,7 @@ Each actual migration must document purpose, exact prerequisites/order, additive
 
 ## Optional selective test-data reset procedure
 
-Not executable in this stage; no deletion or reset is authorized here. Disposable-data status permits proposing a selective reset, not running it.
+No reset is implemented or executed. Four memberships and two tenants have the reported required role links; the supplied account-link counts do not currently justify a reset. Financial reconciliation still requires schema/history evidence. No deletion or reset is authorized here. Disposable-data status permits proposing a selective reset, not running it.
 
 1. Review the supplied schema/trigger/Edge Function evidence and identify which fixtures actually block a sound schema. Prefer replacing authorization boundaries over a full project rebuild.
 2. Publish an exact target manifest: project, tenant/member/Auth identity IDs or tightly bounded fixture criteria, affected tables/dependencies, expected counts and financial effects. Do not use broad unqualified TRUNCATE/CASCADE against an unknown schema.
@@ -35,7 +42,8 @@ Not executable in this stage; no deletion or reset is authorized here. Disposabl
 
 ## Deployment/verification checklist (not authorization to deploy)
 
-- [ ] Receive/review existing 2A–4F exports; reconcile exact policy names, RPC overloads and grants.
+- [x] Review supplied 2A–4F exports and record exact policies, RPC signatures/definitions and grants.
+- [ ] Obtain the two missing summary grids and remaining role/history/default-privilege/schema dependencies.
 - [ ] Review trigger/schema dependencies and the deployed three Edge Functions.
 - [ ] Verify Auth callbacks/email delivery and finalize implementation of private branch identities.
 - [ ] Review staff report permission administration, revocation and all protected query paths.

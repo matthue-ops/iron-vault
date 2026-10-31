@@ -1,10 +1,10 @@
 # Phase 1 security architecture
 
-Status: target design documented before branch-aware authentication implementation. This branch contains only the evidence-independent browser/session stage. It does not establish a secure database or complete Phase 1. The deployed CSV exports, schema dependencies, Edge Functions, and Auth settings have not been supplied in this workspace.
+Status: target design documented before branch-aware authentication implementation. This branch contains only the evidence-independent browser/session stage. It does not establish a secure database or complete Phase 1. The 2A–4F CSV exports have now been reviewed; the two missing summary results, remaining schema/authorization dependencies, Edge Functions and Auth settings are still pending.
 
 ## Evidence and source of truth
 
-The baseline is main `de6de04e3b0e94c780f7393137d763c0e3f651ec`. The owner reports public ALL policies on owners/members, eight broadly executable SECURITY DEFINER functions, seven valid role assignments, and existing iv_purchase/iv_can_access functions. These are reported findings, not independently reviewed definitions. Earlier local SQL and Edge Function drafts were preserved in Git stash and are not deployed evidence or release artifacts. No database migration has been applied or assumed applied.
+The baseline is main `de6de04e3b0e94c780f7393137d763c0e3f651ec`. The owner reports public ALL policies on owners/members, eight broadly executable SECURITY DEFINER functions, seven valid role assignments, and existing iv_purchase/iv_can_access functions. The supplied 2A–4F snapshots now verify table grants/policies, eight function bodies, and aggregate account links; see inspection-review-20261101.md for exact findings and limits. Earlier local SQL and Edge Function drafts were preserved in Git stash and are not deployed evidence or release artifacts. No database migration has been applied or assumed applied.
 
 ## Identity and branch-independent accounts
 
