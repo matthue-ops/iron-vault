@@ -2171,53 +2171,42 @@
             },
 
             processScannedCode: async function(qrData) {
-                const parts = qrData.split('|');
-                if (parts.length !== 2) {
-                    this.showScanResult(false, "ACCESS DENIED", "Malformed QR code payload structure.");
-                    return;
+                const parts = String(qrData).split('|');
+                if(parts.length!==2 || !parts[0] || !/^\d{4}-\d{2}-\d{2}$/.test(parts[1])){
+                    this.showScanResult(false,'ACCESS DENIED','Malformed QR code payload.');return;
                 }
-
-                const memberId = parts[0];
-                const qrDate = parts[1];
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                // QR payloads are date-stamped using ISO/UTC by the member pass generator.
-                const qrTodayStr = now.toISOString().split('T')[0];
-
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) {
-                    this.showScanResult(false, "ACCESS DENIED", `Member ID ${memberId} not found.`);
-                    return;
+                const member=this.members.find(m=>m.id===parts[0] && m.tenantId===this.currentTenantId);
+                if(!member){this.showScanResult(false,'ACCESS DENIED','Member not found in this gym.');return;}
+                if(parts[1]!==ivDate(new Date())){
+                    this.showScanResult(false,'ACCESS DENIED','QR Pass is outdated.');return;
                 }
-
-                if (member.status !== 'ACTIVE') {
-                    this.showScanResult(false, "ACCESS DENIED", `${member.name}'s account is not ACTIVE.`);
-                    return;
+                try {
+                    await ivRequireRole(['owner','staff'],this.currentTenantId);
+                    // The reviewed existing RPC owns the row lock, current status/expiry,
+                    // Manila business date, duplicate check and attendance insert.
+                    const {error}=await supabaseClient.rpc('iv_checkin',{p_member_id:member.id,p_method:'qr'});
+                    if(error)throw error;
+                } catch(error) {
+                    this.showScanResult(false,'ACCESS DENIED',error.message||'Check-in was not confirmed.');return;
                 }
-
-                if (qrDate !== qrTodayStr) {
-                    this.showScanResult(false, "ACCESS DENIED", `QR Pass is outdated! Generated for ${qrDate}.`);
-                    return;
-                }
-
-                if (member.expirationDate && todayStr > member.expirationDate) {
-                    this.showScanResult(false, "ACCESS DENIED", `Membership expired on ${member.expirationDate}.`);
-                    return;
-                }
-
-                if (member.lastScannedDate === todayStr) {
-                    this.showScanResult(false, "ACCESS DENIED", `ALERT: QR code for today has ALREADY been scanned!`);
-                    return;
-                }
-
-                member.scansUsed = (member.scansUsed || 0) + 1;
-                member.lastScannedDate = todayStr;
-                await this.saveMembers();
-                await this.loadMembers();
-
-                this.showScanResult(true, "SCAN SUCCESS", `Welcome, ${member.name}!\nEntry recorded • Scan #${member.scansUsed}`);
-                this.logAudit('QR Scan Success', `Access granted for ${member.name} (${member.id})`);
                 this.pauseScannerAfterSuccess();
+                let activityRecorded=true;
+                try {
+                    // Preserve the activity-report note without the legacy owner's JSON upsert.
+                    const {error}=await supabaseClient.rpc('iv_log_event',{
+                        p_tenant:this.currentTenantId,p_event:'QR Scan Success',
+                        p_details:`Member ${member.id} admitted with QR`
+                    });
+                    if(error)activityRecorded=false;
+                } catch(error){activityRecorded=false;}
+                try {await this.loadMembers();}
+                catch(error){
+                    this.showScanResult(true,'ENTRY RECORDED','Check-in succeeded; refresh the roster before another operation.');return;
+                }
+                this.showScanResult(true,'SCAN SUCCESS',`Welcome, ${member.name}! Entry recorded.`+
+                    (activityRecorded?'':' Activity note unavailable; attendance history was recorded.'));
+                // iv_checkin already records trusted actor/time in attendance history.
+                // Signed pass verification and stronger server plan validation remain pending.
             },
 
             showScanResult: function(isSuccess, title, desc) {

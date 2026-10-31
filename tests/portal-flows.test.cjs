@@ -7,7 +7,7 @@ function portal(file,{user=null,roles=[],owners=[],members=[],search='?key=token
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
  function element(id){if(!elements.has(id))elements.set(id,{value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
- const client={auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
+ const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   const entry={table,fields:null,filters:[]};calls.push(entry);
   const q={select(fields){entry.fields=fields;return q},eq(k,v){entry.filters.push([k,v]);return q},then(resolve){const rows=table==='iv_user_roles'?roles:table==='owners'?owners:table==='members'?members:[];resolve({data:rows.filter(row=>entry.filters.every(([k,v])=>row[k]===v)),error:null})}};return q;
  }};
@@ -19,7 +19,7 @@ function portal(file,{user=null,roles=[],owners=[],members=[],search='?key=token
   if(src){if(!src[1].startsWith('http'))vm.runInContext(fs.readFileSync(path.resolve(path.dirname(file),src[1]),'utf8'),context);}
   else if(match[2].trim())vm.runInContext(match[2],context,{filename:file});
  }
- return {context,calls,alerts,redirects,storage,element,events,authEvents,get:expression=>vm.runInContext(expression,context)};
+ return {context,calls,alerts,redirects,storage,element,events,authEvents,client,get:expression=>vm.runInContext(expression,context)};
 }
 test('actual admin initialization denies anonymous users before any private table read',async()=>{
  const p=portal('gym/admin.html');await p.get('adminApp').init();
@@ -98,4 +98,47 @@ test('administrator downgraded to staff during loading cannot retain administrat
  app.detectTenantFromUrl=async()=>{app.currentTenantId='gym-a'};app.applyUIRoleVisibility=()=>{};
  app.loadMembers=async()=>{roles[0]={...roles[0],role:'staff'}};
  await app.init();assert.equal(p.redirects.length,1);
+});
+function qrFixture(){
+ const roles=[{user_id:'desk-user',role:'staff',tenant_id:'gym-a'}];
+ const p=portal('gym/admin.html',{user:{id:'desk-user'},roles});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';
+ app.members=[{id:'member-a',tenantId:'gym-a',name:'Member'}];
+ app.saveMembers=async()=>{throw new Error('QR admission must never bulk-upsert profiles')};
+ app.loadMembers=async()=>{};app.pauseScannerAfterSuccess=()=>{};
+ const results=[];app.showScanResult=(ok,title,description)=>results.push({ok,title,description});
+ class Clock extends Date{constructor(...args){super(...(args.length?args:['2026-10-31T17:00:00Z']))}}
+ p.context.Date=Clock;
+ return {...p,app,roles,results};
+}
+test('QR admission uses the reviewed RPC and accepts the Manila date before 08:00',async()=>{
+ const p=qrFixture();const rpc=[];p.client.rpc=async(name,args)=>{rpc.push({name,args});return {data:'timestamp',error:null}};
+ await p.app.processScannedCode('member-a|2026-11-01');
+ assert.equal(rpc.length,2);assert.equal(rpc[0].name,'iv_checkin');assert.equal(rpc[1].name,'iv_log_event');
+ assert.equal(rpc[0].args.p_member_id,'member-a');assert.equal(rpc[0].args.p_method,'qr');
+ assert.equal(p.results.at(-1).ok,true);
+});
+test('QR admission does not show success when the server rejects duplicate or expired admission',async()=>{
+ const p=qrFixture();p.client.rpc=async()=>({error:{message:'Already checked in today'}});
+ await p.app.processScannedCode('member-a|2026-11-01');
+ assert.equal(p.results.at(-1).ok,false);assert.match(p.results.at(-1).description,/Already checked in/);
+});
+test('QR rejects wrong-tenant, malformed, outdated and revoked-role inputs before an RPC',async()=>{
+ const p=qrFixture();let rpc=0;p.client.rpc=async()=>{rpc++;return {error:null}};
+ await p.app.processScannedCode('member-a|2026-10-31');
+ await p.app.processScannedCode('malformed');
+ p.app.members[0].tenantId='gym-b';await p.app.processScannedCode('member-a|2026-11-01');
+ p.app.members[0].tenantId='gym-a';p.roles.splice(0);await p.app.processScannedCode('member-a|2026-11-01');
+ assert.equal(rpc,0);assert.equal(p.results.length,4);assert.ok(p.results.every(r=>!r.ok));
+});
+test('confirmed QR check-in is not reported as failed if roster refresh subsequently fails',async()=>{
+ const p=qrFixture();p.app.loadMembers=async()=>{throw new Error('refresh unavailable')};
+ await p.app.processScannedCode('member-a|2026-11-01');
+ assert.equal(p.results.at(-1).ok,true);assert.equal(p.results.at(-1).title,'ENTRY RECORDED');
+});
+test('an activity-note failure cannot undo or misreport a confirmed QR admission',async()=>{
+ const p=qrFixture();p.client.rpc=async name=>name==='iv_checkin'
+  ?{data:'timestamp',error:null}:{data:null,error:{message:'note unavailable'}};
+ await p.app.processScannedCode('member-a|2026-11-01');
+ assert.equal(p.results.at(-1).ok,true);assert.match(p.results.at(-1).description,/Activity note unavailable/);
 });
