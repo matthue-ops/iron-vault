@@ -1,3 +1,6 @@
+-- ARCHIVED inspection reference; not an outstanding request.
+-- Use phase1_remaining_prerequisites.sql for the single current queue.
+-- Initial/M/T inspections must not be repeated; reuse existing exports.
 -- SELECT-only inspection, for the owner to execute manually if these results
 -- are not already among the existing exports. NOT a migration. Do not execute
 -- application RPCs. Redact any embedded credentials from definitions before sharing.

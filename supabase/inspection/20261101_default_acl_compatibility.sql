@@ -1,3 +1,6 @@
+-- ARCHIVED inspection reference; not an outstanding request.
+-- Use phase1_remaining_prerequisites.sql for the single current queue.
+-- Initial/M/T inspections must not be repeated; reuse existing exports.
 -- SELECT-only manual inspection; no role/default changes or RPC execution.
 -- M1-M7 need not be rerun. M5A did not include executor/creator memberships.
 SELECT current_user AS executing_role,session_user AS session_role,

@@ -2,7 +2,7 @@
 
 Current evidence and implementation are in [phase1-status.md](phase1-status.md) and [the M1–M7 review](inspection-review-m1-m7-20261101.md). Prepared report permission APIs and corrected policies require manual 005–007 confirmation before application release. No migration is assumed applied.
 
-Status: target design documented before branch-aware authentication implementation. This branch contains only the evidence-independent browser/session stage. It does not establish a secure database or complete Phase 1. The 2A–4F CSV exports have now been reviewed; the two missing summary results, remaining schema/authorization dependencies, Edge Functions and Auth settings are still pending.
+Status: target architecture plus partial prepared implementation; not a completed release. The single current prerequisite/progress queue is [phase1-status.md](phase1-status.md). Initial/M/T inspections are complete; exact T exports are not accessible here. No SQL is assumed applied.
 
 ## Evidence and source of truth
 

@@ -1,5 +1,7 @@
 # M1–M7 authorization inspection review
 
+Historical review. All current statuses, requests and completion gates are maintained only in [phase1-status.md](phase1-status.md); its evidence ledger supersedes older missing-input lists below. Do not rerun completed inspections.
+
 The supplied CSVs are inspection evidence, not instructions to execute SQL. No SQL was executed, Supabase accessed, records reset, deployment performed or PR merged. These are snapshot findings; no migration is assumed applied.
 
 | Evidence | Verified finding | Consequence |

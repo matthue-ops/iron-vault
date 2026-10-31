@@ -26,3 +26,29 @@ test('missing permission backend never invents grants or enables a fallback cont
  await render(f.client,'gym-a','permissions',f.document);assert.equal(f.container().children.length,0);
  assert.match(f.container().textContent,/unavailable/);
 });
+
+test('a changed administrator cannot render a delayed staff list or use an old permission button',async()=>{
+ const f=fixture();await render(f.client,'gym-a','permissions',f.document);
+ const button=f.container().children[0].children[1];
+ f.client.auth.getUser=async()=>({data:{user:{id:'replacement'}}});
+ f.client.from=()=>({select(){return this},eq:async()=>({data:[{user_id:'replacement',tenant_id:'gym-a',role:'owner'}],error:null})});
+ await button.onclick();assert.equal(f.calls.length,1,'no mutation after account change');
+ await render(f.client,'gym-a','permissions',f.document);
+ const originalRpc=f.client.rpc;f.client.rpc=async(...args)=>{const result=await originalRpc(...args);f.client.auth.getUser=async()=>({data:{user:{id:'third-actor'}}});return result;};
+ await render(f.client,'gym-a','permissions',f.document);
+ assert.equal(f.container().children.length,0);
+});
+test('an older gym permission request cannot replace a newer panel or mutate through a detached button',async()=>{
+ const f=fixture();await render(f.client,'gym-a','permissions',f.document);
+ const oldButton=f.container().children[0].children[1];
+ let release;const original=f.client.rpc;
+ f.client.rpc=(name,args)=>args.p_tenant==='gym-a'?new Promise(resolve=>{release=resolve}):original(name,args);
+ const pending=render(f.client,'gym-a','permissions',f.document);
+ while(!release)await new Promise(resolve=>setImmediate(resolve));
+ f.client.from=()=>({select(){return this},eq:async()=>({data:[{user_id:'administrator',tenant_id:'gym-b',role:'owner'}],error:null})});
+ await render(f.client,'gym-b','permissions',f.document);
+ const content=f.container().children[0];
+ release({data:[{user_id:'obsolete',email:'old',financial_reports_read:false}],error:null});
+ await pending;assert.equal(f.container().children[0],content);
+ const before=f.calls.length;await oldButton.onclick();assert.equal(f.calls.length,before);
+});

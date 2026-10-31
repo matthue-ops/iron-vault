@@ -1,5 +1,7 @@
 # Trigger and schema dependency review
 
+Historical review. All current statuses, requests and completion gates are maintained only in [phase1-status.md](phase1-status.md); its evidence ledger supersedes older missing-input lists below. Do not rerun completed inspections.
+
 ## Evidence received and evidence still unavailable
 
 The owner reports that T1–T5 inspection is complete. The T1/T3/T4/T5 CSV attachments are not present in this turn or the workspace. Their row-level contents have therefore **not been reviewed**. No repeat SQL inspection is requested. Supply the existing four exports; T2 needs no CSV. The owner's summary is accepted as evidence for the facts below, but does not establish the missing exact constraint/index definitions.

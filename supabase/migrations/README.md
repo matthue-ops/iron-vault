@@ -14,7 +14,7 @@ Prepared from supplied 2A–4F and M1–M7 inspections. **Not executed or assume
 
 ## Dependencies and execution
 
-Before approval, inspect the complete SQL files. Return the SELECT-only `../inspection/20261101_default_acl_compatibility.sql` results for executor/default-creator capability and namespace compatibility. The missing T1–T5 and deployed Edge/Auth evidence still gate broader work, as described in the findings document. Do not rerun M1–M7.
+Before approval, inspect the complete SQL files. Return the SELECT-only `../inspection/phase1_remaining_prerequisites.sql` results for executor/default-creator capability and namespace compatibility. Initial/M/T inspections are completed; exact T1/T3/T4/T5 exports are not accessible here. Use the single current evidence/progress checklist in docs/security/phase1-status.md; do not rerun completed inspections. Deployed Edge/Auth evidence still gates broader work.
 
 003 and 004 are independent of urgent 005–007; optional 004 must not delay the RLS fix. Run each approved file separately, once, in order; do not concatenate all files. If any transaction fails, issue ROLLBACK and return the exact error. Do not bypass definition, owner, privilege or namespace guards. A failed later file does not undo an earlier committed file. New private objects in 006 have explicit RLS and per-object grants; the existing ensure_rls trigger is preserved. No default privileges outside public or existing function bodies are modified.
 

@@ -1,3 +1,6 @@
+-- ARCHIVED inspection reference; not an outstanding request.
+-- Use phase1_remaining_prerequisites.sql for the single current queue.
+-- Initial/M/T inspections must not be repeated; reuse existing exports.
 -- SELECT-only, manual execution by the owner. No RPCs are invoked.
 -- Only missing result sets and previously uninspected objects are requested.
 -- If these exact results already exist, return them rather than rerunning.

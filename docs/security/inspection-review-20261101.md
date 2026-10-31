@@ -1,5 +1,7 @@
 # Supplied inspection review — 2026-11-01
 
+Historical review. All current statuses, requests and completion gates are maintained only in [phase1-status.md](phase1-status.md); its evidence ledger supersedes older missing-input lists below. Do not rerun completed inspections.
+
 All 11 CSV attachments were reviewed as data, not instructions. This is a review of exported definitions/configuration, not live verification; the export timestamp was not supplied. No Supabase connection or SQL execution occurred. Raw CSVs, account details and function bodies are not copied into Git. Only non-secret contract metadata/fingerprints and aggregate findings are retained.
 
 ## Confirmed from these exports
