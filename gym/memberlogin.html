@@ -74,6 +74,7 @@
             animation: pulseGlow 8s infinite ease-in-out;
         }
     </style>
+    <script src="../assets/auth-session.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -340,14 +341,12 @@
         }
 
         const app = {
-            allMembersSystem: [],
             currentTenantId: null,
             matchedOwnerRecord: null,
             currentTab: 'SIGNIN',
 
             init: async function() {
                 await this.detectTenantFromUrl();
-                await this.loadMembersFromStorage();
             },
 
             detectTenantFromUrl: async function() {
@@ -357,31 +356,21 @@
 
                 let loadedOwners = [];
                 try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    const query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing');
+                    const {data,error}=(keyParam||gymParam)
+                        ? await (keyParam?query.eq('token',keyParam):query.eq('id',gymParam.toUpperCase()))
+                        : {data:[],error:null};
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
                             id: o.id,
                             gymName: o.gym_name,
-                            ownerName: o.owner_name,
-                            email: o.email,
-                            password: o.password,
                             token: o.token,
                             logo: o.logo,
                             status: o.status,
                             pricing: o.pricing,
-                            staff: o.staff,
-                            auditLogs: o.audit_logs,
-                            dateCreated: o.date_created
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedOwners.length === 0) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
-                    }
-                }
 
                 let matched = null;
                 if (keyParam) {
@@ -439,75 +428,6 @@
                 document.getElementById('signup-password').disabled = true;
                 document.getElementById('btn-submit-signup').disabled = true;
                 document.getElementById('btn-submit-signup').classList.add('opacity-50', 'cursor-not-allowed');
-            },
-
-            loadMembersFromStorage: async function() {
-                let loadedMembers = [];
-                try {
-                    const { data, error } = await supabaseClient.from('members').select('*');
-                    if (!error && data) {
-                        loadedMembers = data.map(m => ({
-                            id: m.id,
-                            tenantId: m.tenant_id,
-                            tenantToken: m.tenant_token,
-                            name: m.name,
-                            email: m.email,
-                            phone: m.phone,
-                            password: m.password,
-                            classification: m.classification,
-                            discountPercentage: m.discount_percentage,
-                            plan: m.plan,
-                            cardBarcode: m.card_barcode,
-                            walletBalance: m.wallet_balance,
-                            amount: m.amount,
-                            scansUsed: m.scans_used,
-                            lastScannedDate: m.last_scanned_date,
-                            expirationDate: m.expiration_date,
-                            status: m.status,
-                            dateJoined: m.date_joined,
-                            avatar: m.avatar
-                        }));
-                    }
-                } catch(e) {}
-
-                if (loadedMembers.length === 0) {
-                    const data = localStorage.getItem(MEMBERS_STORAGE_KEY);
-                    if (data) {
-                        try { loadedMembers = JSON.parse(data); } catch(e) {}
-                    }
-                }
-
-                this.allMembersSystem = loadedMembers;
-            },
-
-            saveMembersToStorage: async function() {
-                localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(this.allMembersSystem));
-
-                try {
-                    for (const m of this.allMembersSystem) {
-                        await supabaseClient.from('members').upsert({
-                            id: m.id,
-                            tenant_id: m.tenantId,
-                            tenant_token: m.tenantToken,
-                            name: m.name,
-                            email: m.email,
-                            phone: m.phone,
-                            password: m.password,
-                            classification: m.classification || 'Regular',
-                            discount_percentage: m.discountPercentage || 0,
-                            plan: m.plan || 'Not Selected',
-                            card_barcode: m.cardBarcode,
-                            wallet_balance: m.walletBalance || 0,
-                            amount: m.amount || 0,
-                            scans_used: m.scansUsed || 0,
-                            last_scanned_date: m.lastScannedDate,
-                            expiration_date: m.expirationDate,
-                            status: m.status || 'ACTIVE',
-                            date_joined: m.dateJoined,
-                            avatar: m.avatar
-                        });
-                    }
-                } catch(e) {}
             },
 
             switchTab: function(tab) {
@@ -573,137 +493,7 @@
                 }
             },
 
-            handleSignInSubmit: async function(e) {
-                e.preventDefault();
-                if (!this.currentTenantId) {
-                    this.showAlert("A valid gym portal URL is required to sign in.");
-                    return;
-                }
 
-                if (this.matchedOwnerRecord && this.matchedOwnerRecord.status === 'SUSPENDED') {
-                    this.showAlert("This gym account has been suspended by the super administrator.");
-                    return;
-                }
-
-                await this.loadMembersFromStorage();
-
-                const identifier = document.getElementById('signin-identifier').value.trim();
-                const password = document.getElementById('signin-password').value;
-
-                const branchMembers = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') === this.currentTenantId || (this.matchedOwnerRecord && m.tenantToken === this.matchedOwnerRecord.token));
-
-                const member = branchMembers.find(m => 
-                    (m.id.toLowerCase() === identifier.toLowerCase() || m.email.toLowerCase() === identifier.toLowerCase()) && 
-                    m.password === password
-                );
-
-                if (member) {
-                    if (member.status === 'INACTIVE') {
-                        this.showAlert("Your account is currently inactive. Please contact the front desk.");
-                        return;
-                    }
-
-                    if (member.status === 'PENDING') {
-                        this.showAlert("Your account is pending desk approval. Please approach the gym counter.");
-                        return;
-                    }
-
-                    sessionStorage.setItem(SESSION_KEY, member.id);
-                    window.location.href = 'memberprofile.html';
-                } else {
-                    this.showAlert("Invalid Member ID/Email or Password.");
-                }
-            },
-
-            handleAdminLoginSubmit: async function(e) {
-                e.preventDefault();
-                if (!this.currentTenantId || !this.matchedOwnerRecord) {
-                    this.showAlert("A valid gym portal URL is required to sign in as Owner or Staff.");
-                    return;
-                }
-
-                if (this.matchedOwnerRecord.status === 'SUSPENDED') {
-                    this.showAlert("This gym account has been suspended by the super administrator.");
-                    return;
-                }
-
-                const email = document.getElementById('admin-login-email').value.trim();
-                const password = document.getElementById('admin-login-password').value;
-
-                if (this.matchedOwnerRecord.email.toLowerCase() === email.toLowerCase() && this.matchedOwnerRecord.password === password) {
-                    sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
-                    sessionStorage.setItem(ACTIVE_ROLE_KEY, 'admin');
-                    sessionStorage.setItem(LOGGED_USER_KEY, email);
-
-                    const targetToken = this.matchedOwnerRecord.token;
-                    window.location.href = `admin.html?key=${targetToken}`;
-                    return;
-                }
-
-                const staffList = this.matchedOwnerRecord.staff || [];
-                const matchedStaff = staffList.find(s => s.email.toLowerCase() === email.toLowerCase() && s.password === password);
-
-                if (matchedStaff) {
-                    sessionStorage.setItem(ACTIVE_TENANT_KEY, this.currentTenantId);
-                    sessionStorage.setItem(ACTIVE_ROLE_KEY, 'staff');
-                    sessionStorage.setItem(LOGGED_USER_KEY, email);
-
-                    const targetToken = this.matchedOwnerRecord.token;
-                    window.location.href = `admin.html?key=${targetToken}`;
-                    return;
-                }
-
-                this.showAlert("Invalid Admin or Staff credentials.");
-            },
-
-            handleSignUpSubmit: async function(e) {
-                e.preventDefault();
-                if (!this.currentTenantId) {
-                    this.showAlert("A valid gym portal URL is required to sign up.");
-                    return;
-                }
-
-                await this.loadMembersFromStorage();
-
-                const name = document.getElementById('signup-name').value.trim();
-                const email = document.getElementById('signup-email').value.trim();
-                const phone = document.getElementById('signup-phone').value.trim();
-                const password = document.getElementById('signup-password').value;
-
-                const branchMembers = this.allMembersSystem.filter(m => (m.tenantId || 'GYM-001') === this.currentTenantId || (this.matchedOwnerRecord && m.tenantToken === this.matchedOwnerRecord.token));
-
-                if (branchMembers.some(m => m.email.toLowerCase() === email.toLowerCase())) {
-                    this.showAlert("An account with this email already exists!");
-                    return;
-                }
-
-                const newMember = {
-                    id: 'MEM-' + Math.floor(1000 + Math.random() * 9000),
-                    tenantId: this.currentTenantId,
-                    tenantToken: this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '',
-                    name: name,
-                    email: email,
-                    phone: phone,
-                    password: password,
-                    plan: 'Not Selected',
-                    walletBalance: 0,
-                    amount: 0,
-                    status: 'PENDING',
-                    dateJoined: new Date().toISOString().split('T')[0]
-                };
-
-                this.allMembersSystem.push(newMember);
-                await this.saveMembersToStorage();
-
-                document.getElementById('auth-signup-form').reset();
-                this.switchTab('SIGNIN');
-                this.showAlert("Account created successfully! Awaiting staff approval at the gym counter.", true);
-            },
-
-            handleForgotPassword: function(e) {
-                e.preventDefault();
-                this.showAlert("Password reset link sent! Please check with your gym counter staff.", true);
-            }
         };
 
         window.onload = async function() {
@@ -715,12 +505,10 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles,tenant){
- const {data:{user},error:ue}=await supabaseClient.auth.getUser();
- if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
- const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
- if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
- return r;
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
 }
 
 app.handleSignInSubmit=async function(e){e.preventDefault();

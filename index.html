@@ -66,6 +66,8 @@
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
     </style>
+    <script src="assets/auth-session.js"></script>
+    <script src="assets/super-admin-session.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -189,12 +191,12 @@
                 <form onsubmit="indexApp.handleLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Master Email</label>
-                        <input type="email" id="super-email" value="master@ironvault.com" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="email" id="super-email" autocomplete="username" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">Master Password</label>
-                        <input type="password" id="super-password" value="master123" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="password" id="super-password" autocomplete="current-password" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                     </div>
 
                     <div class="flex gap-2 pt-1">
@@ -697,11 +699,6 @@
                 return result;
             },
 
-            init: async function() {
-                await this.loadData();
-                this.checkSession();
-            },
-
             loadData: async function() {
                 let loadedOwners = [];
                 let loadedMembers = [];
@@ -854,51 +851,6 @@
                 } catch(e) {}
             },
 
-            checkSession: function() {
-                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
-                if (isLogged === 'true') {
-                    document.getElementById('view-hub-landing').classList.add('hidden');
-                    document.getElementById('super-auth-card').classList.add('hidden');
-                    document.getElementById('super-dashboard').classList.remove('hidden');
-                    document.getElementById('btn-super-logout').classList.remove('hidden');
-                    document.getElementById('btn-toggle-view').classList.remove('hidden');
-                    document.getElementById('toggle-view-label').innerText = "Return to Master Hub";
-                    this.renderDashboard();
-                }
-            },
-
-            requestMasterAccess: function() {
-                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
-                if (isLogged === 'true') {
-                    this.showDashboardView();
-                } else {
-                    document.getElementById('view-hub-landing').classList.add('hidden');
-                    document.getElementById('super-dashboard').classList.add('hidden');
-                    document.getElementById('super-auth-card').classList.remove('hidden');
-                }
-            },
-
-            showHubView: function() {
-                document.getElementById('super-auth-card').classList.add('hidden');
-                document.getElementById('super-dashboard').classList.add('hidden');
-                document.getElementById('view-hub-landing').classList.remove('hidden');
-                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
-                if (isLogged === 'true') {
-                    document.getElementById('btn-toggle-view').classList.remove('hidden');
-                    document.getElementById('toggle-view-label').innerText = "Open Super Admin Tower";
-                }
-            },
-
-            showDashboardView: function() {
-                document.getElementById('view-hub-landing').classList.add('hidden');
-                document.getElementById('super-auth-card').classList.add('hidden');
-                document.getElementById('super-dashboard').classList.remove('hidden');
-                document.getElementById('btn-super-logout').classList.remove('hidden');
-                document.getElementById('btn-toggle-view').classList.remove('hidden');
-                document.getElementById('toggle-view-label').innerText = "Return to Master Hub";
-                this.renderDashboard();
-            },
-
             toggleMasterView: function() {
                 const hub = document.getElementById('view-hub-landing');
                 if (hub.classList.contains('hidden')) {
@@ -906,29 +858,6 @@
                 } else {
                     this.showDashboardView();
                 }
-            },
-
-            handleLogin: function(e) {
-                e.preventDefault();
-                const email = document.getElementById('super-email').value.trim();
-                const pass = document.getElementById('super-password').value;
-
-                if (email === 'master@ironvault.com' && pass === 'master123') {
-                    sessionStorage.setItem(SUPER_SESSION_KEY, 'true');
-                    document.getElementById('super-auth-card').classList.add('hidden');
-                    document.getElementById('btn-super-logout').classList.remove('hidden');
-                    this.showDashboardView();
-                } else {
-                    alert("Invalid Master Credentials!");
-                }
-            },
-
-            logout: function() {
-                sessionStorage.removeItem(SUPER_SESSION_KEY);
-                document.getElementById('super-dashboard').classList.add('hidden');
-                document.getElementById('btn-super-logout').classList.add('hidden');
-                document.getElementById('btn-toggle-view').classList.add('hidden');
-                this.showHubView();
             },
 
             renderDashboard: function() {
@@ -1584,5 +1513,6 @@
             indexApp.init();
         };
     </script>
+<script>IronVaultSuperAdmin.install(indexApp,supabaseClient,{hub:true});</script>
 </body>
 </html>

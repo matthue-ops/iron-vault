@@ -92,6 +92,7 @@
             }
         }
     </style>
+    <script src="../assets/auth-session.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -711,12 +712,10 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles,tenant){
- const {data:{user},error:ue}=await supabaseClient.auth.getUser();
- if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
- const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
- if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
- return r;
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
 }
 
 reportsApp.ivMode='audit';

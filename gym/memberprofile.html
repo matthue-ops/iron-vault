@@ -42,6 +42,7 @@
     </script>
 
     <style>
+        body.iv-auth-pending { visibility: hidden; }
         :root {
             --brand-primary: #10b981;
             --brand-primary-glow: rgba(16, 185, 129, 0.2);
@@ -79,8 +80,9 @@
             animation: pulseGlow 8s infinite ease-in-out;
         }
     </style>
+    <script src="../assets/auth-session.js"></script>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
     <!-- BACKGROUND GLOW EFFECTS -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -426,7 +428,7 @@
             loadData: async function() {
                 let loadedMembers = [];
                 try {
-                    const { data, error } = await supabaseClient.from('members').select('*');
+                    const { data, error } = await supabaseClient.from('members').select('*').eq('id',this.authenticatedRole.member_id).eq('tenant_id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedMembers = data.map(m => ({
                             id: m.id,
@@ -451,13 +453,6 @@
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedMembers.length === 0) {
-                    const data = localStorage.getItem(MEMBERS_STORAGE_KEY);
-                    if (data) {
-                        try { loadedMembers = JSON.parse(data); } catch(e) {}
-                    }
-                }
 
                 this.allMembersSystem = loadedMembers;
             },
@@ -510,7 +505,7 @@
                     return;
                 }
 
-                this.currentMember = this.allMembersSystem.find(m => m.id === activeId || m.email === activeId);
+                this.currentMember = this.allMembersSystem.find(m => m.id === activeId && m.tenantId === this.authenticatedRole?.tenant_id);
                 // Once the corrected email is verified in Auth, synchronize the member profile.
                 // This does not change member IDs, balances, subscriptions or QR credentials.
                 if (this.currentMember) {
@@ -556,31 +551,18 @@
                 let loadedOwners = [];
 
                 try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    const { data, error } = await supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing').eq('id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
                             id: o.id,
                             gymName: o.gym_name,
-                            ownerName: o.owner_name,
-                            email: o.email,
-                            password: o.password,
                             token: o.token,
                             logo: o.logo,
                             status: o.status,
                             pricing: o.pricing,
-                            staff: o.staff,
-                            auditLogs: o.audit_logs,
-                            dateCreated: o.date_created
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedOwners.length === 0) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
-                    }
-                }
 
                 if (loadedOwners.length > 0) {
                     const owner = loadedOwners.find(o => o.id === tenantId || (this.currentMember.tenantToken && o.token === this.currentMember.tenantToken));
@@ -1008,8 +990,12 @@
                 }
             },
 
-            logout: function() {
-                this.redirectWithToken();
+            logout: async function() {
+                const token=sessionStorage.getItem(TOKEN_SESSION_KEY)||this.currentMember?.tenantToken;
+                try {await IronVaultAuth.signOut(supabaseClient,sessionStorage,localStorage);}
+                catch(error){alert(error.message);}
+                this.currentMember=null;this.allMembersSystem=[];
+                location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
             }
         };
 
@@ -1027,7 +1013,7 @@
         // PREVENT GO BACK ACCESS AFTER SIGN OUT (BFCACHE RE-CHECK)
         window.addEventListener('pageshow', function(event) {
             if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                profileApp.checkSession();
+                profileApp.init();
             }
         });
     </script>
@@ -1036,20 +1022,42 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles,tenant){
- const {data:{user},error:ue}=await supabaseClient.auth.getUser();
- if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
- const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
- if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
- return r;
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
 }
 
 profileApp.purchasePlan=profileApp.purchasePlan||undefined;
 // Supabase role is checked when opening this page; browser-stored member ID is not an authorization mechanism.
 const ivProfileInit=profileApp.init;
-profileApp.init=async function(...args){try{const role=await ivRequireRole(['member']);
- sessionStorage.setItem(SESSION_KEY,role.member_id);return await ivProfileInit.apply(this,args);}
- catch(e){alert(e.message);location.href='memberlogin.html'+location.search;}};
+profileApp.init=async function(...args){
+ document.body?.classList.add('iv-auth-pending');
+ try{
+  const role=await ivRequireRole(['member'],this.authenticatedRole?.tenant_id);
+  this.authenticatedRole=role;
+  sessionStorage.setItem(SESSION_KEY,role.member_id);
+  await ivProfileInit.apply(this,args);
+  const current=await ivRequireRole(['member'],role.tenant_id);
+  if(current.user_id!==role.user_id||current.member_id!==role.member_id)throw new Error('The signed-in membership changed.');
+  document.body?.classList.remove('iv-auth-pending');
+ }catch(error){
+  const token=this.currentMember?.tenantToken||sessionStorage.getItem(TOKEN_SESSION_KEY);
+  this.currentMember=null;this.allMembersSystem=[];
+  IronVaultAuth.clearState(sessionStorage,localStorage);
+  alert(error.message);
+  location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):location.search));
+ }
+};
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&profileApp.authenticatedRole&&session?.user?.id!==profileApp.authenticatedRole.user_id)){
+  document.body?.classList.add('iv-auth-pending');
+  const token=profileApp.currentMember?.tenantToken||sessionStorage.getItem(TOKEN_SESSION_KEY);
+  profileApp.currentMember=null;profileApp.allMembersSystem=[];
+  IronVaultAuth.clearState(sessionStorage,localStorage);
+  location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+ }
+});
 
 </script>
 </body>

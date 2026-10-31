@@ -66,6 +66,8 @@
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
     </style>
+    <script src="../assets/auth-session.js"></script>
+    <script src="../assets/super-admin-session.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -613,11 +615,6 @@
                 return result;
             },
 
-            init: async function() {
-                await this.loadData();
-                this.checkSession();
-            },
-
             loadData: async function() {
                 let loadedOwners = [];
                 let loadedMembers = [];
@@ -768,39 +765,6 @@
                         });
                     }
                 } catch(e) {}
-            },
-
-            checkSession: function() {
-                const isLogged = sessionStorage.getItem(SUPER_SESSION_KEY);
-                if (isLogged === 'true') {
-                    document.getElementById('super-auth-card').classList.add('hidden');
-                    document.getElementById('super-dashboard').classList.remove('hidden');
-                    document.getElementById('btn-super-logout').classList.remove('hidden');
-                    this.renderDashboard();
-                }
-            },
-
-            handleLogin: function(e) {
-                e.preventDefault();
-                const email = document.getElementById('super-email').value.trim();
-                const pass = document.getElementById('super-password').value;
-
-                if (email === 'master@ironvault.com' && pass === 'master123') {
-                    sessionStorage.setItem(SUPER_SESSION_KEY, 'true');
-                    document.getElementById('super-auth-card').classList.add('hidden');
-                    document.getElementById('super-dashboard').classList.remove('hidden');
-                    document.getElementById('btn-super-logout').classList.remove('hidden');
-                    this.renderDashboard();
-                } else {
-                    alert("Invalid Master Credentials!");
-                }
-            },
-
-            logout: function() {
-                sessionStorage.removeItem(SUPER_SESSION_KEY);
-                document.getElementById('super-dashboard').classList.add('hidden');
-                document.getElementById('btn-super-logout').classList.add('hidden');
-                document.getElementById('super-auth-card').classList.remove('hidden');
             },
 
             renderDashboard: function() {
@@ -1488,29 +1452,11 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles,tenant){
- const {data:{user},error:ue}=await supabaseClient.auth.getUser();
- if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
- const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
- if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
- return r;
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
 }
-
-indexApp.handleLogin=async function(e){
- e.preventDefault();
- const email=document.getElementById('super-email').value.trim(),password=document.getElementById('super-password').value;
- const {error}=await supabaseClient.auth.signInWithPassword({email,password});
- if(error){alert(error.message);return;}
- try {await ivRequireRole(['super_admin']);sessionStorage.setItem(SUPER_SESSION_KEY,'true');
- document.getElementById('super-auth-card').classList.add('hidden');document.getElementById('super-dashboard').classList.remove('hidden');
- document.getElementById('btn-super-logout').classList.remove('hidden');await this.loadData();this.renderDashboard();}
- catch(err){await supabaseClient.auth.signOut();alert(err.message);}
-};
-indexApp.checkSession=async function(){try{await ivRequireRole(['super_admin']);
- sessionStorage.setItem(SUPER_SESSION_KEY,'true');document.getElementById('super-auth-card').classList.add('hidden');
- document.getElementById('super-dashboard').classList.remove('hidden');document.getElementById('btn-super-logout').classList.remove('hidden');this.renderDashboard();}
- catch(_){sessionStorage.removeItem(SUPER_SESSION_KEY);}};
-indexApp.logout=async function(){await supabaseClient.auth.signOut();sessionStorage.removeItem(SUPER_SESSION_KEY);location.reload();};
 
 </script>
 
@@ -1574,5 +1520,6 @@ window.ivRepairExistingTenant = async (tenantId,email,password,ownerName) => {
   await indexApp.loadData();indexApp.renderDashboard();return result;
 };
 </script>
+<script>IronVaultSuperAdmin.install(indexApp,supabaseClient,{hub:false});</script>
 </body>
 </html>
