@@ -1,5 +1,7 @@
 # Migration, reset and release gates
 
+Latest dependency update: the owner reports T1–T5 complete; T1/T2 summaries are recorded, while the actual T1/T3/T4/T5 files are unavailable here. Do not rerun inspections or infer the 43 constraints, 65 columns or 21 indexes. See [dependency review and next migration gates](trigger-schema-dependency-status.md). PR #2 must remain Draft; state verification is outstanding.
+
 Current implementation/evidence update: M1–M7 are now reviewed. See [current status](phase1-status.md), [inspection findings](inspection-review-m1-m7-20261101.md) and [manual migration order](../../supabase/migrations/README.md). These supersede earlier statements below that report permissions or M1–M7 evidence are wholly unavailable. Files 003–007 are prepared, not applied; T1–T5, creator compatibility and deployed Edge/Auth evidence remain pending. No reset is justified or included.
 
 Status: the supplied 2A–4F exports have been reviewed. Two narrow non-destructive grant migrations are prepared, not applied. Broader policy/financial/identity changes are blocked on missing role/history authorization, types/constraints/indexes/triggers, Edge Function source and Auth configuration. No old SQL draft is treated as deployed truth.

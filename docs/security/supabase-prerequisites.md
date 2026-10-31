@@ -6,7 +6,7 @@ No Supabase project was accessed. No SQL or Supabase CLI command was executed. M
 
 All 11 supplied 2A–4F exports and all supplied M1–M7 result files are reviewed. The previously missing Auth summary and within-tenant duplicate counts are now supplied. See inspection-review-m1-m7-20261101.md. Do not repeat these exports or the completed remaining_authorization_checks script.
 
-Only the targeted SELECT-only default_acl_compatibility.sql (executor/creator memberships and private namespace) and trigger_dependencies.sql T1–T5 dependencies remain requested. Return labeled results and errors unchanged. Redact credentials, tokens and recovery links from any sources/configuration shared.
+The owner reports T1–T5 complete, but T1/T3/T4/T5 attachments are not available in this turn/workspace; supply the existing exports, do not rerun them. T2 succeeded with zero rows and needs no CSV. See trigger-schema-dependency-status.md. Only the targeted SELECT-only default_acl_compatibility.sql (executor/creator memberships and private namespace) remains an outstanding inspection result. Return labeled results and errors unchanged. Redact credentials, tokens and recovery links from any sources/configuration shared.
 
 ## Existing Edge Function source
 
@@ -49,6 +49,6 @@ The branch-independent requirement is already confirmed: the same contact email 
 
 ## Remaining trigger/schema dependencies
 
-If the original inspection also contains table column definitions, constraints and trigger dependencies, supply those existing results. Otherwise the owner may manually run **supabase/inspection/20261101_trigger_dependencies.sql**. This is SELECT-only inspection, not a migration. It does not repeat the existing policy/grant/account exports or call application RPCs.
+T1–T5 are reported complete. Return only the existing T1/T3/T4/T5 files; no T2 CSV or repeated SQL is needed. Exact constraint/index/column definitions have not yet been reviewed. The reported Auth signup trigger must be preserved and accounted for in provisioning.
 
 Return each labeled result set and any errors unchanged. Inspect definitions for secrets before sharing them. PostgreSQL catalogs may not record dependencies inside every PL/pgSQL/dynamic-SQL body; referenced helper bodies and Edge Function source still need review.

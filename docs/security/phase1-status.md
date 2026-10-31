@@ -1,5 +1,7 @@
 # Phase 1 implementation status
 
+Latest dependency update: the owner reports T1–T5 complete; T1/T2 summaries are recorded, while the actual T1/T3/T4/T5 files are unavailable here. Do not rerun inspections or infer the 43 constraints, 65 columns or 21 indexes. See [dependency review and next migration gates](trigger-schema-dependency-status.md). PR #2 must remain Draft; state verification is outstanding.
+
 Prepared on security/phase1-auth-authorization for review in PR #2. **Incomplete; not deployed and no database migration applied or assumed applied.** Main baseline de6de04. Follow AGENTS.md. All existing accounts, balances, history and records remain untouched.
 
 ## Prepared application changes
