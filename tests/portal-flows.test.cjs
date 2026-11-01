@@ -4,15 +4,15 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
- const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();
+ const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();let created=0;
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
- function element(id){if(!elements.has(id))elements.set(id,{appendChild(){},addEventListener(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
+ function element(id){if(!elements.has(id))elements.set(id,{children:[],appendChild(child){this.children.push(child)},addEventListener(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
   const q={select(fields){entry.fields=fields;return q},eq(k,v){entry.filters.push([k,v]);return q},gt(k,v){entry.after=[k,v];return q},order(){return q},limit(){return q},single(){return new Promise(resolve=>q.then(({data,error})=>resolve(data.length===1?{data:data[0],error}:{data:null,error:{message:'Expected one row'}})))},then(resolve){const rows=table==='iv_user_roles'?roles:table==='owners'?owners:table==='members'?members:(records[table]||[]);resolve({data:rows.filter(row=>entry.filters.every(([k,v])=>row[k]===v)&&(!entry.after||row[entry.after[0]]>entry.after[1])),error:null})}};return q;
  }};
- const context={console,Intl,Date,URL,URLSearchParams,crypto,tailwind:{},supabase:{createClient:()=>client},document:{body:element('body'),getElementById:element,createElement:()=>element('created'),documentElement:{style:{setProperty(){}}}},sessionStorage:storage,localStorage:storage,alert:message=>alerts.push(message),addEventListener:(name,fn)=>{events[name]=fn},setTimeout:()=>0,location:{search,hash:'',pathname:'/'+file,href:'https://app.example.invalid/'+file+search,replace:url=>redirects.push(url)}};
+ const context={console,Intl,Date,URL,URLSearchParams,crypto,tailwind:{},supabase:{createClient:()=>client},document:{body:element('body'),getElementById:element,createElement:()=>element('created-'+(++created)),documentElement:{style:{setProperty(){}}}},sessionStorage:storage,localStorage:storage,alert:message=>alerts.push(message),addEventListener:(name,fn)=>{events[name]=fn},setTimeout:()=>0,location:{search,hash:'',pathname:'/'+file,href:'https://app.example.invalid/'+file+search,replace:url=>redirects.push(url)}};
  context.window=context;vm.createContext(context);
  const html=fs.readFileSync(file,'utf8');
  for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
@@ -161,7 +161,7 @@ test('ordinary staff cannot load financial/member/log data without backend permi
 for(const role of ['owner','staff','super_admin']){
  test(`report workflow remains available to authorized ${role} and includes ledger entries whose member profile is absent`,async()=>{
   const p=reportFixture(role,true);await p.app.init();assert.equal(p.redirects.length,0);
-  assert.equal(p.app.ivFinance.length,1);assert.match(p.element('metric-revenue').textContent,/125/);
+  assert.equal(p.app.ivFinance.length,1);assert.equal(p.element('metric-revenue').textContent,'₱0.00');
   const dataCalls=p.calls.filter(c=>c.table!=='iv_user_roles'&&c.table!=='owners');
   assert.equal(dataCalls.length,0);assert.equal(p.permission.snapshots.length,1);assert.equal(p.permission.snapshots[0].p_tenant,'gym-a');assert.ok(dataCalls.every(c=>c.filters.some(([k,v])=>k==='tenant_id'&&v==='gym-a')));
   assert.equal(p.calls.find(c=>c.table==='members'),undefined);
@@ -298,4 +298,44 @@ test('last seven days uses seven inclusive Manila dates and All-Time stops at to
  const p=reportFixture();await p.app.init();await p.app.setQuickRange('week');
  assert.equal(p.element('filter-date-start').value,'2026-10-26');assert.equal(p.element('filter-date-end').value,'2026-11-01');
  await p.app.setQuickRange('all');assert.equal(p.element('filter-date-end').value,'2026-11-01');assert.equal(p.element('filter-date-start').value,'1900-01-01');
+});
+
+test('manual desk search excludes pending and removed members even by exact name or code',()=>{
+ const p=portal('gym/admin.html');const app=p.get('adminApp');app.members=[
+ {id:'active',displayCode:'MEM-0001',name:'Active Person',status:'ACTIVE'},
+ {id:'inactive',displayCode:'MEM-0002',name:'Removed Person',status:'INACTIVE'},
+ {id:'pending',displayCode:'MEM-0003',name:'Pending Person',status:'PENDING'}];
+ app.searchManualCheckIn();const html=p.element('manual-search-results').innerHTML;
+ assert.match(html,/Active Person/);assert.doesNotMatch(html,/Removed Person|Pending Person/);
+ p.element('manual-search-input').value='MEM-0002';app.searchManualCheckIn();assert.match(p.element('manual-search-results').innerHTML,/No matching/);
+});
+test('member removal checks owner authority and zero wallet credit before invoking the server',async()=>{
+ for(const [role,balance] of [['owner',100],['staff',0]]){
+  const p=portal('gym/admin.html',{user:{id:'operator'},roles:[{user_id:'operator',role,tenant_id:'gym-a'}]});const app=p.get('adminApp');
+  app.currentTenantId='gym-a';app.members=[{id:'m',name:'Member',walletBalance:balance}];let calls=0;p.client.rpc=async()=>{calls++;return{error:null}};p.context.confirm=()=>true;
+  await app.deleteMember('m');assert.equal(calls,0);assert.ok(p.alerts.length>0);
+ }
+});
+test('member profile renders the short code while its database query keeps the internal ID',async()=>{
+ const p=portal('gym/memberprofile.html',{members:[{id:'long-internal-id',display_code:'MEM-0042',tenant_id:'gym-a',name:'Member',wallet_balance:0,status:'ACTIVE'}]});
+ const app=p.get('profileApp');app.authenticatedRole={member_id:'long-internal-id',tenant_id:'gym-a'};await app.loadData();app.currentMember=app.allMembersSystem[0];app.renderProfile();
+ assert.equal(p.element('profile-card-id').innerText,'MEM-0042');assert.equal(app.currentMember.id,'long-internal-id');
+});
+test('attendance shows current expiry and activity never falls back to the money log',async()=>{
+ const p=reportFixture();await p.app.init();p.app.branchMembers=[{id:'member-a',name:'Member',displayCode:'MEM-0001',plan:'1-Week Pass',expiration_date:'2026-11-08',status:'ACTIVE'}];
+ p.app.ivAttendance=[{member_id:'member-a',method:'manual',created_at:'2026-11-01T01:00:00+08:00'}];
+ p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',event:'Pricing updated',details:'New rates'}];
+ p.app.ivSessions=[{created_at:'2026-11-01T02:00:00+08:00',event:'login',actor_id:'staff'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('attendance');
+ const attendance=p.element('attendance-tbody').children.at(-1).children.map(c=>c.textContent);assert.match(attendance[5],/8 Nov 2026.*7 days left/);
+ p.app.switchTab('audit');let row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Pricing updated');
+ p.app.ivChoose('sessions');row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Staff login');
+ p.app.switchTab('audit');assert.equal(p.app.ivMode,'activity');
+});
+
+test('server wallet checks can still reject removal after a stale zero-balance preview',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'owner'},roles:[{user_id:'owner',role:'owner',tenant_id:'gym-a'}]});const app=p.get('adminApp');
+ app.currentTenantId='gym-a';app.members=[{id:'m',name:'Member',status:'ACTIVE',walletBalance:0}];p.context.confirm=()=>true;
+ p.client.rpc=async()=>({error:{message:'Settle wallet balance before deactivation'}});await app.deleteMember('m');
+ assert.equal(app.members[0].status,'ACTIVE');assert.match(p.alerts.at(-1),/Settle wallet balance/);
 });

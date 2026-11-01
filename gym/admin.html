@@ -1698,7 +1698,7 @@
                             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusClass}">${status}</span></td>
                             <td class="p-3 text-right space-x-1" onclick="event.stopPropagation()">
                                 <button onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 transition text-[11px]" title="Edit"><i class="fa-solid fa-user-gear mr-1"></i> Edit</button>
-                                <button onclick="adminApp.deleteMember(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition text-[11px]" title="Deactivate membership"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="adminApp.deleteMember(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition text-[11px]" title="Remove member (zero balance required)"><i class="fa-solid fa-trash mr-1"></i> Remove</button>
                             </td>
                         </tr>
                     `;
@@ -1719,12 +1719,12 @@
                 const query = document.getElementById('manual-search-input').value.trim().toLowerCase();
                 const container = document.getElementById('manual-search-results');
 
-                const filtered = this.members.filter(m => 
+                const filtered = this.members.filter(m => m.status === 'ACTIVE' && (
                     m.name.toLowerCase().includes(query) ||
                     m.id.toLowerCase().includes(query) || (m.displayCode || '').toLowerCase().includes(query) ||
                     (m.phone && m.phone.toLowerCase().includes(query)) ||
                     (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
-                );
+                ));
 
                 if (filtered.length === 0) {
                     container.innerHTML = `<p class="text-xs text-slate-500 italic p-3 text-center">No matching members found.</p>`;
@@ -1786,7 +1786,7 @@
                 const member = this.members.find(m => m.id === memberId);
                 if (!member) return;
 
-                if (!confirm(`Are you sure you want to admit ${member.name} (${member.id})?`)) {
+                if (!confirm(`Are you sure you want to admit ${member.name} (${member.displayCode || member.id})?`)) {
                     return;
                 }
 
@@ -1884,7 +1884,7 @@
                 await this.loadMembers();
 
                 const daysLeft = this.calculateDaysLeft(member.expirationDate);
-                this.logAudit('Desk Entry (Active Pass)', `Manual desk check-in for ${member.name} (${member.id}) - Plan: ${member.plan} (${daysLeft})`);
+                this.logAudit('Desk Entry (Active Pass)', `Manual desk check-in for ${member.name} (${member.displayCode || member.id}) - Plan: ${member.plan} (${daysLeft})`);
                 this.closeManualCheckInModal();
                 this.searchManualCheckIn();
 
@@ -1941,8 +1941,8 @@
                     member.status = 'ACTIVE';
                     await this.saveMembers();
                     await this.loadMembers();
-                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
-                    alert(`Member ${member.name} (${member.id}) has been approved and is now ACTIVE!`);
+                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.displayCode || member.id})`);
+                    alert(`Member ${member.name} (${member.displayCode || member.id}) has been approved and is now ACTIVE!`);
                 }
             },
 
@@ -2259,7 +2259,7 @@
                     member.status = 'ACTIVE';
                     await this.saveMembers();
                     await this.loadMembers();
-                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
+                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.displayCode || member.id})`);
                     this.openProfileModal(this.activeModalMemberId);
                     alert(`Member ${member.name} has been approved successfully!`);
                 }
@@ -2299,7 +2299,7 @@
 
                 await this.saveMembers();
                 await this.loadMembers();
-                this.logAudit('Member Updated', `Updated profile details for ${member.name} (${member.id})`);
+                this.logAudit('Member Updated', `Updated profile details for ${member.name} (${member.displayCode || member.id})`);
                 alert(`Member details updated successfully!`);
             },
 
@@ -2327,7 +2327,7 @@
                 await this.saveMembers();
                 await this.loadMembers();
 
-                this.logAudit('Credit Top-up', `Added ₱${amount.toLocaleString()} to ${member.name} (${member.id})`);
+                this.logAudit('Credit Top-up', `Added ₱${amount.toLocaleString()} to ${member.name} (${member.displayCode || member.id})`);
                 this.openProfileModal(this.activeModalMemberId);
                 alert(`Successfully added ₱${amount.toLocaleString()} to account credits!`);
             },

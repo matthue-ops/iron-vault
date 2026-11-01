@@ -5,6 +5,15 @@
  function money(value){if(value===null)return 'Unavailable';const n=typeof value==='bigint'?value:cents(value);if(n===null)return 'Unavailable';const absolute=n<0n?-n:n;return (n<0n?'-':'')+'₱'+(absolute/100n).toLocaleString('en-PH')+'.'+String(absolute%100n).padStart(2,'0');}
  function date(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const get=k=>parts.find(p=>p.type===k).value;return get('year')+'-'+get('month')+'-'+get('day');}
  function validDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;const d=new Date(value+'T00:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===value;}
+ function expiryLabel(member,today=date(new Date())){
+  if(!member)return 'Profile unavailable';
+  if(!member.plan||member.plan==='Not Selected')return 'No pass';
+  const expiry=member.expiration_date??member.expirationDate;
+  if(!validDate(expiry))return 'Expiry unavailable';
+  const label=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'}).format(new Date(expiry+'T00:00:00Z'));
+  const days=Math.round((new Date(expiry+'T00:00:00Z')-new Date(today+'T00:00:00Z'))/86400000);
+  return days<0?'Expired '+label:days===0?'Expires today ('+label+')':'Expires '+label+' · '+days+' day'+(days===1?'':'s')+' left';
+ }
  function analyze(snapshot,start,end,today=date(new Date())){
   if(!validDate(start)||!validDate(end)||end<start)throw Error('Choose a valid start and end date.');
   const within=row=>{const day=date(row.created_at);return day&&day>=start&&day<=end;};
@@ -30,5 +39,5 @@
    otherAdmissions:attendance.length-qr-manual,peakHours:peak?hours.flatMap((n,h)=>n===peak?[h]:[]):[],peakVisits:peak,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day))};
  }
  function csv(rows){return '\uFEFF'+rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[\t\r\n]|^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');}
- const api=Object.freeze({cents,money,date,validDate,analyze,csv,kinds});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,csv,kinds});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(globalThis);

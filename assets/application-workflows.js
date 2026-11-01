@@ -47,9 +47,17 @@
    app.approvePendingMember=async function(){if(await this.quickApproveMember(this.activeModalMemberId)===false)return;if(this.activeModalMemberId)this.openProfileModal(this.activeModalMemberId);};
    app.logAudit=async function(event,details){try{await root.IronVaultData.call(client,'iv_log_event',{p_tenant:this.currentTenantId,p_event:String(event),p_details:String(details)});}catch(error){console.error('Activity log unavailable');}};
    app.deleteMember=async function(id){
-    if(!root.confirm('Deactivate this membership? Financial history will be retained.'))return;
-    try{await root.IronVaultData.call(client,'iv_deactivate_member',{p_member_id:id});await this.loadMembers();root.alert('Membership deactivated and removed from the active roster. History retained.');}
-    catch(error){root.alert(error.message);}
+    try{
+     await root.IronVaultAuth.requireRole(client,{roles:['owner'],tenantId:this.currentTenantId});
+     const member=this.members.find(m=>m.id===id);if(!member)throw Error('Member unavailable. Refresh the roster.');
+     const balance=Number(member.walletBalance??0);
+     if(!Number.isFinite(balance)||balance!==0)throw Error('Settle the member wallet balance before removing this membership.');
+     if(!root.confirm('Remove '+member.name+' ('+(member.displayCode||member.id)+') from this gym? Access will be deactivated; financial and attendance history will be retained.'))return;
+     await root.IronVaultData.call(client,'iv_deactivate_member',{p_member_id:id});
+     member.status='INACTIVE';let refreshNote='';
+     try{await this.loadMembers();}catch(_){refreshNote=' Refresh the dashboard to reload the roster.';}
+     this.searchManualCheckIn();root.alert('Member removed from active lists. History retained.'+refreshNote);
+    }catch(error){root.alert(error.message);}
    };
    app.handleStaffSignup=async function(event){event.preventDefault();
     const value=id=>root.document.getElementById(id).value;

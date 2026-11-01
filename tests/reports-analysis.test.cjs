@@ -33,3 +33,16 @@ test('CSV protects spreadsheet formula cells, quotes commas, and keeps UTF-8 nam
 test('generated delta contains exactly the current reviewed usability migrations',()=>{
  const {spawnSync}=require('node:child_process');const result=spawnSync(process.execPath,['scripts/build-usability-sql.cjs','--check'],{encoding:'utf8'});assert.equal(result.status,0,result.stderr);
 });
+
+test('a 100-peso top-up and wallet purchase produce 100-peso sales, never 200',()=>{
+ const m=R.analyze({financial:[{kind:'topup',amount:100,created_at:at},{kind:'plan_wallet',amount:100,created_at:at}]},'2026-11-01','2026-11-01','2026-11-01');
+ assert.equal(m.grossSales,10000n);assert.equal(m.cashIn,10000n);
+ const unused=R.analyze({financial:[{kind:'topup',amount:100,created_at:at}]},'2026-11-01','2026-11-01','2026-11-01');assert.equal(unused.grossSales,0n);
+});
+test('expiry labels distinguish no pass, missing date, expired, today and remaining days',()=>{
+ assert.equal(R.expiryLabel({plan:'Not Selected'},'2026-11-02'),'No pass');
+ assert.equal(R.expiryLabel({plan:'1-Day Pass'},'2026-11-02'),'Expiry unavailable');
+ assert.match(R.expiryLabel({plan:'1-Day Pass',expiration_date:'2026-11-01'},'2026-11-02'),/^Expired/);
+ assert.match(R.expiryLabel({plan:'1-Day Pass',expiration_date:'2026-11-02'},'2026-11-02'),/^Expires today/);
+ assert.match(R.expiryLabel({plan:'1-Week Pass',expiration_date:'2026-11-09'},'2026-11-02'),/7 days left/);
+});

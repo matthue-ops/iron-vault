@@ -139,7 +139,7 @@
                 </button>
                 <button id="tab-btn-audit" onclick="reportsApp.switchTab('audit')" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700">
                     <i class="fa-solid fa-list-check"></i>
-                    <span>System Audit Logs</span>
+                    <span>Administrative Activity</span>
                 </button>
             </div>
 
@@ -194,7 +194,7 @@
  <button onclick="reportsApp.exportReportCsv()" class="rounded-xl px-3 py-2 bg-emerald-700 text-white text-xs">Export matching rows (CSV)</button>
  <button id="report-prev" type="button" class="rounded-xl px-3 py-2 bg-slate-800 text-white text-xs">Previous</button><button id="report-next" type="button" class="rounded-xl px-3 py-2 bg-slate-800 text-white text-xs">Next</button>
  <span id="report-page" class="text-xs text-slate-400"></span>
- <p class="w-full text-xs text-slate-400">Detail logs show 100 rows per page. CSV includes all matching rows; Print shows the current view. Member plans, balances and statuses in detail rows reflect the current snapshot.</p>
+ <p class="w-full text-xs text-slate-400">Detail logs show 100 rows per page. CSV includes all matching rows; Print shows the current view. Member plans, balances and statuses in detail rows reflect the current snapshot. Attendance expiry shows the current pass, not the pass held at a historical check-in.</p>
 </div>
         <!-- REPORT HEADER METADATA -->
         <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
@@ -212,7 +212,7 @@
             <!-- TAB 1 METRIC CARDS (FINANCIAL) -->
             <div id="metrics-financial-row" class="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Net cash collected (period)</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Membership sales (period)</span>
                     <h3 id="metric-revenue" class="text-xl font-black text-emerald-400">₱0.00</h3>
                 </div>
 
@@ -296,10 +296,10 @@
                         <tr>
                             <th class="p-3">Member ID</th>
                             <th class="p-3">Full Name</th>
-                            <th class="p-3">Plan Type</th>
-                            <th class="p-3">Last Check-In Date</th>
-                            <th class="p-3">Total Scans Used</th>
-                            <th class="p-3">Plan Expiry / Days Left</th>
+                            <th class="p-3">Current plan</th>
+                            <th class="p-3">Check-in (Manila)</th>
+                            <th class="p-3">Entry method</th>
+                            <th class="p-3">Current expiry / days left</th>
                             <th class="p-3">Status</th>
                         </tr>
                     </thead>
@@ -311,7 +311,7 @@
         <!-- TABLE SECTION 3: SYSTEM AUDIT LOGS TAB -->
         <div id="section-audit-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
             <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-                <i class="fa-solid fa-list-check text-purple-400"></i> System Audit & Activity Logs
+                <i class="fa-solid fa-list-check text-purple-400"></i> Administrative Activity & Staff Sessions
             </h3>
 
             <div class="overflow-x-auto">
@@ -608,7 +608,7 @@ async function ivRequireRole(roles, tenant){
  });
 }
 
-reportsApp.ivMode='audit';
+reportsApp.ivMode='activity';
 reportsApp.ivClear=function(){
  this.ivRequest=(this.ivRequest||0)+1;
  this.ivFinance=[];this.ivPurchases=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
@@ -643,8 +643,7 @@ reportsApp.ivRender=async function(start,end){
  const within=x=>{const d=ivDate(new Date(x.created_at));return d>=start&&d<=end;};
  const tx=this.ivFinance.filter(within),att=this.ivAttendance.filter(within),activity=this.ivActivity.filter(within),sessions=this.ivSessions.filter(within);
  const members=Object.fromEntries(this.branchMembers.map(m=>[m.id,m]));
- const revenue=tx.filter(t=>['topup','plan_cash'].includes(t.kind)).reduce((s,t)=>s+Number(t.amount),0)
- -tx.filter(t=>t.kind==='refund_cash').reduce((s,t)=>s+Number(t.amount),0);
+ const revenue=tx.filter(t=>['plan_cash','plan_wallet'].includes(t.kind)).reduce((s,t)=>s+Number(t.amount),0);
  document.getElementById('metric-revenue').textContent=ivMoney(revenue);
  document.getElementById('metric-credits').textContent=ivMoney(this.branchMembers.reduce((s,m)=>s+Number(m.walletBalance||0),0));
  document.getElementById('metric-registrations').textContent=tx.filter(t=>t.kind.startsWith('plan_')).length;
@@ -655,9 +654,9 @@ reportsApp.ivRender=async function(start,end){
  const formatTime=s=>new Date(s).toLocaleString('en-PH',{timeZone:'Asia/Manila'});
  const row=(cells)=>'<tr class="hover:bg-slate-900/50">'+cells.map(v=>'<td class="p-3">'+ivEscape(v)+'</td>').join('')+'</tr>';
  document.getElementById('financial-tbody').innerHTML=tx.map(t=>row([t.member_id||'—',members[t.member_id]?.name||'—',members[t.member_id]?.classification||'—',t.kind,ivMoney(t.amount),ivMoney(members[t.member_id]?.walletBalance),formatTime(t.created_at),t.description||'—'])).join('')||'<tr><td colspan="8" class="p-6 text-center">No transactions in range.</td></tr>';
- document.getElementById('attendance-tbody').innerHTML=att.map(a=>row([a.member_id,members[a.member_id]?.name||'—',members[a.member_id]?.plan||'—',formatTime(a.created_at),a.method,'—',members[a.member_id]?.status||'—'])).join('')||'<tr><td colspan="7" class="p-6 text-center">No check-ins in range.</td></tr>';
+ document.getElementById('attendance-tbody').innerHTML=att.map(a=>row([a.member_id,members[a.member_id]?.name||'—',members[a.member_id]?.plan||'—',formatTime(a.created_at),a.method,IronVaultReports.expiryLabel(members[a.member_id]),members[a.member_id]?.status||'—'])).join('')||'<tr><td colspan="7" class="p-6 text-center">No check-ins in range.</td></tr>';
  let auditRows=this.ivMode==='sessions'?sessions.map(s=>({created_at:s.created_at,actor_id:s.actor_id,event:'Staff '+s.event,details:s.event}))
- :this.ivMode==='activity'?activity:tx.map(t=>({created_at:t.created_at,actor_id:t.actor_id,event:t.kind,details:(t.member_id||'')+' '+ivMoney(t.amount)}));
+ :activity;
  document.getElementById('metric-audit-count').textContent=auditRows.length+' Logs';
  document.getElementById('audit-tbody').innerHTML=auditRows.map(a=>row([formatTime(a.created_at),a.actor_id||'System',a.event,a.details||''])).join('')||'<tr><td colspan="4" class="p-6 text-center">No logs in range.</td></tr>';
 };
@@ -680,18 +679,18 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
  if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&reportsApp.authenticatedRole&&session?.user?.id!==reportsApp.authenticatedRole.user_id))
   reportsApp.ivDeny(new Error('The authenticated session changed.'));
 });
-reportsApp.ivChoose=function(mode){this.ivMode=mode;this.switchTab('audit');};
+reportsApp.ivChoose=function(mode){this.switchTab('audit');this.ivMode=mode==='sessions'?'sessions':'activity';};
 reportsApp.ivCredits=async function(){
  try{await this.ivRequireReport();}catch(error){this.ivDeny(error);return;}
  const positive=this.branchMembers.filter(m=>Number(m.walletBalance)>0);
- const lines=positive.map(m=>m.name+' ('+m.id+'): '+ivMoney(m.walletBalance));
+ const lines=positive.map(m=>m.name+' ('+(m.displayCode||m.id)+'): '+ivMoney(m.walletBalance));
  alert('MEMBERS WITH UNEARNED CREDITS ('+positive.length+')\n\n'+(lines.join('\n')||'No positive balances.'));
 };
 (function(){
  const fin=document.getElementById('tab-btn-financial');
  const credit=document.createElement('button');credit.textContent='Members With Unearned Credits';credit.className='px-3 py-2 rounded-xl bg-cyan-800 text-white text-xs font-bold';credit.onclick=()=>reportsApp.ivCredits();fin.parentNode.append(credit);
  const audit=document.getElementById('tab-btn-audit');
- for(const [label,mode] of [['Audit (Payments & Top-ups)','audit'],['Activity (Other Events)','activity'],['Staff Login / Logout','sessions']]){
+ for(const [label,mode] of [['Staff Login / Logout','sessions']]){
  const b=document.createElement('button');b.textContent=label;b.className='px-3 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold';b.onclick=()=>reportsApp.ivChoose(mode);audit.parentNode.append(b);
  }
 })();

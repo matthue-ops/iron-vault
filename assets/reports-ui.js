@@ -9,9 +9,9 @@
   app.ivClear=function(){oldClear.call(this);clear();};
   function tableRows(){
    if(!model)return[];const members=new Map(model.members.map(m=>[m.id,m]));
-   if(app.currentTab==='attendance')return model.attendance.map(a=>[code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',members.get(a.member_id)?.plan||'—',stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,'—',members.get(a.member_id)?.status||'—']);
+   if(app.currentTab==='attendance')return model.attendance.map(a=>[code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',members.get(a.member_id)?.plan||'—',stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,R.expiryLabel(members.get(a.member_id)),members.get(a.member_id)?.status||'—']);
    if(app.currentTab==='audit'){
-    const rows=app.ivMode==='sessions'?(app.ivSessions||[]).map(s=>({...s,event:'Staff '+s.event,details:s.event})):app.ivMode==='activity'?app.ivActivity||[]:model.financial.map(t=>({...t,event:R.kinds[t.kind]||t.kind,details:code(members.get(t.member_id),t.member_id)+' '+R.money(t.amount)}));
+    const rows=app.ivMode==='sessions'?(app.ivSessions||[]).map(s=>({...s,event:'Staff '+s.event,details:s.event})):app.ivActivity||[];
     return rows.map(a=>[stamp(a.created_at),a.actor_id||'System',a.event,a.details||'']);
    }
    return model.financial.map(t=>[code(members.get(t.member_id),t.member_id),members.get(t.member_id)?.name||'—',members.get(t.member_id)?.classification||'—',R.kinds[t.kind]||t.kind,R.money(t.amount),R.money(members.has(t.member_id)?members.get(t.member_id).wallet_balance??members.get(t.member_id).walletBalance:null),stamp(t.created_at),t.description||'—']);
@@ -19,6 +19,7 @@
   function matches(){const query=node('report-search').value.trim().toLowerCase();return tableRows().filter(row=>!query||row.some(cell=>String(cell).toLowerCase().includes(query)));}
   function rowsInto(id,rows){const body=node(id);body.textContent='';for(const cells of rows){const row=root.document.createElement('tr');for(const value of cells){const cell=root.document.createElement('td');cell.className='p-3';cell.textContent=value;row.appendChild(cell);}body.appendChild(row);}}
   function renderDetails(){if(!model)return;const rows=matches();page=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));const kind=app.currentTab==='attendance'?'attendance':app.currentTab==='audit'?'audit':'financial';
+   if(kind==='audit')node('metric-audit-count').textContent=rows.length+' records';
    rowsInto(kind+'-tbody',rows.slice(page*100,(page+1)*100));node('report-page').textContent=rows.length?'Showing '+(page*100+1)+'–'+Math.min((page+1)*100,rows.length)+' of '+rows.length+' matching rows':'No matching records';
    node('report-prev').disabled=page===0;node('report-next').disabled=(page+1)*100>=rows.length;
   }
@@ -27,8 +28,8 @@
   function overview(){
    const box=node('report-overview');box.textContent='';node('overview-period').textContent='Selected period: '+period.start+' to '+period.end+' · Asia/Manila';
    for(const [label,value,note] of [
-    ['Net cash collected',R.money(model.cashIn),'Selected period: top-ups + cash pass payments − cash refunds.'],
-    ['Gross membership sales',R.money(model.grossSales),'Selected period: cash + wallet pass spending. Top-ups excluded.'],
+    ['Membership sales',R.money(model.grossSales),'Selected period: pass payments from cash or wallet. Unspent top-ups are not sales.'],
+    ['Cash received (net of refunds)',R.money(model.cashIn),'Selected period: top-ups + cash pass payments − cash refunds. This is cash movement, not additional sales.'],
     ['Wallet top-ups',R.money(model.totals.topup),'Selected period: cash received as prepaid member credit.'],
     ['Wallet used for passes',R.money(model.totals.plan_wallet),'Selected period: previously collected credit spent on passes.'],
     ['Cash refunds',R.money(model.totals.refund_cash),'Selected period: recorded cash refunds only.'],
@@ -49,14 +50,15 @@
    await oldRender.call(this,start,end);if(!this.ivFinance)return;
    model=R.analyze({financial:this.ivFinance,attendance:this.ivAttendance,purchases:this.ivPurchases||[],members:this.branchMembers},start,end);period={start,end};
    node('report-range-subtitle').textContent='Report period: '+start+' to '+end;node('report-generated-timestamp').textContent=stamp(new Date());
-   node('metric-revenue').textContent=R.money(model.cashIn);node('metric-credits').textContent=R.money(model.wallet);node('metric-registrations').textContent=model.purchaseCount;node('metric-subscriptions').textContent=model.currentPasses;
+   node('metric-revenue').textContent=R.money(model.grossSales);node('metric-credits').textContent=R.money(model.wallet);node('metric-registrations').textContent=model.purchaseCount;node('metric-subscriptions').textContent=model.currentPasses;
    overview();renderDetails();
   };
-  const oldSwitch=app.switchTab;app.switchTab=function(tab){oldSwitch.call(this,tab);page=0;renderDetails();};
+  const oldSwitch=app.switchTab;app.switchTab=function(tab){if(tab==='audit')this.ivMode='activity';oldSwitch.call(this,tab);page=0;renderDetails();};
+  app.ivChoose=function(mode){this.ivMode=mode==='sessions'?'sessions':'activity';oldSwitch.call(this,'audit');page=0;renderDetails();};
   app.exportReportCsv=async function(){try{
    await this.ivRequireReport();if(!model||!period)throw Error('Load a report first.');
    const kind=this.currentTab==='attendance'?'attendance':this.currentTab==='audit'?'audit':'financial';
-   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Unused','Current status']:kind==='audit'?['Time (Asia/Manila)','Actor ID','Action','Details']:['Member code','Name','Classification','Entry type','Amount','Current wallet credit','Time (Asia/Manila)','Description'];
+   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Current pass expiry / days left','Current status']:kind==='audit'?['Time (Asia/Manila)','Actor ID','Action','Details']:['Member code','Name','Classification','Entry type','Amount','Current wallet credit','Time (Asia/Manila)','Description'];
    const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note','Balances, plans, classifications and statuses reflect the current snapshot. CSV includes all matching detail rows.'],headings,...matches()]);
    const url=root.URL.createObjectURL(new root.Blob([text],{type:'text/csv;charset=utf-8'}));const link=root.document.createElement('a');link.href=url;link.download='IronVault_'+kind+'_'+period.start+'_'+period.end+'.csv';link.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);
   }catch(error){this.ivDeny(error);}};
