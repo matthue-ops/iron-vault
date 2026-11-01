@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..'),directory=path.join(root,'supabase/migrations');
 const files=fs.readdirSync(directory).filter(n=>/^2026110100\d{2}_.*\.sql$/.test(n)).sort();
-if(files.length!==15)throw Error('Expected exactly the reviewed 001-015 migration package; review generator for new versions.');
+if(files.length!==16)throw Error('Expected exactly the reviewed 001-016 migration package; review generator for new versions.');
 const included=files.filter(n=>!n.startsWith('202611010004_'));
 const snapshot=`SELECT jsonb_build_object(
  'auth', (SELECT md5(coalesce(string_agg(jsonb_build_array(id,email,email_confirmed_at)::text,'|' ORDER BY id),'')) FROM auth.users),

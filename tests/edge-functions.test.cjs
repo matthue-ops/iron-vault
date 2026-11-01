@@ -43,9 +43,9 @@ test('provisioning sends protected app metadata, never old signup flags, and ret
   actor:async()=>({id:'operator'}),role:async()=>({role:'owner',tenant_id:'gym'}),digest:async value=>{calls.push({digest:value});return'a'.repeat(64)},mailReady:()=>true,limit:async()=>{},
   rpc:async(name,args)=>{calls.push({name,args});return name==='iv_find_created_account'?found:name==='iv_finish_branch_account'?{ok:true,member_id:'member'}:{}},
   sendVerification:async()=>{if(deliveryFails)throw Error('Mail failed')}});
- const input={request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'same@example.invalid',password:'test-only-password'};
- await assert.rejects(c.provision(new Request('https://edge.example.invalid'),input,'member'),/Mail failed/);
- deliveryFails=false;await c.provision(new Request('https://edge.example.invalid'),input,'member');assert.equal(created,1);
+ const input={mode:'staff',request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'same@example.invalid',password:'test-only-password'};
+ await assert.rejects(c.provision(new Request('https://edge.example.invalid'),input,'tenant'),/Mail failed/);
+ deliveryFails=false;await c.provision(new Request('https://edge.example.invalid'),input,'tenant');assert.equal(created,1);
  const attributes=calls.find(x=>x.app_metadata);assert.equal(attributes.app_metadata.iv_provision_request,input.request_id);assert.equal(attributes.user_metadata.iv_member_signup,undefined);
  const prepare=calls.find(x=>x.name==='iv_prepare_branch_account');assert.equal(JSON.stringify(prepare.args.p_payload).includes(input.password),false);
 });
@@ -102,4 +102,13 @@ test('RPC diagnostics identify the failed operation without logging private argu
  assert.deepEqual(logs,[['Iron Vault RPC failed','iv_prepare_branch_account','23505']]);
  f.client.rpc=async()=>({error:{code:'secret@email.invalid'}});
  await assert.rejects(f.c.rpc('iv_finish_branch_account',{}));assert.equal(logs[1][2],'unknown');
+});
+
+test('member signup succeeds without SMTP or confirmation and retains gym approval messaging',async()=>{
+ const c=load('supabase/functions/_shared/provision.ts',{admin:{auth:{admin:{createUser:async()=>({data:{user:{id:'member-auth'}}})}}},
+ digest:async()=> 'a'.repeat(64),mailReady:()=>false,limit:async()=>{},
+ rpc:async name=>name==='iv_prepare_branch_account'?{}:name==='iv_find_created_account'?null:{ok:true},
+ sendVerification:async()=>{throw Error('Member signup must not depend on mail')}});
+ const result=await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'New Member',email:'test@example.invalid',password:'test-only-password'},'member',true);
+ assert.equal(result.ok,true);assert.match(result.message,/without email confirmation/);assert.match(result.message,/gym approval/);
 });

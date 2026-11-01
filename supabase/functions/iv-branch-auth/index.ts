@@ -27,7 +27,7 @@ serve(async(req,input)=>{
  if(action==='signup')return provision(req,{...input,tenant_id:gym.id},'member',true);
  if(action==='signin'){
   const rows=await rpc('iv_branch_identity',{p_tenant:gym.id,p_roles:roles,p_email:email});
-  // Generic outcome for missing, disabled, unverified or ambiguous identities.
+  // Generic outcome for missing, disabled, verification-gated or ambiguous identities.
   if(!Array.isArray(rows)||rows.length!==1)throw Error('Invalid request.');
   const info=await rpc('iv_branch_account_details',{p_user:rows[0].user_id});
   const password=String(input.password||'');if(password.length<1||password.length>128)throw Error('Invalid request.');

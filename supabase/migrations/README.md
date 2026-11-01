@@ -25,3 +25,7 @@ Run each approved file separately in numeric order, 001 through 015. The only op
 Every file has a transaction and metadata verification; failures require ROLLBACK and review. A later failure does not undo earlier commits. Fix forward while preserving records; never restore public ALL policies, unsafe financial bodies or blanket grants. Files 009 and integrity changes can acquire write-blocking locks; use the scheduled maintenance window. Public-schema default cleanup alone cannot revoke global PUBLIC EXECUTE, so per-object ACLs are set explicitly. Only iv_visible_gyms() intentionally allows anonymous safe branding reads.
 
 Read-only acceptance is in ../verification/phase1_acceptance.sql. Capture its V1/V2 preservation baseline before application and compare after; do not invoke mutating RPCs from SQL Editor as an authorization test. Test real RLS with actual authenticated/anonymous clients and dedicated approved fixtures. No SQL, Supabase call, reset, deployment or merge was performed by the agent.
+
+### 016: Optional member email confirmation
+
+For installations through 015, run only `202611010016_member_optional_email_verification.sql`, then manually deploy the updated standalone `iv-branch-auth` and `iv-create-member` functions. Members can sign in without email proof; approval and revocation still apply. Existing non-revoked ACTIVE/PENDING member roles blocked by the former mail gate are enabled. Owner/staff activation is unchanged. Password recovery still requires an emailed recovery token. No SQL has been executed by the agent.

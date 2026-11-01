@@ -1,6 +1,6 @@
 import {admin,publicClient,rpc,role,actor,digest,mailReady,sendVerification,limit} from './runtime.ts';
 export async function provision(req:Request,input:any,kind:'member'|'tenant',publicSignup=false){
- if(!mailReady())throw Error('Email delivery is not configured.');
+ if(kind!=='member'&&!mailReady())throw Error('Email delivery is not configured.');
  const mode=kind==='member'?'member':input.mode;
  if(!['member','create','staff'].includes(mode))throw Error('Invalid request.');
  const user=publicSignup?null:await actor(req);
@@ -27,6 +27,6 @@ export async function provision(req:Request,input:any,kind:'member'|'tenant',pub
  const result=await rpc('iv_finish_branch_account',{p_request:request,p_user:authId});
  // If mail fails the job and Auth identity remain for a safe same-request retry.
  // Never delete an account/tenant/member as compensation.
- await sendVerification(authId);
- return {...result,email,role:accountRole,message:'Account created. Verify your email; member accounts may also require gym approval.'};
+ if(accountRole!=='member')await sendVerification(authId);
+ return {...result,email,role:accountRole,message:accountRole==='member'?'Account created. You can sign in without email confirmation; gym approval may still be required.':'Account created. Verify your email to activate access.'};
 }
