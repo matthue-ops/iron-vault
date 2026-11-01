@@ -2,7 +2,7 @@
 
 Current evidence and implementation are in [phase1-status.md](phase1-status.md) and [the M1–M7 review](inspection-review-m1-m7-20261101.md). Prepared report permission APIs and corrected policies require manual 005–007 confirmation before application release. No migration is assumed applied.
 
-Status: target architecture plus partial prepared implementation; not a completed release. The single current prerequisite/progress queue is [phase1-status.md](phase1-status.md). Initial/M/T inspections are complete; exact T exports are not accessible here. No SQL is assumed applied.
+Status: the target architecture now has coordinated implementation source through migrations 001–015 and four Edge Functions. See [phase1-status.md](phase1-status.md) for actual progress/validation and [phase1-cutover.md](phase1-cutover.md) for one finite release procedure. No database or deployment is assumed applied. Historical “proposed” wording below describes design intent; current implementation is in those files.
 
 ## Evidence and source of truth
 

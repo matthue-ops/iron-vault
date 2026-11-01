@@ -1,3 +1,6 @@
+-- OPTIONAL creator/namespace compatibility reference; no new inspection request.
+-- Current cutover uses guarded migrations; managed-creator 004 may be skipped.
+-- Do not rerun completed initial/M/T inspections. See docs/security/phase1-cutover.md.
 -- CANONICAL REMAINING INSPECTION FILE. SELECT-only, manual execution by owner.
 -- Do NOT repeat initial 2A-4F, M1-M7 or T1-T5. They are completed inspections.
 -- This consolidates ONLY the previously outstanding default-creator/namespace

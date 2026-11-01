@@ -67,6 +67,7 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
     <script src="../assets/super-admin-session.js"></script>
     <script src="../assets/staff-report-permissions.js"></script>
 </head>
@@ -422,7 +423,7 @@
                                     <th class="p-3">Full Name</th>
                                     <th class="p-3">Classification</th>
                                     <th class="p-3">Email</th>
-                                    <th class="p-3">Password</th>
+                                    <th class="p-3">Account recovery</th>
                                     <th class="p-3">Plan</th>
                                     <th class="p-3">Wallet Balance</th>
                                     <th class="p-3">Status</th>
@@ -597,6 +598,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
@@ -799,33 +801,30 @@
                 }
 
                 tbody.innerHTML = this.owners.map(owner => {
-                    const isShow = this.visiblePasswords[owner.id] || false;
-                    const passDisplay = 'Supabase Auth';
-                    const iconClass = isShow ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
                     
                     const origin = window.location.origin === 'null' || window.location.origin.startsWith('file://') ? '' : window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                    const memberPortalUrl = `${origin}memberlogin.html?key=${owner.token}`;
+                    const memberPortalUrl = `${origin}memberlogin.html?key=${IronVaultData.escape(owner.token)}`;
 
                     const logoHtml = owner.logo 
-                        ? `<img src="${owner.logo}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0">` 
+                        ? `<img src="${IronVaultData.escape(owner.logo)}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0">`
                         : `<div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0"><i class="fa-solid fa-dumbbell"></i></div>`;
 
                     return `
                         <tr class="hover:bg-slate-900/50 transition">
-                            <td class="p-3 font-mono font-bold text-amber-400">${owner.id}</td>
+                            <td class="p-3 font-mono font-bold text-amber-400">${IronVaultData.escape(owner.id)}</td>
                             <td class="p-3">
                                 <div class="flex items-center gap-2.5">
                                     ${logoHtml}
                                     <div class="space-y-1">
-                                        <div class="font-semibold text-white">${owner.gymName}</div>
+                                        <div class="font-semibold text-white">${IronVaultData.escape(owner.gymName)}</div>
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <a href="memberlogin.html?key=${owner.token}" target="_blank" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                            <a href="memberlogin.html?key=${IronVaultData.escape(owner.token)}" target="_blank" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                                                 memberlogin.html?key=${owner.token.substring(0, 10)}...
                                             </a>
-                                            <button onclick="indexApp.copyToClipboard('${memberPortalUrl}', this)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition" title="Copy Link">
+                                            <button onclick="indexApp.copyToClipboard('${IronVaultData.escape(memberPortalUrl)}', this)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition" title="Copy Link">
                                                 <i class="fa-regular fa-copy"></i> Copy
                                             </button>
-                                            <button onclick="indexApp.openQrModal('${memberPortalUrl}', '${owner.gymName}')" class="px-2 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-semibold transition" title="Generate QR Code">
+                                            <button onclick="indexApp.openQrModal(decodeURIComponent('${IronVaultData.argument(memberPortalUrl)}'), decodeURIComponent('${IronVaultData.argument(owner.gymName)}'))" class="px-2 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-semibold transition" title="Generate QR Code">
                                                 <i class="fa-solid fa-qrcode"></i> QR
                                             </button>
                                         </div>
@@ -833,31 +832,26 @@
                                 </div>
                             </td>
                             <td class="p-3">
-                                <div class="text-white">${owner.ownerName}</div>
-                                <div class="text-[11px] text-slate-400">${owner.email}</div>
+                                <div class="text-white">${IronVaultData.escape(owner.ownerName)}</div>
+                                <div class="text-[11px] text-slate-400">${IronVaultData.escape(owner.email)}</div>
                             </td>
-                            <td class="p-3 font-mono text-amber-300">
-                                <span class="mr-2">${passDisplay}</span>
-                                <button onclick="indexApp.toggleOwnerPassword('${owner.id}')" class="text-slate-400 hover:text-white" title="Toggle Password">
-                                    <i class="${iconClass}"></i>
-                                </button>
-                            </td>
+                            <td class="p-3"><button type="button" onclick="indexApp.sendOwnerRecovery(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="text-xs text-amber-300 underline">${owner.status==='PROVISIONING'?'Resend invite':'Send recovery'}</button></td>
                             <td class="p-3">
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${owner.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
-                                    ${owner.status}
+                                    ${IronVaultData.escape(owner.status)}
                                 </span>
                             </td>
                             <td class="p-3 text-right space-y-1 sm:space-y-0 sm:space-x-1">
-                                <button onclick="indexApp.openInspectModal('${owner.id}')" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Inspect Branch & Staff">
+                                <button onclick="indexApp.openInspectModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Inspect Branch & Staff">
                                     <i class="fa-solid fa-eye"></i> View Branch
                                 </button>
-                                <button onclick="indexApp.openEditModal('${owner.id}')" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px]" title="Edit Tenant Details">
+                                <button onclick="indexApp.openEditModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px]" title="Edit Tenant Details">
                                     <i class="fa-solid fa-pen-to-square"></i> Edit
                                 </button>
-                                <button onclick="indexApp.toggleOwnerStatus('${owner.id}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">
+                                <button onclick="indexApp.toggleOwnerStatus(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">
                                     ${owner.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
                                 </button>
-                                <button onclick="indexApp.deleteOwner('${owner.id}')" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
+                                <button onclick="indexApp.deleteOwner(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
@@ -917,7 +911,7 @@
 
                 const reportsBtn = document.getElementById('inspect-reports-btn');
                 if (reportsBtn) {
-                    reportsBtn.href = `reports.html?key=${owner.token}&from=index`;
+                    reportsBtn.href = `reports.html?key=${IronVaultData.escape(owner.token)}&from=index`;
                 }
 
                 const logoImg = document.getElementById('inspect-logo-img');
@@ -975,24 +969,24 @@
                         const classification = m.classification || 'Regular';
                         const discountPercentage = m.discountPercentage !== undefined ? m.discountPercentage : 0;
                         const badgeText = classification === 'Regular' ? 'Regular' : `${classification} (${discountPercentage}%)`;
-                        const memberPassword = m.password || 'gym12345';
+
 
                         return `
                             <tr class="hover:bg-slate-900/50 transition">
-                                <td class="p-3 font-mono font-bold text-emerald-400">${m.id}</td>
-                                <td class="p-3 font-semibold text-white">${m.name}</td>
+                                <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(m.id)}</td>
+                                <td class="p-3 font-semibold text-white">${IronVaultData.escape(m.name)}</td>
                                 <td class="p-3">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                        ${badgeText}
+                                        ${IronVaultData.escape(badgeText)}
                                     </span>
                                 </td>
-                                <td class="p-3 text-slate-400">${m.email}</td>
-                                <td class="p-3 font-mono text-amber-300">${memberPassword}</td>
-                                <td class="p-3">${m.plan || 'Not Selected'}</td>
+                                <td class="p-3 text-slate-400">${IronVaultData.escape(m.email)}</td>
+                                <td class="p-3"><button type="button" onclick="indexApp.sendMemberRecovery(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="text-xs text-amber-300 underline">Send recovery</button></td>
+                                <td class="p-3">${IronVaultData.escape(m.plan || 'Not Selected')}</td>
                                 <td class="p-3 font-mono font-bold text-emerald-400">₱${(m.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                                 <td class="p-3">
                                     <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${m.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
-                                        ${m.status}
+                                        ${IronVaultData.escape(m.status)}
                                     </span>
                                 </td>
                             </tr>
@@ -1016,8 +1010,8 @@
                 container.innerHTML = staffList.map((s, idx) => `
                     <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
                         <div>
-                            <span class="font-bold text-white">${s.name}</span>
-                            <span class="text-[10px] text-slate-400 block">${s.email} · Supabase Auth</span>
+                            <span class="font-bold text-white">${IronVaultData.escape(s.name)}</span>
+                            <span class="text-[10px] text-slate-400 block">${IronVaultData.escape(s.email)} · Supabase Auth</span>
                         </div>
                         <button onclick="indexApp.handleInspectDeleteStaff(${idx})" class="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
                             <i class="fa-solid fa-trash"></i> Delete
@@ -1259,10 +1253,6 @@
                 }
             },
 
-            toggleOwnerPassword: function(id) {
-                this.visiblePasswords[id] = !this.visiblePasswords[id];
-                this.renderOwnersTable();
-            },
 
             toggleOwnerStatus: async function(id) {
                 const owner = this.owners.find(o => o.id === id);
@@ -1516,13 +1506,10 @@ indexApp.handleInspectAddStaff = async function(event) {
     event.target.reset();alert('Staff Supabase Auth account created.');
   } catch(e) {alert('Staff provisioning failed: '+e.message);}
 };
-// Existing tenant repair: run from the browser console while signed in as super admin:
-// await ivRepairExistingTenant('GYM-001','owner@example.com','new-strong-password','Owner Name')
-window.ivRepairExistingTenant = async (tenantId,email,password,ownerName) => {
-  const result=await ivProvisionTenant({mode:'repair',tenantId,email,password,ownerName});
-  await indexApp.loadData();indexApp.renderDashboard();return result;
-};
 </script>
 <script>IronVaultSuperAdmin.install(indexApp,supabaseClient,{hub:false});</script>
+<script src="../assets/branch-auth.js"></script>
+<script src="../assets/application-workflows.js"></script>
+<script>IronVaultWorkflows.install(indexApp,supabaseClient,'master');</script>
 </body>
 </html>

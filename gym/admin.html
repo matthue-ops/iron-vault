@@ -73,6 +73,7 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
     <script src="../assets/financial-requests.js"></script>
     <script src="../assets/staff-report-permissions.js"></script>
 </head>
@@ -489,7 +490,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Initial Plan</label>
-                        <select id="new-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none bg-slate-900">
+                        <select id="new-member-plan" disabled title="Managed by plan purchases" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none bg-slate-900">
                             <option value="Not Selected">Not Selected</option>
                             <option value="1-Day Pass">1-Day Pass</option>
                             <option value="1-Week Pass">1-Week Pass</option>
@@ -504,7 +505,7 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-slate-300 mb-1">Account Password (Optional)</label>
-                    <input type="text" id="new-member-password" value="" minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
+                    <input type="password" id="new-member-password" value="" required minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -653,7 +654,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] text-slate-400 mb-1">Membership Plan</label>
-                                <select id="edit-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
+                                <select id="edit-member-plan" disabled title="Managed by plan purchases" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
                                     <option value="Not Selected">Not Selected</option>
                                     <option value="1-Day Pass">1-Day Pass</option>
                                     <option value="1-Week Pass">1-Week Pass</option>
@@ -684,7 +685,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] text-slate-400 mb-1">Expiration Date</label>
-                                <input type="date" id="edit-member-expiry" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                <input type="date" id="edit-member-expiry" disabled title="Managed by plan purchases" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
                             </div>
                         </div>
 
@@ -763,7 +764,7 @@
 
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Password</label>
-                        <input type="password" id="staff-reg-password" required minlength="6" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="password" id="staff-reg-password" required minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                     </div>
 
                     <div class="flex gap-2 pt-2">
@@ -800,6 +801,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
@@ -1014,7 +1016,7 @@
                 }
 
                 try {
-                    await supabaseClient.from('owners').upsert({
+                    const pricingResult=await supabaseClient.from('owners').upsert({
                         id: this.matchedOwnerRecord.id,
                         gym_name: this.matchedOwnerRecord.gymName,
                         owner_name: this.matchedOwnerRecord.ownerName,
@@ -1028,7 +1030,8 @@
                         audit_logs: this.matchedOwnerRecord.auditLogs || [],
                         date_created: this.matchedOwnerRecord.dateCreated || new Date().toISOString()
                     });
-                } catch(e) {}
+                    if(pricingResult.error)throw Error(pricingResult.error.message);
+                } catch(e) {alert('Pricing was not saved: '+e.message);await this.loadMembers();return;}
 
                 this.loadBranchPricingIntoUI(this.matchedOwnerRecord);
                 this.closePricingModal();
@@ -1340,12 +1343,12 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <span class="font-bold text-white text-xs">${s.name}</span>
+                                        <span class="font-bold text-white text-xs">${IronVaultData.escape(s.name)}</span>
                                         <span class="px-2 py-0.5 rounded text-[9px] font-bold ${isAdmin ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
                                             ${isAdmin ? 'Admin Privilege' : 'Standard Staff'}
                                         </span>
                                     </div>
-                                    <span class="text-[10px] text-slate-400 block">${s.email}</span>
+                                    <span class="text-[10px] text-slate-400 block">${IronVaultData.escape(s.email)}</span>
                                 </div>
                                 <div class="flex items-center gap-1.5 flex-wrap justify-end">
                                     <button type="button" onclick="adminApp.toggleStaffAdminPrivilege(${idx})" class="px-2.5 py-1 rounded-lg ${isAdmin ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30'} text-[10px] font-bold transition flex items-center gap-1" title="Toggle Admin Functionality">
@@ -1364,8 +1367,8 @@
                             </div>
                             <div id="staff-edit-box-${idx}" class="hidden pt-2 border-t border-slate-800/80 space-y-2">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="text" id="staff-edit-name-${idx}" value="${s.name}" placeholder="Name..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none">
-                                    <input type="text" id="staff-edit-pass-${idx}" value="${s.password}" placeholder="Password..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none font-mono">
+                                    <input type="text" id="staff-edit-name-${idx}" value="${IronVaultData.escape(s.name)}" placeholder="Name..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none">
+                                    <input type="text" id="staff-edit-pass-${idx}" disabled value="" placeholder="Use account recovery" class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none font-mono">
                                 </div>
                                 <button type="button" onclick="adminApp.saveStaffEdit(${idx})" class="w-full py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] uppercase transition shadow">
                                     Save Changes
@@ -1611,19 +1614,19 @@
                     const badgeText = classification === 'Regular' ? 'Regular' : `${classification} (${discountPercentage}%)`;
 
                     return `
-                        <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="adminApp.openProfileModal('${m.id}')">
-                            <td class="p-2.5 font-mono font-bold text-amber-400">${m.id}</td>
-                            <td class="p-2.5 font-semibold text-white">${m.name}</td>
+                        <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(m.id)}'))">
+                            <td class="p-2.5 font-mono font-bold text-amber-400">${IronVaultData.escape(m.id)}</td>
+                            <td class="p-2.5 font-semibold text-white">${IronVaultData.escape(m.name)}</td>
                             <td class="p-2.5">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                    ${badgeText}
+                                    ${IronVaultData.escape(badgeText)}
                                 </span>
                             </td>
-                            <td class="p-2.5 text-slate-300">${m.email}</td>
-                            <td class="p-2.5 text-slate-300">${m.phone || 'N/A'}</td>
-                            <td class="p-2.5 font-mono text-slate-400">${m.dateJoined || 'Today'}</td>
+                            <td class="p-2.5 text-slate-300">${IronVaultData.escape(m.email)}</td>
+                            <td class="p-2.5 text-slate-300">${IronVaultData.escape(m.phone || 'N/A')}</td>
+                            <td class="p-2.5 font-mono text-slate-400">${IronVaultData.escape(m.dateJoined || 'Today')}</td>
                             <td class="p-2.5 text-right" onclick="event.stopPropagation()">
-                                <button onclick="adminApp.quickApproveMember('${m.id}')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow-md flex items-center gap-1.5 ml-auto">
+                                <button onclick="adminApp.quickApproveMember(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow-md flex items-center gap-1.5 ml-auto">
                                     <i class="fa-solid fa-user-check"></i> Approve Member
                                 </button>
                             </td>
@@ -1679,22 +1682,22 @@
                     if (status === 'INACTIVE') statusClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
 
                     return `
-                        <tr class="hover:bg-slate-900/50 transition cursor-pointer" onclick="adminApp.openProfileModal('${member.id}')">
-                            <td class="p-3 font-mono font-bold text-emerald-400">${member.id}</td>
-                            <td class="p-3 font-semibold text-white">${member.name}</td>
+                        <tr class="hover:bg-slate-900/50 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(member.id)}'))">
+                            <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(member.id)}</td>
+                            <td class="p-3 font-semibold text-white">${IronVaultData.escape(member.name)}</td>
                             <td class="p-3">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                    ${badgeText}
+                                    ${IronVaultData.escape(badgeText)}
                                 </span>
                             </td>
-                            <td class="p-3">${planName}</td>
+                            <td class="p-3">${IronVaultData.escape(planName)}</td>
                             <td class="p-3 font-mono text-amber-400 font-bold">${daysLeft}</td>
                             <td class="p-3 font-mono text-xs">${scanStatusText}</td>
                             <td class="p-3 font-mono font-bold text-emerald-400">₱${(member.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusClass}">${status}</span></td>
                             <td class="p-3 text-right space-x-1" onclick="event.stopPropagation()">
-                                <button onclick="adminApp.openProfileModal('${member.id}')" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 transition text-[11px]" title="Edit"><i class="fa-solid fa-user-gear mr-1"></i> Edit</button>
-                                <button onclick="adminApp.deleteMember('${member.id}')" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition text-[11px]" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 transition text-[11px]" title="Edit"><i class="fa-solid fa-user-gear mr-1"></i> Edit</button>
+                                <button onclick="adminApp.deleteMember(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition text-[11px]" title="Deactivate membership"><i class="fa-solid fa-trash"></i></button>
                             </td>
                         </tr>
                     `;
@@ -1750,7 +1753,7 @@
                         `;
                     } else {
                         actionButtonHtml = `
-                            <button onclick="adminApp.admitMemberDirectly('${m.id}')" class="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition shadow-md whitespace-nowrap flex-shrink-0">
+                            <button onclick="adminApp.admitMemberDirectly(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition shadow-md whitespace-nowrap flex-shrink-0">
                                 Admit / Log Entry
                             </button>
                         `;
@@ -1760,16 +1763,16 @@
                         <div class="bg-slate-900/90 border ${isAlreadyAdmittedToday ? 'border-slate-800 opacity-75' : 'border-slate-800/80'} p-3 rounded-2xl flex items-center justify-between gap-3">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-white text-xs">${m.name}</span>
-                                    <span class="text-[10px] font-mono text-emerald-400 font-bold">${m.id}</span>
+                                    <span class="font-bold text-white text-xs">${IronVaultData.escape(m.name)}</span>
+                                    <span class="text-[10px] font-mono text-emerald-400 font-bold">${IronVaultData.escape(m.id)}</span>
                                     ${isAlreadyAdmittedToday ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Checked In Today</span>' : ''}
                                 </div>
                                 <div class="text-[10px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
-                                    <span>Plan: ${m.plan || 'None'}</span>
+                                    <span>Plan: ${IronVaultData.escape(m.plan || 'None')}</span>
                                     <span>•</span>
                                     <span class="text-amber-400 font-medium">${daysLeft}</span>
                                     <span>• Credits: ₱${(m.walletBalance || 0).toLocaleString()}</span>
-                                    ${m.phone ? `<span>• Phone: ${m.phone}</span>` : ''}
+                                    ${m.phone ? `<span>• Phone: ${IronVaultData.escape(m.phone)}</span>` : ''}
                                 </div>
                             </div>
                             ${actionButtonHtml}
@@ -1895,7 +1898,7 @@
                 document.getElementById('new-member-discount').value = 0;
                 document.getElementById('new-member-plan').value = 'Not Selected';
                 document.getElementById('new-member-barcode').value = '';
-                document.getElementById('new-member-password').value = 'gym12345';
+                document.getElementById('new-member-password').value = '';
                 
                 document.getElementById('add-member-modal').classList.remove('hidden');
             },
@@ -2157,7 +2160,7 @@
                     // Preserve the activity-report note without the legacy owner's JSON upsert.
                     const {error}=await supabaseClient.rpc('iv_log_event',{
                         p_tenant:this.currentTenantId,p_event:'QR Scan Success',
-                        p_details:`Member ${member.id} admitted with QR`
+                        p_details:`Member ${IronVaultData.escape(member.id)} admitted with QR`
                     });
                     if(error)activityRecorded=false;
                 } catch(error){activityRecorded=false;}
@@ -2165,7 +2168,7 @@
                 catch(error){
                     this.showScanResult(true,'ENTRY RECORDED','Check-in succeeded; refresh the roster before another operation.');return;
                 }
-                this.showScanResult(true,'SCAN SUCCESS',`Welcome, ${member.name}! Entry recorded.`+
+                this.showScanResult(true,'SCAN SUCCESS',`Welcome, ${IronVaultData.escape(member.name)}! Entry recorded.`+
                     (activityRecorded?'':' Activity note unavailable; attendance history was recorded.'));
                 // iv_checkin already records trusted actor/time in attendance history.
                 // Signed pass verification and stronger server plan validation remain pending.
@@ -2278,8 +2281,8 @@
                         if (error) throw error;
                         if (!data?.ok) throw Error(data?.error || 'Email correction was not accepted.');
                         // The Edge Function updates Auth and the member record together.
-                        member.email = proposedEmail;
-                        alert('Email corrected. The member must verify the new email before using password recovery.');
+                        if(!data.pending)member.email = proposedEmail;
+                        alert(data.message||'Contact change requested; complete email verification.');
                     } catch(error) {
                         alert('Email was NOT changed: ' + (error.message || String(error)) + '. Deploy the secure email-correction Edge Function first.');
                         return;
@@ -2462,5 +2465,8 @@ adminApp.logoutAdmin=async function(){
 };
 
 </script>
+<script src="../assets/branch-auth.js"></script>
+<script src="../assets/application-workflows.js"></script>
+<script>IronVaultWorkflows.install(adminApp,supabaseClient,'admin');</script>
 </body>
 </html>

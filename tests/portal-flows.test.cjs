@@ -8,10 +8,11 @@ function portal(file,{user=null,roles=[],owners=[],members=[],records={},search=
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
  function element(id){if(!elements.has(id))elements.set(id,{value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
+  table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
-  const q={select(fields){entry.fields=fields;return q},eq(k,v){entry.filters.push([k,v]);return q},order(){return q},limit(){return q},then(resolve){const rows=table==='iv_user_roles'?roles:table==='owners'?owners:table==='members'?members:(records[table]||[]);resolve({data:rows.filter(row=>entry.filters.every(([k,v])=>row[k]===v)),error:null})}};return q;
+  const q={select(fields){entry.fields=fields;return q},eq(k,v){entry.filters.push([k,v]);return q},gt(k,v){entry.after=[k,v];return q},order(){return q},limit(){return q},single(){return new Promise(resolve=>q.then(({data,error})=>resolve(data.length===1?{data:data[0],error}:{data:null,error:{message:'Expected one row'}})))},then(resolve){const rows=table==='iv_user_roles'?roles:table==='owners'?owners:table==='members'?members:(records[table]||[]);resolve({data:rows.filter(row=>entry.filters.every(([k,v])=>row[k]===v)&&(!entry.after||row[entry.after[0]]>entry.after[1])),error:null})}};return q;
  }};
- const context={console,Intl,Date,URL,URLSearchParams,crypto,tailwind:{},supabase:{createClient:()=>client},document:{body:element('body'),getElementById:element,createElement:()=>element('created'),documentElement:{style:{setProperty(){}}}},sessionStorage:storage,localStorage:storage,alert:message=>alerts.push(message),addEventListener:(name,fn)=>{events[name]=fn},setTimeout:()=>0,location:{search,href:'https://app.example.invalid/'+file+search,replace:url=>redirects.push(url)}};
+ const context={console,Intl,Date,URL,URLSearchParams,crypto,tailwind:{},supabase:{createClient:()=>client},document:{body:element('body'),getElementById:element,createElement:()=>element('created'),documentElement:{style:{setProperty(){}}}},sessionStorage:storage,localStorage:storage,alert:message=>alerts.push(message),addEventListener:(name,fn)=>{events[name]=fn},setTimeout:()=>0,location:{search,hash:'',pathname:'/'+file,href:'https://app.example.invalid/'+file+search,replace:url=>redirects.push(url)}};
  context.window=context;vm.createContext(context);
  const html=fs.readFileSync(file,'utf8');
  for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
@@ -111,42 +112,42 @@ function qrFixture(){
  p.context.Date=Clock;
  return {...p,app,roles,results};
 }
-test('QR admission uses the reviewed RPC and accepts the Manila date before 08:00',async()=>{
+test('QR admission redeems a server-issued ticket in the selected gym',async()=>{
  const p=qrFixture();const rpc=[];p.client.rpc=async(name,args)=>{rpc.push({name,args});return {data:'timestamp',error:null}};
- await p.app.processScannedCode('member-a|2026-11-01');
- assert.equal(rpc.length,2);assert.equal(rpc[0].name,'iv_checkin');assert.equal(rpc[1].name,'iv_log_event');
- assert.equal(rpc[0].args.p_member_id,'member-a');assert.equal(rpc[0].args.p_method,'qr');
+ await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
+ assert.equal(rpc.length,2);assert.equal(rpc[0].name,'iv_redeem_member_pass');assert.equal(rpc[1].name,'iv_log_event');
+ assert.equal(rpc[0].args.p_token,'01234567-89ab-4cde-8fab-0123456789ab');assert.equal(rpc[0].args.p_tenant,'gym-a');
  assert.equal(p.results.at(-1).ok,true);
 });
 test('QR admission does not show success when the server rejects duplicate or expired admission',async()=>{
  const p=qrFixture();p.client.rpc=async()=>({error:{message:'Already checked in today'}});
- await p.app.processScannedCode('member-a|2026-11-01');
+ await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
  assert.equal(p.results.at(-1).ok,false);assert.match(p.results.at(-1).description,/Already checked in/);
 });
-test('QR rejects wrong-tenant, malformed, outdated and revoked-role inputs before an RPC',async()=>{
+test('QR rejects unsigned, malformed and revoked-role inputs before an RPC',async()=>{
  const p=qrFixture();let rpc=0;p.client.rpc=async()=>{rpc++;return {error:null}};
  await p.app.processScannedCode('member-a|2026-10-31');
  await p.app.processScannedCode('malformed');
  p.app.members[0].tenantId='gym-b';await p.app.processScannedCode('member-a|2026-11-01');
- p.app.members[0].tenantId='gym-a';p.roles.splice(0);await p.app.processScannedCode('member-a|2026-11-01');
+ p.app.members[0].tenantId='gym-a';p.roles.splice(0);await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
  assert.equal(rpc,0);assert.equal(p.results.length,4);assert.ok(p.results.every(r=>!r.ok));
 });
 test('confirmed QR check-in is not reported as failed if roster refresh subsequently fails',async()=>{
  const p=qrFixture();p.app.loadMembers=async()=>{throw new Error('refresh unavailable')};
- await p.app.processScannedCode('member-a|2026-11-01');
+ await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
  assert.equal(p.results.at(-1).ok,true);assert.equal(p.results.at(-1).title,'ENTRY RECORDED');
 });
 test('an activity-note failure cannot undo or misreport a confirmed QR admission',async()=>{
- const p=qrFixture();p.client.rpc=async name=>name==='iv_checkin'
+ const p=qrFixture();p.client.rpc=async name=>name==='iv_redeem_member_pass'
   ?{data:'timestamp',error:null}:{data:null,error:{message:'note unavailable'}};
- await p.app.processScannedCode('member-a|2026-11-01');
+ await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
  assert.equal(p.results.at(-1).ok,true);assert.match(p.results.at(-1).description,/Activity note unavailable/);
 });
 function reportFixture(role='owner',enabled=true){
  const p=portal('gym/reports.html',{user:{id:'report-user'},roles:[{user_id:'report-user',role,tenant_id:role==='super_admin'?null:'gym-a'}],
   owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A'}],members:[{id:'member-a',tenant_id:'gym-a',name:'Member',wallet_balance:100}],
   records:{iv_financial_transactions:[{id:'tx',tenant_id:'gym-a',member_id:'deleted-member',kind:'topup',amount:125,created_at:'2026-11-01T03:00:00+08:00'}]}});
- const permission={enabled,calls:0};p.client.rpc=async(name,args)=>{assert.equal(name,'iv_can_read_financial_reports');assert.equal(args.p_tenant,'gym-a');permission.calls++;return {data:permission.enabled,error:null}};
+ const permission={enabled,calls:0,snapshots:[]};p.client.rpc=async(name,args)=>{if(name==='iv_report_snapshot'){permission.snapshots.push(args);return {data:{financial:[{id:'tx',tenant_id:'gym-a',member_id:'deleted-member',kind:'topup',amount:125,created_at:'2026-11-01T03:00:00+08:00'}],attendance:[],activity:[],sessions:[],members:[{id:'member-a',tenant_id:'gym-a',name:'Member',wallet_balance:100}]}};}assert.equal(name,'iv_can_read_financial_reports');assert.equal(args.p_tenant,'gym-a');permission.calls++;return {data:permission.enabled,error:null}};
  class Clock extends Date{constructor(...args){super(...(args.length?args:['2026-11-01T12:00:00+08:00']))}}
  p.context.Date=Clock;return {...p,permission,app:p.get('reportsApp')};
 }
@@ -162,8 +163,8 @@ for(const role of ['owner','staff','super_admin']){
   const p=reportFixture(role,true);await p.app.init();assert.equal(p.redirects.length,0);
   assert.equal(p.app.ivFinance.length,1);assert.match(p.element('metric-revenue').textContent,/125/);
   const dataCalls=p.calls.filter(c=>c.table!=='iv_user_roles'&&c.table!=='owners');
-  assert.ok(dataCalls.length>=5);assert.ok(dataCalls.every(c=>c.filters.some(([k,v])=>k==='tenant_id'&&v==='gym-a')));
-  assert.ok(!p.calls.find(c=>c.table==='members').fields.includes('password'));
+  assert.equal(dataCalls.length,0);assert.equal(p.permission.snapshots.length,1);assert.equal(p.permission.snapshots[0].p_tenant,'gym-a');assert.ok(dataCalls.every(c=>c.filters.some(([k,v])=>k==='tenant_id'&&v==='gym-a')));
+  assert.equal(p.calls.find(c=>c.table==='members'),undefined);
  });
 }
 test('financial permission revocation clears cached results and blocks subsequent print and refresh',async()=>{
@@ -214,4 +215,30 @@ test('denied or missing financial backend cannot fall back to client balance mut
  let writes=0;app.saveMembers=async()=>{writes++};app.finalizeDeskCheckIn=async()=>{writes++};
  p.client.rpc=async()=>({error:{code:'PGRST202',message:'Missing RPC'}});
  await app.confirmPlanSelection('1-Day Pass');assert.equal(writes,0);assert.equal(app.activeCheckInMemberId,'member');
+});
+
+test('member plan selection uses wallet-only RPC and cannot submit a cash payment or local entitlement',async()=>{
+ const p=portal('gym/memberprofile.html',{user:{id:'member'},roles:[{user_id:'member',role:'member',tenant_id:'gym-a',member_id:'member-a'}]});
+ const app=p.get('profileApp');app.currentMember={id:'member-a',tenantId:'gym-a',name:'Member',plan:'Not Selected',walletBalance:200};p.context.confirm=()=>true;
+ app.renderProfile=()=>{};app.showAlert=()=>{};app.saveData=async()=>{throw Error('No raw entitlement writes')};
+ const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return name==='iv_quote_plan'?{data:{price:150,wallet_balance:200}}:{data:{request_id:args.p_request_id,wallet_balance:50,expiration_date:'2026-11-01'}}};
+ await app.selectPlan('1-Day Pass');assert.equal(calls[1].args.p_cash_amount,0);assert.equal(app.currentMember.walletBalance,50);assert.equal(app.currentMember.plan,'1-Day Pass');
+});
+test('self profile save submits only name phone and avatar, never wallet status email or discounts',async()=>{
+ const p=portal('gym/memberprofile.html');const app=p.get('profileApp');app.currentMember={id:'member',tenantId:'gym-a',name:'Member',email:'new@example.invalid',walletBalance:999,discountPercentage:100,status:'ACTIVE'};
+ const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return{data:null,error:null}};
+ await app.saveData();const row=calls[0].args.p_records[0];for(const key of ['wallet_balance','status','email','discount_percentage'])assert.equal(key in row,false);
+});
+test('admin logout still attempts local signout after an audit network failure',async()=>{
+ const p=portal('gym/admin.html');const app=p.get('adminApp');app.currentTenantId='gym-a';app.matchedOwnerRecord={token:'token-a'};let signs=0;
+ p.client.rpc=async()=>{throw Error('Audit unavailable')};p.client.auth.signOut=async()=>{signs++;return{error:null}};
+ await app.logoutAdmin();assert.equal(signs,1);assert.equal(p.redirects.at(-1),'memberlogin.html?key=token-a');
+});
+
+test('top-up uses verified active member state and stable transaction RPC after the data cutover',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}],members:[{id:'member',tenant_id:'gym-a',status:'ACTIVE'}]});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeModalMemberId='member';app.members=[{id:'member',name:'Member'}];p.context.confirm=()=>true;
+ app.loadMembers=async()=>{};app.openProfileModal=()=>{};const calls=[];
+ p.client.rpc=async(name,args)=>{calls.push({name,args});return{data:{request_id:args.p_request_id,wallet_balance:100}}};
+ await app.addModalCredits(100);assert.equal(calls[0].name,'iv_financial_transaction');assert.equal(calls[0].args.p_operation,'topup');assert.equal(app.members[0].walletBalance,100);
 });

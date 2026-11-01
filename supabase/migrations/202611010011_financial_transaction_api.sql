@@ -68,7 +68,7 @@ BEGIN
  -- All writers lock request then member. Same-key retries serialize even across
  -- different members; full payload+actor+tenant binding is checked before return.
  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_request_id::text,0));
- SELECT * INTO m FROM public.members WHERE id=p_member_id FOR UPDATE;
+ SELECT * INTO m FROM public.members WHERE id=p_member_id AND public.iv_can_access(tenant_id) FOR UPDATE;
  IF NOT FOUND OR NOT public.iv_can_access(m.tenant_id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
  SELECT * INTO receipt FROM ironvault_private.financial_requests WHERE request_id=p_request_id;
  IF FOUND THEN
@@ -91,6 +91,11 @@ BEGIN
  ELSE
   -- Stabilize gym pricing against concurrent administrator updates until commit.
   PERFORM 1 FROM public.owners WHERE id=m.tenant_id FOR SHARE;
+  IF m.plan IN ('1-Day Pass','1-Week Pass','1-Month Unlimited') AND m.expiration_date ~ '^\d{4}-\d{2}-\d{2}$' THEN
+   BEGIN
+    IF m.expiration_date::date >= (now() AT TIME ZONE 'Asia/Manila')::date THEN RAISE EXCEPTION 'Member already has a valid plan'; END IF;
+   EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN NULL; END;
+  END IF;
   terms:=ironvault_private.plan_terms(m.id,p_plan);price:=(terms->>'price')::numeric;
   IF p_amount<>price OR p_cash_amount>price THEN RAISE EXCEPTION 'Price changed or invalid payment split; quote again'; END IF;
   cash:=p_cash_amount;wallet:=price-cash;

@@ -75,6 +75,7 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -198,7 +199,8 @@
                     <button type="submit" id="btn-submit-admin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
                         <span>Sign In to Admin Portal</span>
                     </button>
-                </form>
+                <div class="flex gap-3 text-xs"><button type="button" onclick="ivAdminAccountEmail('recovery')">Forgot password?</button><button type="button" onclick="ivAdminAccountEmail('resend')">Resend verification</button></div>
+</form>
 
                 <!-- 3. SIGN UP FORM -->
                 <form id="auth-signup-form" onsubmit="app.handleSignUpSubmit(event)" class="space-y-4 hidden">
@@ -274,6 +276,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
@@ -382,11 +385,19 @@
                 if (matched) {
                     this.currentTenantId = matched.id;
                     this.matchedOwnerRecord = matched;
+                    for(const id of ['signin-identifier','signin-password','btn-submit-signin','admin-login-email','admin-login-password','btn-submit-admin','signup-name','signup-email','signup-phone','signup-password','btn-submit-signup']){
+                        const control=document.getElementById(id);control.disabled=false;control.classList.remove('opacity-50','cursor-not-allowed');
+                    }
+
                     
                     document.getElementById('header-gym-name').innerText = matched.gymName;
                     document.getElementById('header-branch-badge').innerText = `Access & Management Portal`;
                     document.getElementById('page-title').innerText = `${matched.gymName} - Access Portal`;
                     document.getElementById('portal-subtitle').innerText = `Sign in to your account at ${matched.gymName}`;
+                    if(matched.status==='PROVISIONING'){
+                        document.getElementById('portal-subtitle').innerText='This gym is awaiting owner email verification. Use Resend verification if needed.';
+                        for(const id of ['btn-submit-signin','btn-submit-admin','btn-submit-signup'])document.getElementById(id).disabled=true;
+                    }
 
                     if (matched.logo) {
                         const headerImg = document.getElementById('header-logo-img');
@@ -600,6 +611,32 @@ async function ivCompleteRecovery(event) {
   await supabaseClient.auth.signOut();
   app.showAlert('Password changed. Please sign in with your new password.',true);
 }
+</script>
+<script src="../assets/branch-auth.js"></script>
+<script>
+IronVaultBranchAuth.install(app,supabaseClient);
+async function ivAdminAccountEmail(action){
+ try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action,portal:'admin',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById('admin-login-email').value});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
+}
+ivResendEmailConfirmation=async function(){
+ try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'resend',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById('signin-identifier').value,portal:'member'});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
+};
+(async function(){
+ const params=new URLSearchParams(location.hash.slice(1));const verify=params.get('iv_verify'),recovery=params.get('iv_recovery');
+ if(!verify&&!recovery)return;
+ history.replaceState(null,'',location.pathname+location.search);
+ try{
+  if(verify){const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'confirm',token:verify});await app.init();app.showAlert(result.message,true);}
+  else{const {data,error}=await supabaseClient.auth.verifyOtp({token_hash:recovery,type:'recovery'});
+   if(error||!data.session)throw Error('Recovery link is invalid or expired.');
+   const role=await IronVaultAuth.requireRole(supabaseClient,{roles:['member','owner','staff']});
+   const key=new URLSearchParams(location.search).get('key');
+   const {data:gyms,error:gymError}=await supabaseClient.from('owners').select('id').eq('token',key);
+   if(gymError||gyms?.length!==1||role.tenant_id!==gyms[0].id){await supabaseClient.auth.signOut();throw Error('Recovery link does not match this gym.');}
+   ivRecoveryAuthorized=true;document.getElementById('iv-recovery-panel').classList.remove('hidden');
+  }
+ }catch(error){app.showAlert(error.message);}
+})();
 </script>
 </body>
 </html>

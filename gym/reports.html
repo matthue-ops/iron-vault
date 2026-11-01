@@ -94,6 +94,7 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -312,6 +313,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
@@ -600,16 +602,12 @@ reportsApp.ivRequireReport=async function(){
  if(this.authenticatedRole&&role.user_id!==this.authenticatedRole.user_id)throw new Error('The signed-in account changed.');
  return role;
 };
-reportsApp.ivLoadLogs=async function(){
+reportsApp.ivLoadLogs=async function(start,end){
  await this.ivRequireReport();
- const id=this.currentTenant.id;
- const fetch=async table=>{const {data,error}=await supabaseClient.from(table).select('*').eq('tenant_id',id).order('created_at',{ascending:false}).limit(10000);if(error)throw error;return data||[];};
- const {data:members,error:memberError}=await supabaseClient.from('members')
-  .select('id,tenant_id,name,classification,plan,wallet_balance,status').eq('tenant_id',id);
- if(memberError)throw memberError;
- const logs=await Promise.all([fetch('iv_financial_transactions'),fetch('iv_attendance_logs'),fetch('iv_activity_logs'),fetch('iv_staff_sessions')]);
+ const {data,error}=await supabaseClient.rpc('iv_report_snapshot',{p_tenant:this.currentTenant.id,p_start:start,p_end:end});
+ if(error||!data)throw new Error(error?.message||'Report snapshot unavailable.');
  await this.ivRequireReport();
- return {logs,members:(members||[]).map(m=>({id:m.id,tenantId:m.tenant_id,name:m.name,
+ return {logs:[data.financial,data.attendance,data.activity,data.sessions],members:(data.members||[]).map(m=>({id:m.id,tenantId:m.tenant_id,name:m.name,
   classification:m.classification,plan:m.plan,walletBalance:m.wallet_balance,status:m.status}))};
 };
 reportsApp.ivRender=async function(start,end){
@@ -639,7 +637,7 @@ reportsApp.filterAndRenderReport=async function(start,end){
  const request=(this.ivRequest||0)+1;this.ivRequest=request;
  document.body?.classList.add('iv-auth-pending');
  try{
-  const result=await this.ivLoadLogs();
+  const result=await this.ivLoadLogs(start,end);
   if(request!==this.ivRequest)return;
   [this.ivFinance,this.ivAttendance,this.ivActivity,this.ivSessions]=result.logs;
   this.branchMembers=result.members;this.allMembers=result.members;

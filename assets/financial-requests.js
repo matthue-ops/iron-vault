@@ -3,12 +3,12 @@
  'use strict';
  const inflight=new Map();
  async function pending(client,storage,tenantId){
-  const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff','super_admin'],tenantId,allowGlobalSuperAdmin:true});
+  const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff','super_admin','member'],tenantId,allowGlobalSuperAdmin:true});
   const value=JSON.parse(storage.getItem('ironvault_financial_request:'+role.user_id+':'+tenantId)||'null');
   return value?JSON.parse(value.payload):null;
  }
  async function execute(client,storage,tenantId,input){
-  const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff','super_admin'],tenantId,allowGlobalSuperAdmin:true});
+  const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff','super_admin','member'],tenantId,allowGlobalSuperAdmin:true});
   const key='ironvault_financial_request:'+role.user_id+':'+tenantId;
   if(inflight.has(key))throw new Error('A payment is already being processed.');
   inflight.set(key,true);

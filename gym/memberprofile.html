@@ -81,6 +81,8 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
+    <script src="../assets/financial-requests.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -352,6 +354,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
@@ -506,15 +509,6 @@
                 }
 
                 this.currentMember = this.allMembersSystem.find(m => m.id === activeId && m.tenantId === this.authenticatedRole?.tenant_id);
-                // Once the corrected email is verified in Auth, synchronize the member profile.
-                // This does not change member IDs, balances, subscriptions or QR credentials.
-                if (this.currentMember) {
-                    const {data:{user}} = await supabaseClient.auth.getUser();
-                    if (user?.email_confirmed_at && user.email && user.email.toLowerCase() !== (this.currentMember.email || '').toLowerCase()) {
-                        this.currentMember.email = user.email;
-                        await this.saveData();
-                    }
-                }
                 if (!this.currentMember) {
                     this.redirectWithToken();
                     return;
@@ -706,7 +700,7 @@
                 const discountPct = this.getEffectiveDiscount();
                 const badgeContainer = document.getElementById('profile-classification-badge-container');
                 if (classification !== 'Regular') {
-                    badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/35">${classification} (${discountPct}%)</span>`;
+                    badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/35">${IronVaultData.escape(classification)} (${discountPct}%)</span>`;
                 } else {
                     badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">Regular</span>`;
                 }
@@ -917,46 +911,6 @@
                 document.getElementById('btn-generate-qr').classList.add('opacity-50', 'cursor-not-allowed');
             },
 
-            handleProfileUpdate: async function(e) {
-                e.preventDefault();
-                if (!this.currentMember) return;
-                try {
-                    const {data:{user},error:userError} = await supabaseClient.auth.getUser();
-                    if (userError || !user) throw Error('Please sign in again before changing account settings.');
-                    const name = document.getElementById('edit-name').value.trim();
-                    const email = document.getElementById('edit-email').value.trim().toLowerCase();
-                    const phone = document.getElementById('edit-phone').value.trim();
-                    const password = document.getElementById('edit-password').value;
-                    const currentPassword = document.getElementById('edit-current-password').value;
-                    if (password) {
-                        if (password.length < 8) throw Error('New password must have at least 8 characters.');
-                        if (!currentPassword) throw Error('Enter your current password to change it.');
-                        const {error:verifyError} = await supabaseClient.auth.signInWithPassword({email:user.email,password:currentPassword});
-                        if (verifyError) throw Error('Current password is incorrect.');
-                        const {error:passwordError} = await supabaseClient.auth.updateUser({password});
-                        if (passwordError) throw passwordError;
-                    }
-                    let pendingEmail = false;
-                    if (email !== (user.email || '').toLowerCase()) {
-                        const {error:emailError} = await supabaseClient.auth.updateUser({email});
-                        if (emailError) throw emailError;
-                        pendingEmail = true;
-                    }
-                    this.currentMember.name = name;
-                    this.currentMember.phone = phone;
-                    // Do not update the member record email until Supabase Auth verifies the new address.
-                    this.currentMember.email = user.email;
-                    delete this.currentMember.password;
-                    await this.saveData();
-                    this.renderProfile();
-                    document.getElementById('edit-email').value = email;
-                    document.getElementById('edit-password').value = '';
-                    document.getElementById('edit-current-password').value = '';
-                    this.showAlert(pendingEmail ? 'Profile saved. Confirm the new email using the verification link before it becomes your login email.' : 'Profile information updated successfully!',true);
-                    ivRefreshEmailVerification();
-                } catch(error) { this.showAlert(error.message || 'Unable to update account.',false); }
-            },
-
             showAlert: function(msg, isSuccess = true) {
                 const alertBox = document.getElementById('profile-alert');
                 const alertMsg = document.getElementById('profile-alert-msg');
@@ -1002,8 +956,8 @@
         async function ivRefreshEmailVerification() {
             const status = document.getElementById('iv-email-verification-status');
             if (!status) return;
-            const {data:{user}} = await supabaseClient.auth.getUser();
-            status.textContent = user ? ('Email: ' + (user.email || 'Not set') + ' — ' + (user.email_confirmed_at ? 'Verified' : 'Not verified')) : 'Email verification status unavailable. Please sign in.';
+            const {data,error}=await supabaseClient.rpc('iv_contact_status');
+            status.textContent=error||!data?'Contact verification status unavailable.':('Email: '+data.email+' — '+(data.verified?'Verified':'Not verified'));
         }
         window.addEventListener('load', () => setTimeout(ivRefreshEmailVerification, 600));
         window.onload = function() {
@@ -1060,5 +1014,8 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 });
 
 </script>
+<script src="../assets/branch-auth.js"></script>
+<script src="../assets/application-workflows.js"></script>
+<script>IronVaultWorkflows.install(profileApp,supabaseClient,'member');</script>
 </body>
 </html>
