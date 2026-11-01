@@ -187,3 +187,31 @@ test('denied report navigation keeps ordinary staff in the desk portal',async()=
  p.client.rpc=async()=>({data:false,error:null});const before=p.context.location.href;
  await app.openReportsPage();assert.equal(p.context.location.href,before);assert.equal(p.alerts.length,1);
 });
+
+test('desk sale uses a server quote and payment RPC without saving client financial fields',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}]});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeCheckInMemberId='member';p.context.confirm=()=>true;
+ let admitted=0;app.finalizeDeskCheckIn=async()=>{admitted++};app.saveMembers=async()=>{throw Error('Client write forbidden')};
+ const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return name==='iv_quote_plan'?{data:{price:150,wallet_balance:100}}:{data:{request_id:args.p_request_id,wallet_balance:0}}};
+ await app.confirmPlanSelection('1-Day Pass');
+ assert.equal(calls[0].name,'iv_quote_plan');assert.equal(calls[1].name,'iv_financial_transaction');
+ assert.equal(calls[1].args.p_amount,150);assert.equal(calls[1].args.p_cash_amount,50);assert.equal(admitted,1);
+ assert.equal(app.activeCheckInMemberId,null);
+});
+test('desk retries an unknown purchase outcome with the original key and split without quoting again',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}]});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeCheckInMemberId='member';p.context.confirm=()=>true;
+ let admitted=0,quotes=0;const requests=[];app.finalizeDeskCheckIn=async()=>{admitted++};
+ p.client.rpc=async(name,args)=>{if(name==='iv_quote_plan'){quotes++;return{data:{price:150,wallet_balance:100}}}
+  requests.push(args);if(requests.length===1)throw Error('Lost response');return{data:{request_id:args.p_request_id,wallet_balance:0}}};
+ await app.confirmPlanSelection('1-Day Pass');assert.equal(admitted,0);
+ await app.confirmPlanSelection('1-Day Pass');assert.equal(admitted,1);assert.equal(quotes,1);
+ assert.equal(requests[0].p_request_id,requests[1].p_request_id);assert.equal(requests[1].p_cash_amount,50);
+});
+test('denied or missing financial backend cannot fall back to client balance mutations or admission',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}]});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeCheckInMemberId='member';p.context.confirm=()=>true;
+ let writes=0;app.saveMembers=async()=>{writes++};app.finalizeDeskCheckIn=async()=>{writes++};
+ p.client.rpc=async()=>({error:{code:'PGRST202',message:'Missing RPC'}});
+ await app.confirmPlanSelection('1-Day Pass');assert.equal(writes,0);assert.equal(app.activeCheckInMemberId,'member');
+});

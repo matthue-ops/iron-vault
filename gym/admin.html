@@ -73,6 +73,7 @@
         }
     </style>
     <script src="../assets/auth-session.js"></script>
+    <script src="../assets/financial-requests.js"></script>
     <script src="../assets/staff-report-permissions.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
@@ -1826,81 +1827,34 @@
             },
 
             confirmPlanSelection: async function(selectedPlanName) {
-                document.getElementById('plan-selection-modal').classList.add('hidden');
-                if (!this.activeCheckInMemberId) return;
-                const memberId = this.activeCheckInMemberId;
-                this.activeCheckInMemberId = null;
-
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) return;
-
-                const pricing = this.matchedOwnerRecord?.pricing || { day: 150, week: 700, month: 2500 };
-                let baseCost = 150;
-                if (selectedPlanName === '1-Day Pass') baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
-                else if (selectedPlanName === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
-                else if (selectedPlanName === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
-
-                const discountPct = member.discountPercentage !== undefined ? Number(member.discountPercentage) : 0;
-                const collectedAmount = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
-                const currentBalance = member.walletBalance || 0;
-
-                let cashToCollect = 0;
-                let creditsUsed = 0;
-
-                if (currentBalance >= collectedAmount) {
-                    member.walletBalance = currentBalance - collectedAmount;
-                    creditsUsed = collectedAmount;
-                    alert(`Deducted ₱${collectedAmount.toLocaleString()} from ${member.name}'s wallet credits for ${selectedPlanName}.\nRemaining Balance: ₱${member.walletBalance.toLocaleString()}`);
-                } else {
-                    creditsUsed = currentBalance;
-                    cashToCollect = collectedAmount - currentBalance;
-
-                    const payPartial = confirm(
-                        `INSUFFICIENT CREDITS!\n\n` +
-                        `Required Plan Cost (${selectedPlanName}): ₱${collectedAmount.toLocaleString()}\n` +
-                        `Member Wallet Balance: ₱${currentBalance.toLocaleString()} (Will be fully used)\n` +
-                        `Remaining Balance to Collect in Cash: ₱${cashToCollect.toLocaleString()}\n\n` +
-                        `Deduct all credits and collect ₱${cashToCollect.toLocaleString()} CASH at desk to admit member?`
-                    );
-
-                    if (!payPartial) {
-                        alert(`ENTRY BLOCKED: ${member.name} was NOT admitted due to insufficient funds.`);
-                        return;
+                const id=this.activeCheckInMemberId;
+                if(!id)return;
+                try{
+                    await ivRequireRole(['owner','staff'],this.currentTenantId);
+                    const pending=await IronVaultFinance.pending(supabaseClient,sessionStorage,this.currentTenantId);
+                    let price,cash;
+                    if(pending){
+                        if(pending.p_operation!=='purchase'||pending.p_member_id!==id||pending.p_plan!==selectedPlanName)
+                            throw new Error('Retry the unresolved payment before starting a different payment.');
+                        price=pending.p_amount;cash=pending.p_cash_amount;
+                    }else{
+                        const {data:quote,error}=await supabaseClient.rpc('iv_quote_plan',{p_member_id:id,p_plan:selectedPlanName});
+                        if(error||!quote)throw new Error('Unable to quote this plan.');
+                        price=Number(quote.price);const balance=Number(quote.wallet_balance);
+                        if(!Number.isFinite(price)||price<=0||!Number.isFinite(balance)||balance<0)throw new Error('Invalid plan quote.');
+                        cash=Math.round(Math.max(0,price-balance)*100)/100;
                     }
-
-                    member.walletBalance = 0;
-                }
-
-                let planDays = 0;
-                if (selectedPlanName === '1-Week Pass') planDays = 7;
-                else if (selectedPlanName === '1-Month Unlimited') planDays = 30;
-
-                const now = new Date();
-                let expiryDate = new Date();
-                if (planDays > 0) {
-                    expiryDate.setDate(now.getDate() + planDays);
-                } else {
-                    expiryDate.setDate(now.getDate());
-                }
-
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                
-                member.plan = selectedPlanName;
-                member.amount = (member.amount || 0) + collectedAmount;
-                member.dateJoined = todayStr;
-                member.expirationDate = expiryDate.toISOString().split('T')[0];
-                member.scansUsed = (member.scansUsed || 0) + 1;
-                member.lastScannedDate = todayStr;
-
-                await this.saveMembers();
-                await this.loadMembers();
-
-                const daysLeft = this.calculateDaysLeft(member.expirationDate);
-                this.logAudit('Desk Entry & Plan Subscription', `Manual desk check-in & ${member.plan} subscription (Credits used: ₱${creditsUsed}, Cash collected: ₱${cashToCollect}) for ${member.name} (${member.id})`);
-                this.closeManualCheckInModal();
-                this.searchManualCheckIn();
-
-                alert(`SUCCESS: Subscribed to ${member.plan}!\nCredits Deducted: ₱${creditsUsed}\nCash Collected: ₱${cashToCollect}\nEntry Logged for ${member.name}!`);
+                    if(!confirm((pending?'Retry the previous payment; do not collect cash again. ':'Purchase ')+selectedPlanName+' for '+ivMoney(price)+'? Wallet: '+ivMoney(price-cash)+', cash to collect: '+ivMoney(cash)))return;
+                    const result=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{
+                        p_operation:'purchase',p_member_id:id,p_plan:selectedPlanName,p_amount:price,p_cash_amount:cash
+                    });
+                    this.activeCheckInMemberId=null;
+                    document.getElementById('plan-selection-modal').classList.add('hidden');
+                    alert('Purchase recorded. Remaining wallet: '+ivMoney(result.wallet_balance));
+                }catch(error){alert('Purchase not confirmed: '+error.message);return;}
+                // Admission is a separate authorized operation; its failure must not
+                // make a committed sale appear failed or trigger another purchase.
+                await this.finalizeDeskCheckIn(id,selectedPlanName);
             },
 
             cancelPlanSelection: function() {
@@ -2476,9 +2430,10 @@ adminApp.addModalCredits=async function(amount){
  if(memberError || !record)throw new Error('Unable to verify this member’s approval status. No top-up was made.');
  if(String(record.status || '').toUpperCase() !== 'ACTIVE')throw new Error('Approve this member first before adding wallet credits.');
  if(!confirm('Add '+ivMoney(amount)+' to '+m.name+'?'))return;
- const {data,error}=await supabaseClient.rpc('iv_topup',{p_member_id:id,p_amount:+amount,p_request_id:crypto.randomUUID()});
- if(error)throw error;m.walletBalance=+data;await this.loadMembers();this.openProfileModal(id);alert('Top-up recorded: '+ivMoney(amount));}
- catch(e){alert('Top-up failed: '+e.message);}
+ const data=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{p_operation:'topup',p_member_id:id,p_plan:null,p_amount:+amount,p_cash_amount:0});
+ m.walletBalance=+data.wallet_balance;alert('Top-up recorded: '+ivMoney(amount));
+ try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){alert('Top-up is recorded; refresh the roster to see the updated balance.');}}
+ catch(e){alert('Top-up not confirmed: '+e.message);}
 };
 adminApp.finalizeDeskCheckIn=async function(id,plan){
  try{await ivRequireRole(['owner','staff'],this.currentTenantId);
