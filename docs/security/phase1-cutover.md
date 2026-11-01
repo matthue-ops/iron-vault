@@ -66,7 +66,7 @@ Keep traffic in maintenance during 011–015 and matching backend/app cutover. T
 
 ## 4. Publish only after separate deployment authorization
 
-Owner-authorized deployment must include the complete shared helper folder and pinned imports. Functions:
+Owner-authorized deployment must include the complete shared helper folder and pinned imports. For Dashboard editing, use the generated standalone files in [supabase/dashboard](../../supabase/dashboard/README.md): each entire file replaces only that function's index.ts and needs no Add File or relative imports. Do not mix standalone and modular files. Functions:
 
 1. provision-gym-tenant — replace supplied implementation, JWT verification true.
 2. iv-create-member — replace supplied implementation, JWT verification true.
