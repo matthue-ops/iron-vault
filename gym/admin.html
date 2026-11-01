@@ -1637,7 +1637,7 @@
 
             renderRoster: function(list) {
                 const tbody = document.getElementById('roster-tbody');
-                const activeList = list.filter(m => m.status !== 'PENDING');
+                const activeList = list.filter(m => m.status === 'ACTIVE');
                 document.getElementById('showing-count').innerText = activeList.length;
 
                 if (activeList.length === 0) {

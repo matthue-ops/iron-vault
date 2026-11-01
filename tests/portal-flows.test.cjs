@@ -242,3 +242,19 @@ test('top-up uses verified active member state and stable transaction RPC after 
  p.client.rpc=async(name,args)=>{calls.push({name,args});return{data:{request_id:args.p_request_id,wallet_balance:100}}};
  await app.addModalCredits(100);assert.equal(calls[0].name,'iv_financial_transaction');assert.equal(calls[0].args.p_operation,'topup');assert.equal(app.members[0].walletBalance,100);
 });
+
+test('deactivation removes a member from the active roster after refresh while retaining their record',async()=>{
+ const members=[{id:'removed-member',tenant_id:'gym-a',name:'Archived Person',email:'old@example.invalid',status:'ACTIVE'},
+ {id:'current-member',tenant_id:'gym-a',name:'Current Person',email:'current@example.invalid',status:'ACTIVE'}];
+ const p=portal('gym/admin.html',{user:{id:'owner'},roles:[{user_id:'owner',role:'owner',tenant_id:'gym-a',enabled:true}],members});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';p.context.confirm=()=>true;
+ p.client.rpc=async(name,args)=>{assert.equal(name,'iv_deactivate_member');assert.equal(args.p_member_id,'removed-member');members[0].status='INACTIVE';return{data:null,error:null}};
+ await app.loadMembers();assert.match(p.element('roster-tbody').innerHTML,/Archived Person/);
+ await app.deleteMember('removed-member');
+ for(let refresh=0;refresh<2;refresh++){
+  await app.loadMembers();assert.doesNotMatch(p.element('roster-tbody').innerHTML,/Archived Person/);
+  assert.match(p.element('roster-tbody').innerHTML,/Current Person/);assert.equal(p.element('showing-count').innerText,1);
+ }
+ assert.equal(members.length,2);assert.equal(app.members.find(m=>m.id==='removed-member').status,'INACTIVE');
+ assert.match(p.alerts.at(-1),/History retained/);
+});

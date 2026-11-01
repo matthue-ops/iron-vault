@@ -48,7 +48,7 @@
    app.logAudit=async function(event,details){try{await root.IronVaultData.call(client,'iv_log_event',{p_tenant:this.currentTenantId,p_event:String(event),p_details:String(details)});}catch(error){console.error('Activity log unavailable');}};
    app.deleteMember=async function(id){
     if(!root.confirm('Deactivate this membership? Financial history will be retained.'))return;
-    try{await root.IronVaultData.call(client,'iv_deactivate_member',{p_member_id:id});await this.loadMembers();root.alert('Membership deactivated.');}
+    try{await root.IronVaultData.call(client,'iv_deactivate_member',{p_member_id:id});await this.loadMembers();root.alert('Membership deactivated and removed from the active roster. History retained.');}
     catch(error){root.alert(error.message);}
    };
    app.handleStaffSignup=async function(event){event.preventDefault();
