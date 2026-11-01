@@ -22,7 +22,7 @@ export async function provision(req:Request,input:any,kind:'member'|'tenant',pub
  else if(!authId){
   const {data,error}=await admin.auth.admin.createUser({email:alias,password,email_confirm:true,
    app_metadata:{iv_provision_request:request},user_metadata:{name}});
-  if(error||!data.user)throw Error('Operation could not be completed.');authId=data.user.id;
+  if(error||!data.user){console.error('Iron Vault Auth create failed',/^[A-Za-z0-9_]{1,64}$/.test(error?.code||'')?error?.code:'unknown',error?.status||0);throw Error('Operation could not be completed.');}authId=data.user.id;
  }
  const result=await rpc('iv_finish_branch_account',{p_request:request,p_user:authId});
  // If mail fails the job and Auth identity remain for a safe same-request retry.

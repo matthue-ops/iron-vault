@@ -94,3 +94,12 @@ test('an administrator can correct an unverified address using new-address proof
 test('a gym owner cannot correct a different tenant contact',async()=>{
  const f=contactFixture(true,'other-gym');await assert.rejects(f.c.changeContact(new Request('https://edge.example.invalid'),{new_email:'new@example.invalid'},'member'),/Not authorized/);assert.equal(f.mail.length,0);assert.equal(f.queues.length,0);
 });
+
+test('RPC diagnostics identify the failed operation without logging private arguments or provider text',async()=>{
+ const f=runtime(),logs=[];f.c.console.error=(...args)=>logs.push(args);
+ f.client.rpc=async()=>({error:{code:'23505',message:'private-contact@example.invalid',details:'secret-token'}});
+ await assert.rejects(f.c.rpc('iv_prepare_branch_account',{p_email:'private-contact@example.invalid',password:'secret-password'}),/Operation could not/);
+ assert.deepEqual(logs,[['Iron Vault RPC failed','iv_prepare_branch_account','23505']]);
+ f.client.rpc=async()=>({error:{code:'secret@email.invalid'}});
+ await assert.rejects(f.c.rpc('iv_finish_branch_account',{}));assert.equal(logs[1][2],'unknown');
+});

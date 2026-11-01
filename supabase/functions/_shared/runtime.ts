@@ -5,7 +5,7 @@ const url=Deno.env.get('SUPABASE_URL')!;
 const key=Deno.env.get('SUPABASE_ANON_KEY')!;
 export const admin=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{autoRefreshToken:false,persistSession:false}});
 export function publicClient(){return createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});}
-export async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await admin.rpc(name,args);if(error)throw Error('Operation could not be completed.');return data;}
+export async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await admin.rpc(name,args);if(error){console.error('Iron Vault RPC failed',name,/^[A-Za-z0-9_]{1,64}$/.test(error.code||'')?error.code:'unknown');throw Error('Operation could not be completed.');}return data;}
 export async function actor(req:Request){
  const match=/^Bearer\s+(.+)$/i.exec(req.headers.get('authorization')||'');
  if(!match)throw Error('Sign in required.');
@@ -21,13 +21,13 @@ export async function sendMail(to:string,subject:string,link:string){
  const text=subject+'\n\nOpen this link in your browser:\n'+link+'\n\nIf you did not request this, ignore this email.';
  if(Deno.env.get('BREVO_API_KEY')){
   const response=await fetch('https://api.brevo.com/v3/smtp/email',{method:'POST',headers:{'api-key':Deno.env.get('BREVO_API_KEY')!,'Content-Type':'application/json'},body:JSON.stringify({sender:{email:from,name:'Iron Vault'},to:[{email:to}],subject,textContent:text})});
-  if(!response.ok)throw Error('Email delivery failed.');
+  if(!response.ok){console.error('Iron Vault mail API failed',response.status);throw Error('Email delivery failed.');}
  }else{
   const {default:nodemailer}=await import('npm:nodemailer@6.10.1');
   const port=Number(Deno.env.get('SMTP_PORT')||587);
   const transport=nodemailer.createTransport({host:Deno.env.get('SMTP_HOST')||'smtp-relay.brevo.com',port,secure:port===465,
    requireTLS:true,tls:{rejectUnauthorized:true},auth:{user:Deno.env.get('SMTP_USER'),pass:Deno.env.get('SMTP_PASSWORD')}});
-  try{await transport.sendMail({from,to,subject,text});}finally{transport.close();}
+  try{await transport.sendMail({from,to,subject,text});}catch(error){const code=(error as {code?:string})?.code;console.error('Iron Vault SMTP failed',/^[A-Za-z0-9_]{1,64}$/.test(code||'')?code:'unknown');throw Error('Email delivery failed.');}finally{transport.close();}
  }
 }
 export async function sendVerification(userId:string){
