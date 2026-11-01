@@ -33,3 +33,12 @@ No data rollback is necessary because existing records are unchanged. If compati
 Local checks: 75 Node tests passed; pglast 8.7 parsed all SQL files and contained SQL/PLpgSQL bodies without executing SQL. Hosted RLS, migration privileges and RPC behavior remain untested. No Supabase SQL, account operation, merge or deployment was performed.
 
 Local Chromium checks with mocked Supabase and external requests passed: granted staff can render ledger totals, ungranted staff are denied, and revocation blocks printing. No Supabase endpoint was contacted.
+
+## T dependency follow-up (prepared, not applied)
+
+T1/T3/T4/T5 exports are received and fully reviewed; T2 succeeded with zero rows. P1 is closed in the single progress document; older references to unavailable T exports are superseded.
+
+8. `202611010008_staff_permission_tenant_fk.sql`: additive validated tenant FK for the new permission table, after confirmed 006; no cascade, legacy row rewrite or data deletion. An orphan aborts the transaction.
+9. `202611010009_member_tenant_contact_uniqueness.sql`: behavior-changing, non-destructive unique index on tenant plus normalized contact email; cross-gym reuse remains valid. No Auth accounts are changed. Existing normalized duplicates or conflicting index name abort safely. Uses transactional CREATE INDEX with a write lock: schedule appropriately. Not a replacement for branch-aware Auth identity implementation.
+
+Each file includes its metadata verification; return results and commit confirmation. On error ROLLBACK and return the error without bypassing guards or deleting records. No file was executed. Preserve all existing request, Auth, role and email indexes.
