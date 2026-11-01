@@ -12,6 +12,23 @@
  async function call(client,name,args){const {data,error}=await client.rpc(name,args);if(error)throw new Error(error.message||'Change was not saved.');return data;}
  async function saveMembers(client,records){return call(client,'iv_save_member_profiles',{p_records:records.map(member)});}
  async function saveGyms(client,records){return call(client,'iv_save_gym_settings',{p_records:records.map(gym)});}
+ async function loadMaster(client){
+  const results=await Promise.all([client.from('owners').select('*'),client.from('members').select('*')]);
+  for(const [index,result] of results.entries()){
+   if(result.error||!Array.isArray(result.data)){
+    const label=index===0?'gym directory':'member directory';
+    const reason=result.error?.message||'The server returned an invalid response.';
+    const code=result.error?.code?' ['+result.error.code+']':'';
+    const error=new Error('Could not load '+label+code+': '+reason);error.code='DATA_LOAD_FAILED';throw error;
+   }
+  }
+  return {owners:results[0].data.map(o=>({id:o.id,gymName:o.gym_name,ownerName:o.owner_name,email:o.email,
+   token:o.token,logo:o.logo,status:o.status,pricing:o.pricing,staff:o.staff||[],auditLogs:o.audit_logs||[],dateCreated:o.date_created})),
+   members:results[1].data.map(m=>({id:m.id,tenantId:m.tenant_id,tenantToken:m.tenant_token,name:m.name,email:m.email,phone:m.phone,
+    classification:m.classification,discountPercentage:m.discount_percentage,plan:m.plan,cardBarcode:m.card_barcode,
+    walletBalance:m.wallet_balance,amount:m.amount,scansUsed:m.scans_used,lastScannedDate:m.last_scanned_date,
+    expirationDate:m.expiration_date,status:m.status,dateJoined:m.date_joined,avatar:m.avatar}))};
+ }
  function install(client){
   if(installed.has(client))return client;installed.add(client);
   root.localStorage?.removeItem('ironvault_owners_db');root.localStorage?.removeItem('ironvault_members_db');
@@ -67,6 +84,6 @@
   };
   return client;
  }
- root.IronVaultData=Object.freeze({install,saveMembers,saveGyms,call,escape,argument,member,gym});
+ root.IronVaultData=Object.freeze({install,saveMembers,saveGyms,call,escape,argument,member,gym,loadMaster});
  if(typeof module==='object'&&module.exports)module.exports=root.IronVaultData;
 })(globalThis);

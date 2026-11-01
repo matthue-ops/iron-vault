@@ -63,3 +63,7 @@ NOT STARTED optional follow-ups: permanent erasure/retention cleanup, shorter di
 ## Dashboard installation continuation
 
 The owner supplied a SQL Editor screenshot showing the final role verification result and reported adding Edge secrets. This is owner-reported installation evidence, not agent SQL execution or proof of end-to-end acceptance; do not blindly rerun the SQL. The current Code screenshot shows the original iv-create-member index.ts. Four generated standalone Dashboard files now avoid manual shared-helper setup and preserve the modular implementation exactly. 119 local tests pass; all four standalone entries passed Deno type checking. No function was deployed by the agent. Mail delivery and actual backend/app acceptance remain unverified.
+
+## Live-preview empty-directory investigation
+
+Owner screenshot confirms a Super Admin dashboard session but displays zero directories. This does not prove records are absent. Verified application defect: both original directory loaders swallowed Supabase errors and could render empty arrays as an empty database. Replaced them with a shared strict loader, removed stale-cache/automatic-default write fallbacks, and preserved the actual server failure through the master session UI. Successful empty results remain valid; failing reads hide private dashboard content and report the error. No database/Edge changes or SQL rerun is required for this diagnostic fix. The deployed response still needs to identify whether the current symptom is a query failure or truly empty views.

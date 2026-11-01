@@ -13,6 +13,7 @@
         const show = id => node(id)?.classList.remove('hidden');
         let generation = 0;
         let activeUserId = null;
+        let lastAccessError = null;
         const authorize = () => root.IronVaultAuth.requireRole(client, {roles: ['super_admin']});
         function clear() {
             generation++;
@@ -65,11 +66,13 @@
             }
         };
         app.checkSession = async function () {
+            lastAccessError = null;
             try {
                 await app.loadData();
                 dashboardView();
                 return true;
-            } catch (_) {
+            } catch (error) {
+                lastAccessError = error;
                 clear();
                 if (hub) {
                     hide('super-auth-card');
@@ -78,9 +81,11 @@
                 return false;
             }
         };
-        app.init = async function () { await this.checkSession(); };
+        app.init = async function () {
+            if (!await this.checkSession() && lastAccessError?.code === 'DATA_LOAD_FAILED') notify(lastAccessError.message);
+        };
         app.showDashboardView = async function () {
-            if (!await this.checkSession()) loginView();
+            if (!await this.checkSession()) {loginView();if(lastAccessError?.code === 'DATA_LOAD_FAILED') notify(lastAccessError.message);}
         };
         app.requestMasterAccess = app.showDashboardView;
         app.showHubView = function () {
@@ -99,7 +104,7 @@
                     email: node('super-email').value.trim(), password: node('super-password').value
                 });
                 if (error) throw new Error('Sign-in failed. Check your account and password.');
-                if (!await this.checkSession()) throw new Error('A verified Super Admin account is required.');
+                if (!await this.checkSession()) throw lastAccessError || new Error('A verified Super Admin account is required.');
                 node('super-password').value = '';
             } catch (error) {
                 try { await root.IronVaultAuth.signOut(client, session, cache); } catch (_) {}

@@ -10,7 +10,7 @@ function fixture(role='super_admin',hub=false){
     const session=storage(),cache=storage();
     const client={auth:{getUser:async()=>({data:{user:state.user}}),signInWithPassword:async()=>({error:null}),signOut:async()=>{state.signouts++;return {error:null}},onAuthStateChange:fn=>{state.listener=fn}},
       from:()=>({select(){return this},eq:async()=>({data:state.roles.map(role=>({user_id:'actor',tenant_id:role==='super_admin'?null:'gym-a',role})),error:null})})};
-    const app={owners:[],members:[],loadData:async function(){state.loads++;this.owners=['private']},renderDashboard(){state.renders++}};
+    const app={owners:[],members:[],loadData:async function(){state.loads++;if(state.loadError)throw state.loadError;this.owners=['private']},renderDashboard(){state.renders++}};
     install(app,client,{hub,document:{getElementById:node},sessionStorage:session,localStorage:cache,notify:s=>state.alerts.push(s)});
     return {state,app,node,session,cache,client};
 }
@@ -53,4 +53,9 @@ test('same-user SIGNED_IN refresh events do not hide an authorized dashboard',as
 test('a different Auth identity event clears the previous user private view',async()=>{
     const f=fixture();await f.app.init();f.state.listener('SIGNED_IN',{user:{id:'different-user'}});
     assert.equal(f.node('super-dashboard').classList.contains('hidden'),true);assert.equal(f.app.owners.length,0);
+});
+
+for(const hub of [false,true])test(`master read failures show the server error without rendering a false empty dashboard (hub=${hub})`,async()=>{
+ const f=fixture('super_admin',hub);const failure=new Error('Could not load gym directory [PGRST205]: View missing');failure.code='DATA_LOAD_FAILED';f.state.loadError=failure;
+ await f.app.init();assert.equal(f.state.renders,0);assert.equal(f.node('super-dashboard').classList.contains('hidden'),true);assert.equal(f.state.alerts[0],failure.message);
 });

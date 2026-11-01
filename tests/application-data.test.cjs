@@ -25,3 +25,11 @@ test('HTML and executable argument escaping preserve names without enabling mark
  assert.equal(data.escape('<img onerror="x">'), '&lt;img onerror=&quot;x&quot;&gt;');
  assert.equal(decodeURIComponent(data.argument("O'Brien")),"O'Brien");assert.equal(data.argument("O'Brien").includes("'"),false);
 });
+test('master loader exposes Supabase read errors instead of inventing an empty directory',async()=>{
+ const client={from:table=>({select:async()=>table==='owners'?{data:null,error:{code:'PGRST205',message:'View missing from schema cache'}}:{data:[],error:null}})};
+ await assert.rejects(data.loadMaster(client),error=>error.code==='DATA_LOAD_FAILED'&&error.message.includes('PGRST205')&&error.message.includes('gym directory'));
+});
+test('master loader accepts genuine empty results and never writes defaults into the database',async()=>{
+ const client={from:()=>({select:async()=>({data:[],error:null})}),rpc:()=>{throw Error('Loading must not write')}};
+ assert.deepEqual(await data.loadMaster(client),{owners:[],members:[]});
+});
