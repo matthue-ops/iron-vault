@@ -112,3 +112,49 @@ test('member signup succeeds without SMTP or confirmation and retains gym approv
  const result=await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'New Member',email:'test@example.invalid',password:'test-only-password'},'member',true);
  assert.equal(result.ok,true);assert.match(result.message,/without email confirmation/);assert.match(result.message,/gym approval/);
 });
+
+function purgeFixture({binding={role:'super_admin',tenant_id:null},passwordOk=true,failDelete=false,sharedAccount=null}={}){
+ const calls=[],deleted=[],pending=['account-a','account-b'];let handler,retained=0;
+ const c=load('supabase/functions/iv-purge-tenant/index.ts',{
+  serve:fn=>{handler=fn},actor:async()=>({id:'master',email:'master@example.invalid'}),role:async()=>binding,limit:async()=>{},
+  publicClient:()=>({auth:{signInWithPassword:async()=>passwordOk?{data:{user:{id:'master'}}}:{data:{},error:{message:'Denied'}}}}),
+  admin:{auth:{admin:{deleteUser:async id=>{deleted.push(id);return failDelete&&id==='account-b'?{error:{status:500,code:'unexpected_failure'}}:{error:null}}}}},
+  rpc:async(name,args)=>{calls.push(args);assert.equal(name,'iv_tenant_purge_control');assert.equal(args.p_actor,'master');
+   if(args.p_action==='preview')return{tenant_id:'gym',members:2};
+   if(args.p_action==='check')return{eligible:args.p_user!==sharedAccount,shared:args.p_user===sharedAccount};
+   if(args.p_action==='retain'){pending.splice(pending.indexOf(args.p_user),1);retained++;}
+   if(args.p_action==='ack'){pending.splice(pending.indexOf(args.p_user),1);}
+   if(args.p_action==='finish')return{complete:true,retained_accounts:retained};
+   return{pending_users:[...pending],remaining:pending.length};}
+ });
+ return{run:body=>handler(new Request('https://edge.example.invalid'),body),calls,deleted,pending,setDeleteFailure:value=>{failDelete=value}};
+}
+const purgeInput={action:'purge',tenant_id:'gym',request_id:'12345678-1234-4234-8234-123456789abc',confirmation:'PURGE gym',password:'private-password',review:{members:2}};
+test('tenant purge denies non-global administrators before any data or Auth action',async()=>{
+ for(const binding of [{role:'owner',tenant_id:'gym'},{role:'staff',tenant_id:'gym'},{role:'member',tenant_id:'gym'},{role:'super_admin',tenant_id:'gym'}]){
+  const f=purgeFixture({binding});await assert.rejects(f.run(purgeInput),/Not authorized/);assert.equal(f.calls.length,0);assert.equal(f.deleted.length,0);
+ }
+});
+test('tenant purge requires exact confirmation and fresh Master password proof',async()=>{
+ const f=purgeFixture();await assert.rejects(f.run({...purgeInput,confirmation:'gym'}),/Invalid request/);assert.equal(f.calls.length,0);
+ const bad=purgeFixture({passwordOk:false});await assert.rejects(bad.run(purgeInput),/Sign in required/);assert.equal(bad.calls.length,0);assert.equal(bad.deleted.length,0);
+});
+test('purge preview performs no deletion and successful purge acknowledges every Auth deletion before finishing',async()=>{
+ const f=purgeFixture();await f.run({action:'preview',tenant_id:'gym'});assert.equal(f.deleted.length,0);
+ const result=await f.run(purgeInput);assert.equal(result.complete,true);assert.deepEqual(f.deleted,['account-a','account-b']);
+ assert.deepEqual(f.calls.filter(x=>x.p_action==='ack').map(x=>x.p_user),f.deleted);
+ assert.equal(f.calls.at(-1).p_action,'finish');assert.equal(JSON.stringify(f.calls).includes('private-password'),false);
+});
+test('failed Auth cleanup leaves a resumable purge and does not claim completion',async()=>{
+ const f=purgeFixture({failDelete:true});const result=await f.run(purgeInput);
+ assert.equal(result.complete,false);assert.equal(result.remaining,1);assert.equal(result.failed,1);
+ assert.equal(f.calls.some(x=>x.p_action==='finish'),false);assert.deepEqual(f.pending,['account-b']);
+ f.setDeleteFailure(false);assert.equal((await f.run({...purgeInput,action:'resume'})).complete,true);
+ assert.equal(f.calls.filter(x=>x.p_action==='start').length,1);
+});
+
+test('purge preserves accounts still linked elsewhere instead of deleting their Auth identity',async()=>{
+ const f=purgeFixture({sharedAccount:'account-a'});const result=await f.run(purgeInput);
+ assert.equal(result.complete,true);assert.equal(result.retained_accounts,1);assert.deepEqual(f.deleted,['account-b']);
+ assert.equal(f.calls.some(x=>x.p_action==='retain'&&x.p_user==='account-a'),true);
+});

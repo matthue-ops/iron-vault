@@ -1,7 +1,7 @@
 /* Generate single-file Dashboard entries; never deploys or invokes a function. */
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..'),base=path.join(root,'supabase/functions');
-const names=['iv-create-member','provision-gym-tenant','iv-admin-correct-member-email','iv-branch-auth'];
+const names=['iv-create-member','provision-gym-tenant','iv-admin-correct-member-email','iv-branch-auth','iv-purge-tenant'];
 const shared=['runtime','identity','provision','contact'];
 function source(file){return fs.readFileSync(file,'utf8').replace(/^import .*?from ['"]\.[^'"]+['"];\r?\n/gm,'').replace(/^export /gm,'');}
 for(const name of names){
@@ -13,4 +13,4 @@ for(const name of names){
  if(process.argv.includes('--check')){if(!fs.existsSync(output)||fs.readFileSync(output,'utf8')!==text)throw Error('Stale Dashboard source: '+name);}
  else{fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,text);}
 }
-console.log(process.argv.includes('--check')?'Dashboard entries match modular sources.':'Generated four standalone Dashboard entries; no deployment.');
+console.log(process.argv.includes('--check')?'Dashboard entries match modular sources.':'Generated standalone Dashboard entries; no deployment.');

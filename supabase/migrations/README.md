@@ -29,3 +29,7 @@ Read-only acceptance is in ../verification/phase1_acceptance.sql. Capture its V1
 ### 016: Optional member email confirmation
 
 For installations through 015, run only `202611010016_member_optional_email_verification.sql`, then manually deploy the updated standalone `iv-branch-auth` and `iv-create-member` functions. Members can sign in without email proof; approval and revocation still apply. Existing non-revoked ACTIVE/PENDING member roles blocked by the former mail gate are enabled. Owner/staff activation is unchanged. Password recovery still requires an emailed recovery token. No SQL has been executed by the agent.
+
+### 017: Super Admin permanent tenant purge
+
+After 016, manually run only `202611010017_super_admin_tenant_purge.sql` and deploy the new standalone `iv-purge-tenant` function (JWT ON). The migration installs definitions, not a purge invocation. See `docs/security/tenant-purge.md` for review, confirmation, resumable Auth cleanup and limits. No live deletion has been performed by the agent.

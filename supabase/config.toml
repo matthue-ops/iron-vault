@@ -9,3 +9,6 @@ verify_jwt = true
 verify_jwt = true
 [functions.iv-admin-correct-member-email]
 verify_jwt = true
+
+[functions.iv-purge-tenant]
+verify_jwt = true

@@ -258,3 +258,26 @@ test('deactivation removes a member from the active roster after refresh while r
  assert.equal(members.length,2);assert.equal(app.members.find(m=>m.id==='removed-member').status,'INACTIVE');
  assert.match(p.alerts.at(-1),/History retained/);
 });
+
+test('master purge requires typed tenant confirmation and clears password after the operation',async()=>{
+ const p=portal('gym/index.html',{user:{id:'master'},roles:[{user_id:'master',role:'super_admin',tenant_id:null,enabled:true}]});
+ const app=p.get('indexApp');const calls=[];
+ // The API object is frozen; inject a test transport before installing the purge controller.
+ p.context.IronVaultBranchAuth={invoke:async(client,name,body)=>{calls.push(body);assert.equal(name,'iv-purge-tenant');
+  return body.action==='preview'?{gym_name:'Gym',members:2,accounts:3,transactions:4,attendance:5,activity:6,sessions:7,wallet_credit:'150',wallet_accounts:1}:{complete:true};}};
+ p.context.IronVaultTenantPurge.install(app,p.client);app.loadData=async()=>{};app.renderDashboard=()=>{};
+ await app.openTenantPurge('gym-a');assert.match(p.element('purge-summary').textContent,/150/);
+ p.element('purge-password').value='private-password';p.element('purge-confirmation').value='gym-a';
+ await app.confirmTenantPurge({preventDefault(){}});assert.equal(calls.length,1);
+ p.element('purge-confirmation').value='PURGE gym-a';await app.confirmTenantPurge({preventDefault(){}});
+ assert.equal(calls[1].action,'purge');assert.equal(calls[1].tenant_id,'gym-a');assert.equal(p.element('purge-password').value,'');
+ assert.equal(p.alerts.at(-1),'Tenant and its dedicated accounts permanently purged.');
+});
+
+test('signout clears private tenant purge details and the password',async()=>{
+ const p=portal('gym/index.html',{user:{id:'master'},roles:[{user_id:'master',role:'super_admin',tenant_id:null,enabled:true}]});
+ const app=p.get('indexApp');p.context.IronVaultBranchAuth={invoke:async()=>({gym_name:'Private Gym',wallet_credit:'100'})};
+ p.context.IronVaultTenantPurge.install(app,p.client);await app.openTenantPurge('gym-a');
+ p.element('purge-password').value='private-password';assert.match(p.element('purge-summary').textContent,/Private Gym/);
+ p.authEvents.at(-1)('SIGNED_OUT',null);assert.equal(p.element('purge-password').value,'');assert.equal(p.element('purge-summary').textContent,'');
+});

@@ -79,3 +79,7 @@ Owner requested member sign-in without prior email confirmation, with email proo
 ## Active roster deactivation display fix
 
 Owner reports successful member deactivation but the member remains visible after page refresh. Confirmed renderRoster excluded only PENDING, leaving INACTIVE rows in the active roster. It now displays only ACTIVE members and the success message clarifies that history is retained. Regression exercises deactivation plus repeated server reload, asserts the inactive member stays out of the roster and remains stored. 126 local tests pass. No SQL, permissions, Edge code or stored records changed; production deployment is owner-managed.
+
+## Super Admin permanent tenant purge
+
+Owner explicitly requested a full tenant purge option. Added a separate review/typed tenant confirmation/fresh Master password flow to both Master entrypoints, a service-only SQL control API (017), and JWT-protected iv-purge-tenant. Application records are deleted in one transaction; dedicated Auth accounts are deleted through the supported Admin API with resumable bounded cleanup. Shared identities and global Super Admin are preserved. Failed/partial cleanup remains accessible through Resume pending purges. Wallet balances are disclosed; purge does not refund money. External backups/exports/provider mail and hashed rate counters are outside scope. See tenant-purge.md. No live SQL, deletion or deployment performed. 133 local tests pass. SQL/PLpgSQL parsed, new modular/standalone Edge entry type-checked; disposable-tenant database acceptance remains unperformed.

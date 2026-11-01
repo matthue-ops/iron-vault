@@ -85,6 +85,7 @@
    };
    app.toggleStaffAdminPrivilege=async function(){root.alert('Use the Financial report access controls below. Staff accounts retain their assigned role.');};
   }else if(kind==='master'){
+   root.IronVaultTenantPurge.install(app,client);
    app.sendOwnerRecovery=async function(id){const gym=this.owners.find(g=>g.id===id);if(!gym)return;
     try{const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:gym.status==='PROVISIONING'?'resend':'recovery',portal:'admin',gym_token:gym.token,email:gym.email});root.alert(result.message);}catch(error){root.alert(error.message);}
    };
