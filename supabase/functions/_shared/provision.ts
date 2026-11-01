@@ -1,8 +1,7 @@
-import {admin,publicClient,rpc,role,actor,digest,mailReady,sendVerification,limit} from './runtime.ts';
+import {admin,publicClient,rpc,role,actor,digest,limit} from './runtime.ts';
 export async function provision(req:Request,input:any,kind:'member'|'tenant',publicSignup=false){
  const mode=kind==='member'?'member':input.mode;
  if(!['member','create','staff'].includes(mode))throw Error('Invalid request.');
- if(mode==='create'&&!mailReady())throw Error('Email delivery is not configured.');
  const user=publicSignup?null:await actor(req);
  const email=String(input.email||'').trim().toLowerCase(),password=String(input.password||''),name=String(input.name||input.ownerName||'').trim();
  if(!/^[^\s@<>,;:"()\\]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z0-9-]{2,63}$/.test(email)||email.length>254||password.length<8||password.length>128||!name||name.length>160)throw Error('Invalid request.');
@@ -25,8 +24,7 @@ export async function provision(req:Request,input:any,kind:'member'|'tenant',pub
   if(error||!data.user){console.error('Iron Vault Auth create failed',/^[A-Za-z0-9_]{1,64}$/.test(error?.code||'')?error?.code:'unknown',error?.status||0);throw Error('Operation could not be completed.');}authId=data.user.id;
  }
  const result=await rpc('iv_finish_branch_account',{p_request:request,p_user:authId});
- // If mail fails the job and Auth identity remain for a safe same-request retry.
- // Never delete an account/tenant/member as compensation.
- if(accountRole==='owner')await sendVerification(authId);
- return {...result,email,role:accountRole,message:accountRole==='staff'?'Staff account created. Sign in now; the owner can correct an unverified contact email later.':accountRole==='member'?'Account created. You can sign in without email confirmation; gym approval may still be required.':'Account created. Verify your email to activate access.'};
+ // Provisioning never depends on contact email delivery. Recovery still requires inbox proof.
+ // Retain jobs and identities for safe same-request retries; never delete as compensation.
+ return {...result,email,role:accountRole,message:accountRole==='staff'?'Staff account created. Sign in now; the owner can correct an unverified contact email later.':accountRole==='member'?'Account created. You can sign in without email confirmation; gym approval may still be required.':'Gym and owner account created. Sign in now with your contact email and password. A working inbox is required for password recovery.'};
 }

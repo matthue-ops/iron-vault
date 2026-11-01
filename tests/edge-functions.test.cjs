@@ -35,17 +35,18 @@ test('rate limits are persisted by a service-only RPC with hashed identifiers',a
  const f=runtime();await f.c.limit('signin:contact@example.invalid');assert.equal(f.calls[0].name,'iv_auth_rate_limit');assert.equal(f.calls[0].args.p_bucket.includes('@'),false);
  f.client.rpc=async()=>({data:false});await assert.rejects(f.c.limit('same'),/Too many/);
 });
-test('provisioning sends protected app metadata, never old signup flags, and retains partial jobs on mail failure',async()=>{
+test('owner provisioning sends protected metadata, needs no mail and safely retries a partial job',async()=>{
  let created=0;let found=null;const calls=[];
  const client={auth:{admin:{createUser:async input=>{created++;calls.push(input);found='auth-id';return{data:{user:{id:found}}}},deleteUser:()=>{throw Error('No destructive cleanup permitted')}}}};
- let deliveryFails=true;
+ let deliveryCalls=0;
  const c=load('supabase/functions/_shared/provision.ts',{admin:client,publicClient:()=>({auth:{signInWithPassword:async()=>({error:null})}}),
-  actor:async()=>({id:'operator'}),role:async()=>({role:'super_admin',tenant_id:null}),digest:async value=>{calls.push({digest:value});return'a'.repeat(64)},mailReady:()=>true,limit:async()=>{},
+  actor:async()=>({id:'operator'}),role:async()=>({role:'super_admin',tenant_id:null}),digest:async value=>{calls.push({digest:value});return'a'.repeat(64)},mailReady:()=>false,limit:async()=>{},
   rpc:async(name,args)=>{calls.push({name,args});return name==='iv_find_created_account'?found:name==='iv_finish_branch_account'?{ok:true,member_id:'member'}:{}},
-  sendVerification:async()=>{if(deliveryFails)throw Error('Mail failed')}});
+  sendVerification:async()=>{deliveryCalls++;throw Error('Mail must not run')}});
  const input={mode:'create',request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'same@example.invalid',password:'test-only-password'};
- await assert.rejects(c.provision(new Request('https://edge.example.invalid'),input,'tenant'),/Mail failed/);
- deliveryFails=false;await c.provision(new Request('https://edge.example.invalid'),input,'tenant');assert.equal(created,1);
+ const result=await c.provision(new Request('https://edge.example.invalid'),input,'tenant');
+ assert.match(result.message,/Sign in now/);assert.match(result.message,/working inbox/);assert.equal(deliveryCalls,0);
+ await c.provision(new Request('https://edge.example.invalid'),input,'tenant');assert.equal(created,1);
  const attributes=calls.find(x=>x.app_metadata);assert.equal(attributes.app_metadata.iv_provision_request,input.request_id);assert.equal(attributes.user_metadata.iv_member_signup,undefined);
  const prepare=calls.find(x=>x.name==='iv_prepare_branch_account');assert.equal(JSON.stringify(prepare.args.p_payload).includes(input.password),false);
 });
@@ -184,4 +185,40 @@ test('branch sign-in accepts short member codes only in the member portal and ke
  assert.equal(result.session.access_token,'test-access');assert.equal(calls[0].args.p_tenant,'gym-a');assert.equal(calls[0].args.p_email,'mem-0001');
  assert.equal(JSON.stringify(result).includes('accounts.ironvault'),false);
  await assert.rejects(handler(new Request('https://edge.example.invalid'),{action:'signin',gym_token:'portal-token',portal:'admin',email:'MEM-0001',password:'private-password'}),/Invalid request/);
+});
+
+function ownerSigninFixture({status='ACTIVE',identity=true,passwordOk=true}={}){
+ let handler;const calls=[];
+ load('supabase/functions/iv-branch-auth/index.ts',{serve:fn=>{handler=fn},limit:async()=>{},
+ admin:{from:()=>({select(){return this},eq(key,value){calls.push({key,value});return this},single:async()=>({data:{id:'gym-a',status,token:'gym-token'}})})},
+ rpc:async(name,args)=>{calls.push({name,args});return name==='iv_branch_identity'?(identity?[{user_id:'owner-auth',role:'owner'}]:[]):{auth_email:'private@accounts.ironvault.invalid',verified:false};},
+ publicClient:()=>({auth:{signInWithPassword:async input=>{calls.push({passwordCheck:input});return passwordOk?{data:{session:{access_token:'test-access',refresh_token:'test-refresh'}}}:{data:{},error:{message:'Bad password'}};}}}),
+ ensurePrivateIdentifier:async id=>{calls.push({rotate:id})}});
+ return {calls,run:input=>handler(new Request('https://edge.example.invalid'),{action:'signin',gym_token:'gym-token',portal:'admin',email:'temporary@example.invalid',password:'test-password',...input})};
+}
+test('unconfirmed owner signs in by contact and password through a tenant-scoped enabled identity',async()=>{
+ const f=ownerSigninFixture();const result=await f.run();assert.equal(result.session.access_token,'test-access');
+ const lookup=f.calls.find(x=>x.name==='iv_branch_identity');assert.equal(lookup.args.p_tenant,'gym-a');
+ assert.deepEqual(Array.from(lookup.args.p_roles),['owner','staff']);assert.equal(lookup.args.p_email,'temporary@example.invalid');
+ assert.equal(f.calls.find(x=>x.passwordCheck).passwordCheck.password,'test-password');
+ assert.equal(JSON.stringify(result).includes('private@'),false);
+});
+test('owner sign-in still rejects suspended/incomplete gyms, revoked or cross-tenant identities and wrong passwords',async()=>{
+ for(const status of ['SUSPENDED','PROVISIONING','INACTIVE']){
+  const f=ownerSigninFixture({status});await assert.rejects(f.run(),/Invalid request/);assert.equal(f.calls.some(x=>x.passwordCheck),false);
+ }
+ const missing=ownerSigninFixture({identity:false});await assert.rejects(missing.run(),/Invalid request/);assert.equal(missing.calls.some(x=>x.passwordCheck),false);
+ const bad=ownerSigninFixture({passwordOk:false});await assert.rejects(bad.run(),/Invalid request/);assert.equal(bad.calls.some(x=>x.rotate),false);
+ const invalid=ownerSigninFixture();await assert.rejects(invalid.run({email:'not-an-email'}),/Invalid request/);assert.equal(invalid.calls.some(x=>x.passwordCheck),false);
+});
+test('owner password recovery sends proof to the contact inbox and never returns a recovery token',async()=>{
+ let handler;const sent=[];
+ load('supabase/functions/iv-branch-auth/index.ts',{serve:fn=>{handler=fn},limit:async()=>{},mailReady:()=>true,site:'https://app.example.invalid',
+ admin:{from:()=>({select(){return this},eq(){return this},single:async()=>({data:{id:'gym-a',status:'ACTIVE',token:'gym-token'}})}),
+ auth:{admin:{generateLink:async()=>({data:{properties:{hashed_token:'inbox-proof'}}})}}},
+ rpc:async name=>name==='iv_branch_identity'?[{user_id:'owner-auth'}]:{email:'temporary@example.invalid',gym_name:'Gym A'},
+ ensurePrivateIdentifier:async()=> 'private@accounts.ironvault.invalid',sendMail:async(...args)=>sent.push(args)});
+ const result=await handler(new Request('https://edge.example.invalid'),{action:'recovery',gym_token:'gym-token',portal:'admin',email:'temporary@example.invalid'});
+ assert.equal(sent.length,1);assert.equal(sent[0][0],'temporary@example.invalid');assert.match(sent[0][2],/#iv_recovery=inbox-proof/);
+ assert.equal(JSON.stringify(result).includes('inbox-proof'),false);assert.equal(result.session,undefined);
 });

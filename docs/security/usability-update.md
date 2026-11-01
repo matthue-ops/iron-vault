@@ -2,7 +2,7 @@
 
 ## Owner-run rollout
 
-The existing installation must already include 001–017. Run the entire `supabase/manual/usability_update.sql` once in SQL Editor. It atomically applies 018 (display codes), 019 (staff sign-in/contact policy) and 020 (report metadata/purchase receipts). Do not rerun the initial installation bundle. The agent has parsed this SQL, not executed it.
+The existing installation must already include 001–017. Run the entire `supabase/manual/usability_update.sql` once in SQL Editor. It atomically applies 018 (display codes), 019 (staff sign-in/contact policy) 020 (report metadata/purchase receipts), and 021 (owner activation policy, applied last). For only the owner-login fix on an installed 017 database, use `supabase/manual/owner_login_update.sql` instead; see [owner-login-update.md](owner-login-update.md). Do not rerun the initial installation bundle. The agent has parsed this SQL, not executed it.
 
 Update these **existing** Edge functions using the complete standalone files from `supabase/dashboard/`:
 

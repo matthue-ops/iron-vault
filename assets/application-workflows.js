@@ -132,8 +132,8 @@
      const result=await provision('provision-gym-tenant',{mode:'create',gymName:value('reg-gym-name').trim(),ownerName:value('reg-owner-name').trim(),email:value('reg-owner-email').trim(),password:value('reg-owner-pass'),logo,
       pricing:{day:Number(value('reg-price-day')),week:Number(value('reg-price-week')),month:Number(value('reg-price-month')),studentDiscount:Number(value('reg-discount-student')),seniorDiscount:Number(value('reg-discount-senior'))}});
      let note='';
-     // Owner verification activates the gym first; staff can then be added from
-     // View Branch. Do not make a hidden second provision against an inactive gym.
+     // Successful owner provisioning activates the gym before optional staff creation.
+     // A staff failure leaves the completed gym intact for a separate retry.
      if(staff.name){try{await provision('provision-gym-tenant',{mode:'staff',tenantId:result.tenantId,...staff});}catch(error){note=' Gym created; staff setup needs a retry from View Branch. '+error.message;}}
      await this.loadData();this.renderDashboard();event.target.reset();root.alert(result.message+note);
     }catch(error){root.alert(error.message);}finally{button.disabled=false;}

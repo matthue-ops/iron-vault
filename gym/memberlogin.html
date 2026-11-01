@@ -395,7 +395,7 @@
                     document.getElementById('page-title').innerText = `${matched.gymName} - Access Portal`;
                     document.getElementById('portal-subtitle').innerText = `Sign in to your account at ${matched.gymName}`;
                     if(matched.status==='PROVISIONING'){
-                        document.getElementById('portal-subtitle').innerText='This gym is awaiting owner email verification. Use Resend verification if needed.';
+                        document.getElementById('portal-subtitle').innerText='This gym setup is incomplete. Ask the platform administrator to finish account activation.';
                         for(const id of ['btn-submit-signin','btn-submit-admin','btn-submit-signup'])document.getElementById(id).disabled=true;
                     }
 

@@ -339,3 +339,13 @@ test('server wallet checks can still reject removal after a stale zero-balance p
  p.client.rpc=async()=>({error:{message:'Settle wallet balance before deactivation'}});await app.deleteMember('m');
  assert.equal(app.members[0].status,'ACTIVE');assert.match(p.alerts.at(-1),/Settle wallet balance/);
 });
+
+test('active gym owner portal stays enabled and incomplete provisioning gives setup guidance without email gating',async()=>{
+ for(const status of ['ACTIVE','PROVISIONING']){
+  const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status}]});
+  await p.get('app').init();
+  assert.equal(p.element('btn-submit-admin').disabled,status!=='ACTIVE');
+  if(status==='PROVISIONING')assert.match(p.element('portal-subtitle').innerText,/setup is incomplete/);
+  assert.doesNotMatch(p.element('portal-subtitle').innerText,/owner email verification/);
+ }
+});
