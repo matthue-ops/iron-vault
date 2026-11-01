@@ -10,3 +10,5 @@ Open **phase1_security_install.sql** and review [the cutover guide](../../docs/s
 - SQL creates database objects only. The matching four Edge Functions, private mail bindings and browser assets must also be deployed through the separately authorized cutover. None was deployed by the agent.
 
 Generated deterministically from individual source files with `node scripts/build-manual-sql.cjs`; `--check` verifies freshness without executing SQL. Do not edit the generated file by hand. All source files remain independently reviewable.
+
+For an installation already through 017, `usability_update.sql` is the reviewed 018–020 delta for short codes, staff sign-in/contact and report metadata. Do not run the initial installation again. Generate/check this delta with `node scripts/build-usability-sql.cjs [--check]`.

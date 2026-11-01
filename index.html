@@ -720,7 +720,7 @@
                 try {
                     for (const o of this.owners) {
                         await supabaseClient.from('owners').upsert({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gym_name: o.gymName,
                             owner_name: o.ownerName,
                             email: o.email,
@@ -742,7 +742,7 @@
                 try {
                     for (const m of this.members) {
                         await supabaseClient.from('members').upsert({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenant_id: m.tenantId,
                             tenant_token: m.tenantToken,
                             name: m.name,
@@ -816,7 +816,7 @@
 
                     return `
                         <tr class="hover:bg-slate-900/50 transition">
-                            <td class="p-3 font-mono font-bold text-amber-400">${IronVaultData.escape(owner.id)}</td>
+                            <td class="p-3 font-mono font-bold text-amber-400">${IronVaultData.escape(owner.displayCode || owner.id)}</td>
                             <td class="p-3">
                                 <div class="flex items-center gap-2.5">
                                     ${logoHtml}
@@ -911,7 +911,7 @@
                 this.currentInspectOwnerId = owner.id;
 
                 document.getElementById('inspect-gym-name').innerText = owner.gymName;
-                document.getElementById('inspect-tenant-id').innerText = owner.id;
+                document.getElementById('inspect-tenant-id').innerText = owner.displayCode || owner.id;
                 document.getElementById('inspect-owner-info').innerText = `Owner: ${owner.ownerName} (${owner.email})`;
 
                 const reportsBtn = document.getElementById('inspect-reports-btn');
@@ -979,7 +979,7 @@
 
                         return `
                             <tr class="hover:bg-slate-900/50 transition">
-                                <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(m.id)}</td>
+                                <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(m.displayCode || m.id)}</td>
                                 <td class="p-3 font-semibold text-white">${IronVaultData.escape(m.name)}</td>
                                 <td class="p-3">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">

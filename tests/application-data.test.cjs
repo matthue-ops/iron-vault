@@ -33,3 +33,9 @@ test('master loader accepts genuine empty results and never writes defaults into
  const client={from:()=>({select:async()=>({data:[],error:null})}),rpc:()=>{throw Error('Loading must not write')}};
  assert.deepEqual(await data.loadMaster(client),{owners:[],members:[]});
 });
+
+test('master loads short display codes while preserving original internal record IDs',async()=>{
+ const client={from:table=>({select:async()=>({data:table==='owners'?[{id:'long-gym-id',display_code:'GYM-0001'}]:[{id:'long-member-id',tenant_id:'long-gym-id',display_code:'MEM-0001'}]})})};
+ const loaded=await data.loadMaster(client);assert.equal(loaded.owners[0].displayCode,'GYM-0001');assert.equal(loaded.members[0].displayCode,'MEM-0001');assert.equal(loaded.members[0].id,'long-member-id');
+ const serialized=data.member(loaded.members[0]);assert.equal(serialized.id,'long-member-id');assert.equal('display_code' in serialized,false);
+});

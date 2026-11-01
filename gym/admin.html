@@ -751,6 +751,7 @@
 
             <!-- REGISTER STAFF CONTENT TAB -->
             <div id="staff-content-register" class="space-y-3.5">
+<p class="text-xs text-slate-400">Owner-created staff can sign in immediately without confirming email. You can correct an unverified contact email later; password recovery requires access to that inbox.</p>
                 <form onsubmit="adminApp.handleStaffSignup(event)" class="space-y-3.5 text-xs">
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Full Name</label>
@@ -902,7 +903,7 @@
                     const { data, error } = await supabaseClient.from('owners').select('*').eq('id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
                             ownerName: o.owner_name,
                             email: o.email,
@@ -1194,7 +1195,7 @@
                     if (error || !data?.length) throw new Error('Gym staff data is unavailable.');
                     if (data) {
                         this.allOwnersSystem = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
                             ownerName: o.owner_name,
                             email: o.email,
@@ -1473,7 +1474,7 @@
                     const { data, error } = await supabaseClient.from('members').select('*').eq('tenant_id',this.currentTenantId);
                     if (!error && data) {
                         loadedMembers = data.map(m => ({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenantId: m.tenant_id,
                             tenantToken: m.tenant_token,
                             name: m.name,
@@ -1540,7 +1541,7 @@
                 try {
                     for (const m of this.members) {
                         await supabaseClient.from('members').upsert({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenant_id: m.tenantId,
                             tenant_token: m.tenantToken,
                             name: m.name,
@@ -1615,7 +1616,7 @@
 
                     return `
                         <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(m.id)}'))">
-                            <td class="p-2.5 font-mono font-bold text-amber-400">${IronVaultData.escape(m.id)}</td>
+                            <td class="p-2.5 font-mono font-bold text-amber-400">${IronVaultData.escape(m.displayCode || m.id)}</td>
                             <td class="p-2.5 font-semibold text-white">${IronVaultData.escape(m.name)}</td>
                             <td class="p-2.5">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
@@ -1683,7 +1684,7 @@
 
                     return `
                         <tr class="hover:bg-slate-900/50 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(member.id)}'))">
-                            <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(member.id)}</td>
+                            <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(member.displayCode || member.id)}</td>
                             <td class="p-3 font-semibold text-white">${IronVaultData.escape(member.name)}</td>
                             <td class="p-3">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
@@ -1720,7 +1721,7 @@
 
                 const filtered = this.members.filter(m => 
                     m.name.toLowerCase().includes(query) ||
-                    m.id.toLowerCase().includes(query) ||
+                    m.id.toLowerCase().includes(query) || (m.displayCode || '').toLowerCase().includes(query) ||
                     (m.phone && m.phone.toLowerCase().includes(query)) ||
                     (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
                 );
@@ -1764,7 +1765,7 @@
                             <div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-bold text-white text-xs">${IronVaultData.escape(m.name)}</span>
-                                    <span class="text-[10px] font-mono text-emerald-400 font-bold">${IronVaultData.escape(m.id)}</span>
+                                    <span class="text-[10px] font-mono text-emerald-400 font-bold">${IronVaultData.escape(m.displayCode || m.id)}</span>
                                     ${isAlreadyAdmittedToday ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Checked In Today</span>' : ''}
                                 </div>
                                 <div class="text-[10px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
@@ -2160,7 +2161,7 @@
                     // Preserve the activity-report note without the legacy owner's JSON upsert.
                     const {error}=await supabaseClient.rpc('iv_log_event',{
                         p_tenant:this.currentTenantId,p_event:'QR Scan Success',
-                        p_details:`Member ${IronVaultData.escape(member.id)} admitted with QR`
+                        p_details:`Member ${IronVaultData.escape(member.displayCode || member.id)} admitted with QR`
                     });
                     if(error)activityRecorded=false;
                 } catch(error){activityRecorded=false;}
@@ -2215,7 +2216,7 @@
                 this.isPasswordVisible = false;
 
                 document.getElementById('modal-member-name').innerText = member.name;
-                document.getElementById('modal-member-id').innerText = member.id;
+                document.getElementById('modal-member-id').innerText = member.displayCode || member.id;
                 document.getElementById('modal-member-status-badge').innerText = member.status || 'ACTIVE';
 
                 const pendingBanner = document.getElementById('modal-pending-banner');
@@ -2372,7 +2373,7 @@
                 const filtered = this.members.filter(m => {
                     const matchesSearch = (
                         m.name.toLowerCase().includes(query) ||
-                        m.id.toLowerCase().includes(query) ||
+                        m.id.toLowerCase().includes(query) || (m.displayCode || '').toLowerCase().includes(query) ||
                         m.email.toLowerCase().includes(query) ||
                         (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
                     );

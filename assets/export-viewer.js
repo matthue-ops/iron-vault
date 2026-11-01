@@ -1,7 +1,7 @@
 (function(root){
  'use strict';
  const LIMIT=10*1024*1024,TOTAL=20*1024*1024;
- const columns={gyms:['id','gym','owner','email','status','day','week','month'],members:['id','tenant','name','email','phone','status','plan','wallet','expiry'],staff:['tenant','name','email'],activity:['tenant','date','actor','action','details']};
+ const columns={gyms:['id','tenant','gym','owner','email','status','day','week','month'],members:['id','tenant','name','email','phone','status','plan','wallet','expiry'],staff:['tenant','name','email'],activity:['tenant','date','actor','action','details']};
  const scalar=value=>typeof value==='string'||typeof value==='number'||typeof value==='boolean'?String(value):'';
  const field=(row,...names)=>{for(const name of names)if(row[name]!==undefined&&row[name]!==null)return scalar(row[name]);return '';};
  function array(value){if(!Array.isArray(value)||value.length>20000||value.some(row=>!row||typeof row!=='object'||Array.isArray(row)))throw Error('Expected an export array of at most 20,000 records.');return value;}
@@ -10,11 +10,11 @@
   const add=(kind,row)=>{if(++count>50000)throw Error('Export contains too many records to view.');result[kind].push(row);};
   for(const g of array(gyms)){
    const tenant=field(g,'id'),pricing=g.pricing&&typeof g.pricing==='object'?g.pricing:{};
-   add('gyms',{id:tenant,gym:field(g,'gymName','gym_name'),owner:field(g,'ownerName','owner_name'),email:field(g,'email'),status:field(g,'status'),day:field(pricing,'day'),week:field(pricing,'week'),month:field(pricing,'month')});
+   add('gyms',{id:field(g,'displayCode','display_code','id'),tenant,gym:field(g,'gymName','gym_name'),owner:field(g,'ownerName','owner_name'),email:field(g,'email'),status:field(g,'status'),day:field(pricing,'day'),week:field(pricing,'week'),month:field(pricing,'month')});
    for(const s of array(g.staff||[]))add('staff',{tenant,name:field(s,'name'),email:field(s,'email')});
    for(const a of array(g.auditLogs||g.audit_logs||[]))add('activity',{tenant,date:field(a,'date','timestamp','created_at'),actor:field(a,'actor','user','staffName'),action:field(a,'action','event'),details:field(a,'details','description')});
   }
-  for(const m of array(members))add('members',{id:field(m,'id'),tenant:field(m,'tenantId','tenant_id'),name:field(m,'name'),email:field(m,'email'),phone:field(m,'phone'),status:field(m,'status'),plan:field(m,'plan'),wallet:field(m,'walletBalance','wallet_balance'),expiry:field(m,'expirationDate','expiration_date')});
+  for(const m of array(members))add('members',{id:field(m,'displayCode','display_code','id'),tenant:field(m,'tenantId','tenant_id'),name:field(m,'name'),email:field(m,'email'),phone:field(m,'phone'),status:field(m,'status'),plan:field(m,'plan'),wallet:field(m,'walletBalance','wallet_balance'),expiry:field(m,'expirationDate','expiration_date')});
   if(Object.values(result).reduce((n,rows)=>n+rows.length,0)>50000)throw Error('Export contains too many records to view.');
   return result;
  }
@@ -54,7 +54,7 @@
   return normalize(gyms,members);
  }
  function selectRows(data,kind,query,tenant){
-  const needle=query.trim().toLowerCase();return (data[kind]||[]).filter(row=>(!tenant||(kind==='gyms'?row.id:row.tenant)===tenant)&&(!needle||Object.values(row).some(value=>value.toLowerCase().includes(needle))));
+  const needle=query.trim().toLowerCase();return (data[kind]||[]).filter(row=>(!tenant||row.tenant===tenant)&&(!needle||Object.values(row).some(value=>value.toLowerCase().includes(needle))));
  }
  function install(document){
   const node=id=>document.getElementById(id);let data=null,page=0,version=0;const pageSize=100;
@@ -73,7 +73,7 @@
     const result=await readFile(file,root.JSZip);if(stamp!==version)return;data=result;
     node('viewer-source').textContent=file.name;node('viewer-error').textContent='';node('viewer-summary').textContent=data.gyms.length+' gyms · '+data.members.length+' members · '+data.staff.length+' staff entries · '+data.activity.length+' activity entries';
     const all=document.createElement('option');all.value='';all.textContent='All gyms';node('viewer-tenant').appendChild(all);
-    const names=new Map(data.gyms.map(g=>[g.id,g.gym||g.id]));for(const member of data.members)if(member.tenant&&!names.has(member.tenant))names.set(member.tenant,member.tenant);
+    const names=new Map(data.gyms.map(g=>[g.tenant,g.gym||g.id]));for(const member of data.members)if(member.tenant&&!names.has(member.tenant))names.set(member.tenant,member.tenant);
     for(const [id,name] of names){const option=document.createElement('option');option.value=id;option.textContent=name+' ('+id+')';node('viewer-tenant').appendChild(option);}
     node('viewer-kind').value=data.members.length?'members':'gyms';node('viewer-results').hidden=false;render();
    }catch(error){if(stamp===version)node('viewer-error').textContent=error instanceof SyntaxError?'The export contains invalid JSON.':error.message;}

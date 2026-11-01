@@ -95,6 +95,8 @@
     </style>
     <script src="../assets/auth-session.js"></script>
     <script src="../assets/application-data.js"></script>
+<script src="../assets/reports-analysis.js"></script>
+<script src="../assets/reports-ui.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -129,7 +131,7 @@
             <div class="flex items-center gap-2 flex-wrap">
                 <button id="tab-btn-financial" onclick="reportsApp.switchTab('financial')" class="px-4 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-lg">
                     <i class="fa-solid fa-receipt"></i>
-                    <span>Financial Revenue Report</span>
+                    <span>Money & Purchases</span>
                 </button>
                 <button id="tab-btn-attendance" onclick="reportsApp.switchTab('attendance')" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-2 border border-slate-700">
                     <i class="fa-solid fa-door-open"></i>
@@ -164,10 +166,36 @@
             <div class="flex items-center gap-2 flex-wrap">
                 <button onclick="reportsApp.setQuickRange('today')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow">Today</button>
                 <button onclick="reportsApp.setQuickRange('week')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow">Last 7 Days</button>
-                <button onclick="reportsApp.setQuickRange('all')" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition shadow">All-Time View</button>
+                <button onclick="reportsApp.setQuickRange('month')" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs">This month</button>
+<button onclick="reportsApp.setQuickRange('all')" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition shadow">All-Time View</button>
             </div>
         </div>
 
+
+<style>#metrics-financial-row{display:none!important}</style>
+<p id="report-validation" role="alert" class="text-sm text-rose-300"></p>
+<section class="glass-card rounded-2xl p-5 space-y-4 border border-slate-700">
+ <h2 class="text-lg font-bold text-white">At a glance</h2>
+ <p id="overview-period" class="text-xs text-emerald-300"></p>
+ <p class="text-sm text-slate-300">Report dates and check-in times use Asia/Manila. Period totals follow the selected dates; cards marked “now” use the current member snapshot.</p>
+ <div id="report-overview" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3"></div>
+ <p class="text-sm text-amber-300">Cash collected and membership sales measure different things. Never add them together: a top-up collects cash now; spending that wallet credit records a sale later.</p>
+ <p id="report-insights" class="text-sm text-slate-300"></p>
+ <details class="rounded-xl bg-slate-900/60 p-4"><summary class="cursor-pointer text-white font-bold">Daily money and attendance</summary>
+  <p class="text-xs text-slate-400 my-2">Days with recorded activity. Pass sales include cash and wallet spending; net cash includes top-ups and cash pass payments, less cash refunds.</p>
+  <div class="overflow-x-auto"><table class="w-full text-xs text-slate-300"><thead><tr><th class="p-3 text-left">Date (Manila)</th><th class="p-3 text-left">Net cash</th><th class="p-3 text-left">Gross pass sales</th><th class="p-3 text-left">Visits</th></tr></thead><tbody id="report-daily"></tbody></table></div>
+ </details>
+ <details class="rounded-xl bg-slate-900/60 p-4"><summary class="cursor-pointer text-white font-bold">Passes expiring soon</summary><p id="report-expiring-count" class="text-xs text-slate-400 my-2"></p>
+ <div class="overflow-x-auto"><table class="w-full text-xs text-slate-300"><thead><tr><th class="p-3 text-left">Member code</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Plan</th><th class="p-3 text-left">Expires</th></tr></thead><tbody id="report-expiring"></tbody></table></div>
+ </details>
+</section>
+<div class="glass-card rounded-2xl p-4 flex flex-wrap items-end gap-3 no-print">
+ <div class="flex-grow"><label for="report-search" class="block text-xs text-slate-300 mb-2">Search the selected detail log</label><input id="report-search" type="search" placeholder="Member code, name, type, date…" class="glass-input w-full rounded-xl px-3 py-2 text-white"></div>
+ <button onclick="reportsApp.exportReportCsv()" class="rounded-xl px-3 py-2 bg-emerald-700 text-white text-xs">Export matching rows (CSV)</button>
+ <button id="report-prev" type="button" class="rounded-xl px-3 py-2 bg-slate-800 text-white text-xs">Previous</button><button id="report-next" type="button" class="rounded-xl px-3 py-2 bg-slate-800 text-white text-xs">Next</button>
+ <span id="report-page" class="text-xs text-slate-400"></span>
+ <p class="w-full text-xs text-slate-400">Detail logs show 100 rows per page. CSV includes all matching rows; Print shows the current view. Member plans, balances and statuses in detail rows reflect the current snapshot.</p>
+</div>
         <!-- REPORT HEADER METADATA -->
         <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
@@ -184,22 +212,22 @@
             <!-- TAB 1 METRIC CARDS (FINANCIAL) -->
             <div id="metrics-financial-row" class="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Cash Revenue Collected</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Net cash collected (period)</span>
                     <h3 id="metric-revenue" class="text-xl font-black text-emerald-400">₱0.00</h3>
                 </div>
 
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Unearned Credit Balances</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Outstanding wallet credit (now)</span>
                     <h3 id="metric-credits" class="text-xl font-black text-cyan-400">₱0.00</h3>
                 </div>
 
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Total Passes Purchased</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Recorded pass purchases (period)</span>
                     <h3 id="metric-registrations" class="text-xl font-black text-white">0</h3>
                 </div>
 
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-1">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Active Subscriptions</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Valid member passes (now)</span>
                     <h3 id="metric-subscriptions" class="text-xl font-black text-amber-400">0</h3>
                 </div>
             </div>
@@ -234,7 +262,7 @@
         <!-- TABLE SECTION 1: FINANCIAL REVENUE LOG -->
         <div id="section-financial-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
             <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-                <i class="fa-solid fa-receipt text-emerald-400"></i> Financial Revenue & Member Wallet Balances Log
+                <i class="fa-solid fa-receipt text-emerald-400"></i> Money movements (selected period)
             </h3>
 
             <div class="overflow-x-auto">
@@ -244,11 +272,11 @@
                             <th class="p-3">Member ID</th>
                             <th class="p-3">Full Name</th>
                             <th class="p-3">Classification</th>
-                            <th class="p-3">Pass Plan Purchased</th>
-                            <th class="p-3">Amount Collected</th>
-                            <th class="p-3">Credit Balance</th>
-                            <th class="p-3">Date Purchased</th>
-                            <th class="p-3">Status</th>
+                            <th class="p-3">Entry type</th>
+                            <th class="p-3">Entry amount</th>
+                            <th class="p-3">Wallet credit now</th>
+                            <th class="p-3">Recorded at (Manila)</th>
+                            <th class="p-3">Description</th>
                         </tr>
                     </thead>
                     <tbody id="financial-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
@@ -429,7 +457,7 @@
                 if (!startStr || !endStr) return;
 
                 document.getElementById('report-range-subtitle').innerText = `Report Period: ${startStr} to ${endStr}`;
-                this.filterAndRenderReport(startStr, endStr);
+                return this.filterAndRenderReport(startStr, endStr);
             },
 
             extractMemberAmount: function(m) {
@@ -571,7 +599,7 @@
     </script>
 <script>
 
-const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const ivDate = (d=new Date()) => IronVaultReports.date(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function ivRequireRole(roles, tenant){
@@ -583,7 +611,7 @@ async function ivRequireRole(roles, tenant){
 reportsApp.ivMode='audit';
 reportsApp.ivClear=function(){
  this.ivRequest=(this.ivRequest||0)+1;
- this.ivFinance=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
+ this.ivFinance=[];this.ivPurchases=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
  this.allMembers=[];this.branchMembers=[];
  for(const id of ['financial-tbody','attendance-tbody','audit-tbody'])document.getElementById(id).textContent='';
  for(const id of ['metric-revenue','metric-credits','metric-registrations','metric-subscriptions',
@@ -607,7 +635,7 @@ reportsApp.ivLoadLogs=async function(start,end){
  const {data,error}=await supabaseClient.rpc('iv_report_snapshot',{p_tenant:this.currentTenant.id,p_start:start,p_end:end});
  if(error||!data)throw new Error(error?.message||'Report snapshot unavailable.');
  await this.ivRequireReport();
- return {logs:[data.financial,data.attendance,data.activity,data.sessions],members:(data.members||[]).map(m=>({id:m.id,tenantId:m.tenant_id,name:m.name,
+ return {logs:[data.financial,data.attendance,data.activity,data.sessions],purchases:data.purchases||[],members:(data.members||[]).map(m=>({id:m.id,displayCode:m.display_code||m.id,display_code:m.display_code,created_at:m.created_at,expiration_date:m.expiration_date,scans_used:m.scans_used,last_scanned_date:m.last_scanned_date,tenantId:m.tenant_id,name:m.name,
   classification:m.classification,plan:m.plan,walletBalance:m.wallet_balance,status:m.status}))};
 };
 reportsApp.ivRender=async function(start,end){
@@ -640,7 +668,7 @@ reportsApp.filterAndRenderReport=async function(start,end){
   const result=await this.ivLoadLogs(start,end);
   if(request!==this.ivRequest)return;
   [this.ivFinance,this.ivAttendance,this.ivActivity,this.ivSessions]=result.logs;
-  this.branchMembers=result.members;this.allMembers=result.members;
+  this.ivPurchases=result.purchases;this.branchMembers=result.members;this.allMembers=result.members;
   await this.ivRender(start,end);
   document.body?.classList.remove('iv-auth-pending');
  }catch(error){if(request===this.ivRequest)this.ivDeny(error);}
@@ -669,5 +697,6 @@ reportsApp.ivCredits=async function(){
 })();
 
 </script>
+<script>IronVaultReportsUI.install(reportsApp,supabaseClient);</script>
 </body>
 </html>

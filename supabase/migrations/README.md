@@ -33,3 +33,7 @@ For installations through 015, run only `202611010016_member_optional_email_veri
 ### 017: Super Admin permanent tenant purge
 
 After 016, manually run only `202611010017_super_admin_tenant_purge.sql` and deploy the new standalone `iv-purge-tenant` function (JWT ON). The migration installs definitions, not a purge invocation. See `docs/security/tenant-purge.md` for review, confirmation, resumable Auth cleanup and limits. No live deletion has been performed by the agent.
+
+### 018–020: Short display codes, staff contact policy and clearer reports
+
+For an existing installation through 017, run only `supabase/manual/usability_update.sql` once; it combines 018, 019 and 020 atomically. Internal IDs, balances and history are preserved. Then update existing iv-branch-auth (JWT OFF), provision-gym-tenant (JWT ON), and the frontend. See docs/security/usability-update.md. No SQL executed by the agent.

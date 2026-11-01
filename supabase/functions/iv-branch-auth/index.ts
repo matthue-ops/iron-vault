@@ -16,12 +16,19 @@ serve(async(req,input)=>{
   const {data,error}=await admin.from('iv_user_roles').select('user_id').eq('tenant_id',String(input.tenant_id||'')).eq('role','owner').single();
   if(error||!data)throw Error('Invalid request.');return changeContact(req,input,data.user_id);
  }
+ if(action==='staff_email_change'){
+  const user=await actor(req),r=await role(user.id);
+  const {data:staff,error}=await admin.from('iv_user_roles').select('user_id,tenant_id').eq('user_id',String(input.user_id||'')).eq('role','staff').single();
+  if(error||!staff||!((r.role==='super_admin'&&r.tenant_id===null)||(r.role==='owner'&&r.tenant_id===staff.tenant_id)))throw Error('Not authorized.');
+  return changeContact(req,input,staff.user_id);
+ }
  if(!['signin','signup','recovery','resend'].includes(action))throw Error('Invalid request.');
  const token=String(input.gym_token||'');
  const {data:gym,error}=await admin.from('owners').select('id,token,status').eq('token',token).single();
  if(error||!gym||(gym.status!=='ACTIVE'&&!(action==='resend'&&gym.status==='PROVISIONING')))throw Error('Invalid request.');
  const email=String(input.email||'').trim().toLowerCase();
- if(!/^[^\s@<>,;:"()\\]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z0-9-]{2,63}$/.test(email)||email.length>254)throw Error('Invalid request.');
+ const memberCode=action==='signin'&&input.portal!=='admin'&&/^mem-[a-z0-9-]{4,80}$/i.test(email);
+ if((!memberCode&&!/^[^\s@<>,;:"()\\]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z0-9-]{2,63}$/.test(email))||email.length>254)throw Error('Invalid request.');
  const roles=input.portal==='admin'?['owner','staff']:['member'];
  await limit(action+':'+gym.id+':'+email,action==='signin'?20:5,action==='signin'?600:3600);
  if(action==='signup')return provision(req,{...input,tenant_id:gym.id},'member',true);

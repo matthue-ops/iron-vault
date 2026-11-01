@@ -365,7 +365,7 @@
                         : {data:[],error:null};
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
                             token: o.token,
                             logo: o.logo,

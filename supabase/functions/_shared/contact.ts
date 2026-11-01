@@ -1,7 +1,6 @@
 import {ensurePrivateIdentifier} from './identity.ts';
 import {actor,role,admin,rpc,digest,limit,sendMail,mailReady,site} from './runtime.ts';
 export async function changeContact(req:Request,input:any,targetUser?:string){
- if(!mailReady())throw Error('Email delivery is not configured.');
  const user=await actor(req);const r=await role(user.id);const target=targetUser||user.id;
  const info=await rpc('iv_branch_account_details',{p_user:target});
  if(!info||(!targetUser&&target!==user.id))throw Error('Not authorized.');
@@ -10,7 +9,15 @@ export async function changeContact(req:Request,input:any,targetUser?:string){
  const email=String(input.new_email||'').trim().toLowerCase();
  if(!/^[^\s@<>,;:"()\\]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z0-9-]{2,63}$/.test(email)||email.length>254||email===info.email)throw Error('Invalid request.');
  await limit('email-change:'+target,5,3600);
- await ensurePrivateIdentifier(target);
+ const authEmail=await ensurePrivateIdentifier(target);
+ if(target!==user.id&&info.role==='staff'&&!info.verified){
+  // Replace any previously issued recovery token before changing its delivery address.
+  const {error}=await admin.auth.admin.generateLink({type:'recovery',email:authEmail});
+  if(error)throw Error('Operation could not be completed.');
+  await rpc('iv_correct_unverified_staff_contact',{p_actor:user.id,p_user:target,p_email:email});
+  return {ok:true,pending:false,message:'Staff contact email updated. Password recovery will use this address; the email remains unverified.'};
+ }
+ if(!mailReady())throw Error('Email delivery is not configured.');
  const group=crypto.randomUUID();
  const correction=target!==user.id&&!info.verified;
  const deliveries=correction?[['correct_unverified',email]]:[['change_old',info.email],['change_new',email]];

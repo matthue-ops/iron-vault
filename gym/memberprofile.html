@@ -434,7 +434,7 @@
                     const { data, error } = await supabaseClient.from('members').select('*').eq('id',this.authenticatedRole.member_id).eq('tenant_id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedMembers = data.map(m => ({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenantId: m.tenant_id,
                             tenantToken: m.tenant_token,
                             name: m.name,
@@ -548,7 +548,7 @@
                     const { data, error } = await supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing').eq('id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
                             token: o.token,
                             logo: o.logo,
@@ -658,7 +658,7 @@
                 const m = this.currentMember;
 
                 document.getElementById('profile-card-name').innerText = m.name;
-                document.getElementById('profile-card-id').innerText = m.id;
+                document.getElementById('profile-card-id').innerText = m.displayCode || m.id;
                 document.getElementById('profile-card-plan').innerText = m.plan || 'Not Selected';
                 
                 const statusBadge = document.getElementById('profile-card-status');

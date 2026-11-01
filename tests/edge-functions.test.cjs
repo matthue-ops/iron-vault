@@ -40,10 +40,10 @@ test('provisioning sends protected app metadata, never old signup flags, and ret
  const client={auth:{admin:{createUser:async input=>{created++;calls.push(input);found='auth-id';return{data:{user:{id:found}}}},deleteUser:()=>{throw Error('No destructive cleanup permitted')}}}};
  let deliveryFails=true;
  const c=load('supabase/functions/_shared/provision.ts',{admin:client,publicClient:()=>({auth:{signInWithPassword:async()=>({error:null})}}),
-  actor:async()=>({id:'operator'}),role:async()=>({role:'owner',tenant_id:'gym'}),digest:async value=>{calls.push({digest:value});return'a'.repeat(64)},mailReady:()=>true,limit:async()=>{},
+  actor:async()=>({id:'operator'}),role:async()=>({role:'super_admin',tenant_id:null}),digest:async value=>{calls.push({digest:value});return'a'.repeat(64)},mailReady:()=>true,limit:async()=>{},
   rpc:async(name,args)=>{calls.push({name,args});return name==='iv_find_created_account'?found:name==='iv_finish_branch_account'?{ok:true,member_id:'member'}:{}},
   sendVerification:async()=>{if(deliveryFails)throw Error('Mail failed')}});
- const input={mode:'staff',request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'same@example.invalid',password:'test-only-password'};
+ const input={mode:'create',request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'same@example.invalid',password:'test-only-password'};
  await assert.rejects(c.provision(new Request('https://edge.example.invalid'),input,'tenant'),/Mail failed/);
  deliveryFails=false;await c.provision(new Request('https://edge.example.invalid'),input,'tenant');assert.equal(created,1);
  const attributes=calls.find(x=>x.app_metadata);assert.equal(attributes.app_metadata.iv_provision_request,input.request_id);assert.equal(attributes.user_metadata.iv_member_signup,undefined);
@@ -74,11 +74,11 @@ test('completed provisioning retry never creates another Auth account or resets 
  const result=await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'member@example.invalid',password:'test-only-password'},'member');
  assert.equal(result.member_id,'member');assert.equal(finished,1);
 });
-function contactFixture(verified=true,tenant='gym'){
+function contactFixture(verified=true,tenant='gym',accountRole='member'){
  const queues=[],mail=[];const hash=v=>require('node:crypto').createHash('sha256').update(v).digest('hex');
- const c=load('supabase/functions/_shared/contact.ts',{ensurePrivateIdentifier:async()=>{},mailReady:()=>true,actor:async()=>({id:'owner'}),role:async()=>({role:'owner',tenant_id:'gym'}),
-  admin:{from:()=>({select(){return this},eq(){return this},single:async()=>({data:{status:'ACTIVE'}})})},digest:async v=>hash(v),limit:async()=>{},site:'https://app.example.invalid',
-  rpc:async(name,args)=>{if(name==='iv_branch_account_details')return{tenant_id:tenant,verified,email:'old@example.invalid',token:'gym-token'};queues.push(args);return null},
+ const c=load('supabase/functions/_shared/contact.ts',{ensurePrivateIdentifier:async()=> 'private@accounts.ironvault.invalid',mailReady:()=>true,actor:async()=>({id:'owner'}),role:async()=>({role:'owner',tenant_id:'gym'}),
+  admin:{auth:{admin:{generateLink:async()=>({data:{properties:{hashed_token:'replacement-not-mailed'}},error:null})}},from:()=>({select(){return this},eq(){return this},single:async()=>({data:{status:'ACTIVE'}})})},digest:async v=>hash(v),limit:async()=>{},site:'https://app.example.invalid',
+  rpc:async(name,args)=>{if(name==='iv_branch_account_details')return{tenant_id:tenant,role:accountRole,verified,email:'old@example.invalid',token:'gym-token'};queues.push(args);return null},
   sendMail:async(to,subject,link)=>{mail.push({to,subject,link})}});
  return {c,queues,mail};
 }
@@ -157,4 +157,31 @@ test('purge preserves accounts still linked elsewhere instead of deleting their 
  const f=purgeFixture({sharedAccount:'account-a'});const result=await f.run(purgeInput);
  assert.equal(result.complete,true);assert.equal(result.retained_accounts,1);assert.deepEqual(f.deleted,['account-b']);
  assert.equal(f.calls.some(x=>x.p_action==='retain'&&x.p_user==='account-a'),true);
+});
+
+test('owner-created staff provisioning is independent of SMTP and sends no activation email',async()=>{
+ const c=load('supabase/functions/_shared/provision.ts',{admin:{auth:{admin:{createUser:async()=>({data:{user:{id:'staff-auth'}}})}}},
+ actor:async()=>({id:'owner'}),role:async()=>({role:'owner',tenant_id:'gym'}),digest:async()=> 'a'.repeat(64),mailReady:()=>false,limit:async()=>{},
+ rpc:async name=>name==='iv_prepare_branch_account'?{}:name==='iv_find_created_account'?null:{ok:true},sendVerification:async()=>{throw Error('No staff email gate')}});
+ const result=await c.provision(new Request('https://edge.example.invalid'),{mode:'staff',request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Staff',email:'staff@example.invalid',password:'test-only-password'},'tenant');
+ assert.equal(result.ok,true);assert.match(result.message,/Sign in now/);
+});
+test('owner can correct unverified staff contact without email delivery but verified staff still need both proofs',async()=>{
+ const f=contactFixture(false,'gym','staff');f.c.mailReady=()=>false;
+ const result=await f.c.changeContact(new Request('https://edge.example.invalid'),{new_email:'new@example.invalid'},'staff');
+ assert.equal(result.pending,false);assert.equal(f.mail.length,0);assert.equal(f.queues[0].p_user,'staff');assert.equal(f.queues[0].p_actor,'owner');
+ const verified=contactFixture(true,'gym','staff');await verified.c.changeContact(new Request('https://edge.example.invalid'),{new_email:'new@example.invalid'},'staff');assert.equal(verified.mail.length,2);
+ const other=contactFixture(false,'other-gym','staff');await assert.rejects(other.c.changeContact(new Request('https://edge.example.invalid'),{new_email:'new@example.invalid'},'staff'),/Not authorized/);
+});
+
+test('branch sign-in accepts short member codes only in the member portal and keeps private Auth aliases internal',async()=>{
+ let handler;const calls=[];
+ load('supabase/functions/iv-branch-auth/index.ts',{serve:fn=>{handler=fn},limit:async()=>{},
+ admin:{from:()=>({select(){return this},eq(){return this},single:async()=>({data:{id:'gym-a',status:'ACTIVE',token:'portal-token'}})})},
+ rpc:async(name,args)=>{calls.push({name,args});return name==='iv_branch_identity'?[{user_id:'member-auth'}]:{auth_email:'private@accounts.ironvault.invalid'};},
+ publicClient:()=>({auth:{signInWithPassword:async input=>{assert.equal(input.email,'private@accounts.ironvault.invalid');return{data:{session:{access_token:'test-access',refresh_token:'test-refresh'}}};}}}),ensurePrivateIdentifier:async()=>{}});
+ const result=await handler(new Request('https://edge.example.invalid'),{action:'signin',gym_token:'portal-token',portal:'member',email:'MEM-0001',password:'private-password'});
+ assert.equal(result.session.access_token,'test-access');assert.equal(calls[0].args.p_tenant,'gym-a');assert.equal(calls[0].args.p_email,'mem-0001');
+ assert.equal(JSON.stringify(result).includes('accounts.ironvault'),false);
+ await assert.rejects(handler(new Request('https://edge.example.invalid'),{action:'signin',gym_token:'portal-token',portal:'admin',email:'MEM-0001',password:'private-password'}),/Invalid request/);
 });

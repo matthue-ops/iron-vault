@@ -6,7 +6,7 @@ const path=require('node:path');
 function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
- function element(id){if(!elements.has(id))elements.set(id,{value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
+ function element(id){if(!elements.has(id))elements.set(id,{appendChild(){},addEventListener(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
@@ -280,4 +280,22 @@ test('signout clears private tenant purge details and the password',async()=>{
  p.context.IronVaultTenantPurge.install(app,p.client);await app.openTenantPurge('gym-a');
  p.element('purge-password').value='private-password';assert.match(p.element('purge-summary').textContent,/Private Gym/);
  p.authEvents.at(-1)('SIGNED_OUT',null);assert.equal(p.element('purge-password').value,'');assert.equal(p.element('purge-summary').textContent,'');
+});
+
+test('roster displays and searches short codes while retaining internal IDs in actions',async()=>{
+ const p=portal('gym/admin.html',{members:[{id:'long-internal-id',display_code:'MEM-0001',tenant_id:'gym-a',name:'Short Code Member',email:'test@example.invalid',status:'ACTIVE'}]});
+ const app=p.get('adminApp');app.currentTenantId='gym-a';await app.loadMembers();
+ assert.match(p.element('roster-tbody').innerHTML,/MEM-0001/);assert.match(p.element('roster-tbody').innerHTML,/openProfileModal\(decodeURIComponent\('long-internal-id'\)/);
+ p.element('roster-search').value='MEM-0001';app.filterRoster();assert.match(p.element('roster-tbody').innerHTML,/Short Code Member/);
+});
+test('bad report date ranges are explained without querying or treating them as an authorization failure',async()=>{
+ const p=reportFixture();await p.app.init();const before=p.permission.snapshots.length;
+ p.element('filter-date-start').value='2026-11-05';p.element('filter-date-end').value='2026-11-01';await p.app.onDateFilterChange();
+ assert.equal(p.permission.snapshots.length,before);assert.equal(p.redirects.length,0);assert.match(p.element('report-validation').textContent,/last valid report/);
+});
+
+test('last seven days uses seven inclusive Manila dates and All-Time stops at today',async()=>{
+ const p=reportFixture();await p.app.init();await p.app.setQuickRange('week');
+ assert.equal(p.element('filter-date-start').value,'2026-10-26');assert.equal(p.element('filter-date-end').value,'2026-11-01');
+ await p.app.setQuickRange('all');assert.equal(p.element('filter-date-end').value,'2026-11-01');assert.equal(p.element('filter-date-start').value,'1900-01-01');
 });

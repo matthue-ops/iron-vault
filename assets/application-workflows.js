@@ -10,7 +10,7 @@
     const row=root.document.createElement('div');row.className='p-3 rounded-xl bg-slate-900 text-xs space-x-2';
     const label=root.document.createElement('span');label.textContent=staff.name+' — '+staff.email;row.appendChild(label);
     const button=root.document.createElement('button');button.type='button';button.textContent='Revoke access';button.onclick=()=>onRevoke(index);row.appendChild(button);
-    if(onEdit){const edit=root.document.createElement('button');edit.type='button';edit.textContent='Edit name / send recovery';edit.onclick=()=>onEdit(index);row.appendChild(edit);}
+    if(onEdit){const edit=root.document.createElement('button');edit.type='button';edit.textContent='Edit name / email';edit.onclick=()=>onEdit(index);row.appendChild(edit);}
     container.appendChild(row);
    }
   }
@@ -42,7 +42,7 @@
     await root.IronVaultData.saveMembers(client,records);this.updateStats();
    };
    app.quickApproveMember=async function(id){const m=this.members.find(x=>x.id===id);if(!m)return;
-    await root.IronVaultData.saveMembers(client,[{...m,status:'ACTIVE'}]);await this.loadMembers();root.alert('Member approved. Email verification is also required.');
+    await root.IronVaultData.saveMembers(client,[{...m,status:'ACTIVE'}]);await this.loadMembers();root.alert('Member approved. Email confirmation is optional for sign-in.');
    };
    app.approvePendingMember=async function(){if(await this.quickApproveMember(this.activeModalMemberId)===false)return;if(this.activeModalMemberId)this.openProfileModal(this.activeModalMemberId);};
    app.logAudit=async function(event,details){try{await root.IronVaultData.call(client,'iv_log_event',{p_tenant:this.currentTenantId,p_event:String(event),p_details:String(details)});}catch(error){console.error('Activity log unavailable');}};
@@ -64,7 +64,13 @@
     const staff=this.matchedOwnerRecord?.staff?.[index];if(!staff?.auth_user_id)return;
     const name=root.prompt('Staff name',staff.name);if(!name)return;
     try{await root.IronVaultData.call(client,'iv_update_staff_name',{p_tenant:this.currentTenantId,p_user:staff.auth_user_id,p_name:name.trim()});
-     if(root.confirm('Send a password recovery email to this staff member?'))await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',portal:'admin',gym_token:this.matchedOwnerRecord.token,email:staff.email});
+     const email=root.prompt('Staff contact email (used for password recovery)',staff.email);
+     let pending=false;let recipient=staff.email;
+     if(email!==null&&email.trim().toLowerCase()!==staff.email.toLowerCase()){
+      const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'staff_email_change',user_id:staff.auth_user_id,new_email:email.trim().toLowerCase()});
+      root.alert(result.message);pending=result.pending;recipient=pending?staff.email:email.trim().toLowerCase();
+     }
+     if(!pending&&root.confirm('Send a password recovery email to this staff member?'))await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',portal:'admin',gym_token:this.matchedOwnerRecord.token,email:recipient});
      await this.openStaffSignupModal();this.switchStaffTab('list');
     }catch(error){root.alert(error.message);}
    };
@@ -92,7 +98,18 @@
    app.sendMemberRecovery=async function(id){const m=this.members.find(x=>x.id===id),gym=this.owners.find(g=>g.id===m?.tenantId);if(!m||!gym)return;
     try{const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',portal:'member',gym_token:gym.token,email:m.email});root.alert(result.message);}catch(error){root.alert(error.message);}
    };
-   app.renderInspectStaffList=function(owner){renderStaff(owner,'inspect-staff-list',index=>this.handleInspectDeleteStaff(index));};
+   app.renderInspectStaffList=function(owner){renderStaff(owner,'inspect-staff-list',index=>this.handleInspectDeleteStaff(index),index=>this.handleInspectEditStaff(index));};
+   app.handleInspectEditStaff=async function(index){
+    const gym=this.owners.find(x=>x.id===this.currentInspectOwnerId),staff=gym?.staff?.[index];if(!staff?.auth_user_id)return;
+    const name=root.prompt('Staff name',staff.name);if(!name)return;
+    try{await root.IronVaultData.call(client,'iv_update_staff_name',{p_tenant:gym.id,p_user:staff.auth_user_id,p_name:name.trim()});
+     const email=root.prompt('Staff contact email (used for password recovery)',staff.email);
+     if(email!==null&&email.trim().toLowerCase()!==staff.email.toLowerCase()){
+      const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'staff_email_change',user_id:staff.auth_user_id,new_email:email.trim().toLowerCase()});root.alert(result.message);
+     }
+     await this.loadData();this.renderInspectStaffList(this.owners.find(x=>x.id===gym.id));
+    }catch(error){root.alert(error.message);}
+   };
    app.handleInspectDeleteStaff=async function(index){
     const gym=this.owners.find(x=>x.id===this.currentInspectOwnerId),staff=gym?.staff?.[index];if(!staff?.auth_user_id)return;
     if(!root.confirm('Revoke this staff account’s access?'))return;
