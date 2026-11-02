@@ -140,3 +140,9 @@ The owner requested saving a proposal for later review, not enabling cleanup. Se
 ## Admin announcements, stage one
 
 Owner authorized the discussed first stage: admin-page owner controls and read-only staff access, with tenant-scoped storage/APIs prepared as manual migration 024. Includes preview, Manila scheduling, pinning, versioned edits and retained Removed notices. Member profiles and email/push delivery remain for later work. See [admin-announcements-stage1.md](admin-announcements-stage1.md). Existing tenant purge behavior is preserved through the new tenant foreign key; no existing financial or member records are rewritten. SQL installation and live acceptance remain pending; no SQL executed, production deployed or PR merged by the agent.
+
+## Member announcements, stage two
+
+Owner authorized member display with once-per-member popups, an unread bell, pinned banners and content updates becoming unread again. Prepared manual migration 025 for content revisions and tenant/member-scoped read receipts. Only active notices are exposed to members. Existing owner/staff controls remain, with explanatory copy updated for member publication. See [member-announcements.md](member-announcements.md) for SQL-first rollout, receipt semantics and live acceptance. Stage-one SQL success remains unconfirmed. No SQL executed, production deployed or PR merged by the agent.
+
+Validation: all 239 local tests pass. Mocked Chromium checks pass at 320, 375 and 1280 pixels for popup-once, bell reopening, pinned banners, content updates, expiry and layout. Migration 025 and both PL/pgSQL bodies syntax-parse; live SQL authorization/concurrency acceptance remains pending.

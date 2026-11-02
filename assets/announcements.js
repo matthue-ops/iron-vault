@@ -1,4 +1,4 @@
-/* Admin stage only. Database RPCs enforce tenant and owner authority independently. */
+/* Owner/staff management. Database RPCs enforce tenant and owner authority independently. */
 (function(root){
  'use strict';
  function localTime(value){
@@ -87,7 +87,7 @@
     const {data,error}=await client.rpc(name,args);if(error)throw error;committed=true;
     if(!visible||stamp!==generation)return;await verify(true);if(!visible||stamp!==generation)return;
     if(!data||data.id!==args.p_id||data.tenant_id!==tenant)throw Error('Server returned an unexpected result. Refresh the list.');
-    editorVisibility(false);draft=null;await load();if(visible&&stamp===generation)message(success+' Stage 1: members do not see these notices yet.');
+    editorVisibility(false);draft=null;await load();if(visible&&stamp===generation)message(success);
    }catch(error){if(visible&&stamp===generation)failed(error,committed?'The server confirmed the change; refresh to verify. ':'');}
    finally{busy=false;if(visible){controls();render();}}
   }
