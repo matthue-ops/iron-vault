@@ -71,6 +71,14 @@
         .touch-scroll {
             -webkit-overflow-scrolling: touch;
         }
+        .admin-header-actions button:not(.hidden) { min-height: 30px; }
+        @media (max-width: 639px) {
+            .admin-header-layout { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 6px; }
+            .admin-header-brand { min-width: 0; }
+            .admin-header-actions { flex-wrap: nowrap; gap: 4px; justify-self: end; }
+            .admin-header-actions button:not(.hidden) { display: inline-flex; width: 36px; min-height: 44px; padding: 0; align-items: center; justify-content: center; }
+            .admin-header-actions button span { display: none; }
+        }
     </style>
     <script src="../assets/auth-session.js"></script>
     <script src="../assets/application-data.js"></script>
@@ -83,8 +91,8 @@
 
     <!-- TOP HEADER / NAV BAR -->
     <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur-md px-3 py-3 sm:px-4">
-        <div class="max-w-7xl mx-auto flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2.5 min-w-0">
+        <div class="admin-header-layout max-w-7xl mx-auto flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+            <div class="admin-header-brand flex items-center gap-2.5 min-w-0">
                 <div id="header-logo-container" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 overflow-hidden flex-shrink-0 transition-all duration-300">
                     <i id="header-logo-icon" class="fa-solid fa-shield-halved text-base sm:text-lg"></i>
                     <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
@@ -96,21 +104,21 @@
             </div>
 
             <!-- ADMIN / STAFF HEADER CONTROLS -->
-            <div class="flex flex-wrap justify-end items-center gap-1.5 flex-shrink-0 max-w-full">
-                <button id="btn-reports-analytics" onclick="adminApp.openReportsPage()" class="hidden px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-semibold text-emerald-300 transition items-center gap-1.5">
+            <div class="admin-header-actions flex flex-wrap justify-end items-center gap-1.5 flex-shrink-0 max-w-full">
+                <button id="btn-reports-analytics" aria-label="Reports and analytics" onclick="adminApp.openReportsPage()" class="hidden px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-semibold text-emerald-300 transition items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span class="hidden md:inline">Reports & Analytics</span>
                 </button>
-                <button id="btn-announcements" type="button" onclick="adminApp.openAnnouncements()" title="Announcements" class="hidden px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-[11px] font-semibold text-sky-200 transition min-h-11">
-                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i> <span>Announcements</span>
+                <button id="btn-announcements" aria-label="Announcements" type="button" onclick="adminApp.openAnnouncements()" title="Announcements" class="hidden px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-[11px] font-semibold text-sky-200 transition items-center gap-1.5">
+                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i> <span class="hidden md:inline">Announcements</span>
                 </button>
-                <button id="btn-staff-management" onclick="adminApp.openStaffSignupModal()" class="hidden px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-semibold text-amber-300 transition items-center gap-1.5">
+                <button id="btn-staff-management" aria-label="Staff management" onclick="adminApp.openStaffSignupModal()" class="hidden px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-semibold text-amber-300 transition items-center gap-1.5">
                     <i class="fa-solid fa-users-gear"></i>
                     <span class="hidden md:inline">Staff Management</span>
                 </button>
 
                 <!-- LOGOUT BUTTON -->
-                <button id="btn-admin-logout" onclick="adminApp.logoutAdmin()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                <button id="btn-admin-logout" aria-label="Sign out" onclick="adminApp.logoutAdmin()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
                     <span class="hidden sm:inline">Sign Out</span>
                 </button>
