@@ -1,4 +1,4 @@
-/* Active gym notices only; server-side read receipts coordinate popup claims across devices. */
+/* Active gym notices only; read receipts persist when members open the bell. */
 (function(root){
  'use strict';
  function install(app,client){
@@ -13,7 +13,7 @@
   }
   function render(){items=items.filter(active);const unread=items.filter(r=>r.unread).length;el('member-notices-count').textContent=unread?String(unread):'';bell.setAttribute('data-unread',String(unread>0));bell.setAttribute('aria-label','Announcements'+(unread?', '+unread+' unread':''));
    if(visible)cards(el('member-notices-list'),items);
-   if(timer)root.clearTimeout(timer);const next=items.length?Math.min(...items.map(r=>Date.parse(r.ends_at)))-now():60000;timer=root.setTimeout(()=>{render();refresh(false);},Math.min(Math.max(next+30,100),60000));
+   if(timer)root.clearTimeout(timer);const next=items.length?Math.min(...items.map(r=>Date.parse(r.ends_at)))-now():60000;timer=root.setTimeout(()=>{render();refresh();},Math.min(Math.max(next+30,100),60000));
   }
   async function verify(){const expected=app.authenticatedRole;if(!expected||!app.currentMember)throw Error('Sign in required.');const role=await root.IronVaultAuth.requireRole(client,{roles:['member'],tenantId:expected.tenant_id,memberId:expected.member_id});
    if(role.user_id!==expected.user_id||role.member_id!==expected.member_id||role.tenant_id!==expected.tenant_id||(identity&&identity!==role.user_id+'|'+role.tenant_id+'|'+role.member_id))throw Error('The signed-in membership changed.');return role;
@@ -25,16 +25,15 @@
    el('member-notices-status').textContent='';identity=role.user_id+'|'+role.tenant_id+'|'+role.member_id;offset=Date.parse(data.server_now)-Date.now();items=data.items.filter(active);bell.hidden=false;render();return items;
   }
   function show(rows){lastFocus=root.document.activeElement;visible=true;panel.hidden=false;cards(el('member-notices-list'),rows);el('member-notices-close').focus();}
-  async function refresh(auto){if(busy)return;busy=true;const stamp=epoch;try{const rows=await fetchFeed('list');if(!rows||stamp!==epoch)return;
-    if(auto&&rows.some(r=>r.unread)&&!visible){const claimed=await fetchFeed('claim');if(claimed&&stamp===epoch){const fresh=claimed.filter(r=>r.popup);if(fresh.length)show(fresh);}}
+  async function refresh(){if(busy)return;busy=true;const stamp=epoch;try{await fetchFeed('list');
    }catch(error){if(stamp===epoch){clear();bell.hidden=false;bell.setAttribute('aria-label','Announcements unavailable');el('member-notices-status').textContent='Announcements are unavailable. Please try again.';}}
    finally{if(stamp===epoch)busy=false;}
   }
   app.openMemberAnnouncements=async function(){if(busy)return;busy=true;const stamp=epoch;el('member-notices-status').textContent='';try{const rows=await fetchFeed('list');if(!rows||stamp!==epoch)return;show(rows);const read=rows.map(r=>({id:r.id,revision:r.revision}));await fetchFeed('read',read);}catch(error){if(stamp===epoch){clear();bell.hidden=false;el('member-notices-status').textContent='Announcements are unavailable. Please try again.';}}finally{if(stamp===epoch)busy=false;}};
   app.closeMemberAnnouncements=function(){visible=false;panel.hidden=true;lastFocus?.focus?.();};
-  const init=app.init;app.init=async function(...args){clear();await init.apply(this,args);if(this.currentMember)await refresh(true);};
+  const init=app.init;app.init=async function(...args){clear();await init.apply(this,args);if(this.currentMember)await refresh();};
   client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(identity&&session?.user?.id&&identity.split('|')[0]!==session.user.id))clear();});
-  root.addEventListener('focus',()=>refresh(false));
+  root.addEventListener('focus',()=>refresh());
   root.addEventListener('keydown',e=>{if(!visible)return;if(e.key==='Escape')app.closeMemberAnnouncements();if(e.key==='Tab'){const nodes=panel.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]');const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&root.document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&root.document.activeElement===last){e.preventDefault();first.focus();}}});clear();
  }
  root.IronVaultMemberAnnouncements=Object.freeze({install});if(typeof module==='object'&&module.exports)module.exports=root.IronVaultMemberAnnouncements;
