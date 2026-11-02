@@ -45,3 +45,7 @@ After installed 020/021, manually run only `supabase/manual/activity_actor_names
 ### 023: Historical wallet values in Money
 
 After installed 022, manually run only `supabase/manual/wallet_after_history.sql` (same as `202611020023_wallet_after_history.sql`). It reads saved balances from exactly linked financial receipts in the existing report RPC; no transaction, balance, receipt or ledger data is rewritten. Unavailable history is labeled rather than guessed. Apply SQL before the matching frontend; no Edge update is needed. See `docs/security/wallet-after-history.md`.
+
+### 024: Admin announcements, stage one
+
+After installed 023, manually run only `supabase/manual/admin_announcements.sql` (same as `202611020024_admin_announcements.sql`). Adds announcement storage and owner/staff-scoped RPCs; owner writes only, Remove archives. Existing account, balance, plan and financial records are preserved. New notices follow the existing explicitly confirmed whole-tenant purge. Apply SQL before the matching frontend; no Edge update is needed. Member-profile display and notification delivery are not included. See `docs/security/admin-announcements-stage1.md` for rollout and acceptance checks. No SQL executed by the agent.

@@ -136,3 +136,7 @@ Added the requested Overview export button and gym/date-based `.xlsx` filename. 
 ## Future monthly archive and retention proposal — not implemented
 
 The owner requested saving a proposal for later review, not enabling cleanup. See [monthly-report-archive-and-retention-proposal.md](monthly-report-archive-and-retention-proposal.md). It defines monthly owner email, private Super Admin archives, the current-month-plus-three-complete-month buffer, protected financial/operational records, eligibility holds and staged Super Admin approval. This document is not approval to implement database changes, send scheduled reports or delete records. No application code or SQL was changed for the proposal.
+
+## Admin announcements, stage one
+
+Owner authorized the discussed first stage: admin-page owner controls and read-only staff access, with tenant-scoped storage/APIs prepared as manual migration 024. Includes preview, Manila scheduling, pinning, versioned edits and retained Removed notices. Member profiles and email/push delivery remain for later work. See [admin-announcements-stage1.md](admin-announcements-stage1.md). Existing tenant purge behavior is preserved through the new tenant foreign key; no existing financial or member records are rewritten. SQL installation and live acceptance remain pending; no SQL executed, production deployed or PR merged by the agent.

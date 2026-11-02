@@ -83,7 +83,7 @@
 
     <!-- TOP HEADER / NAV BAR -->
     <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur-md px-3 py-3 sm:px-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+        <div class="max-w-7xl mx-auto flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div id="header-logo-container" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 overflow-hidden flex-shrink-0 transition-all duration-300">
                     <i id="header-logo-icon" class="fa-solid fa-shield-halved text-base sm:text-lg"></i>
@@ -96,10 +96,13 @@
             </div>
 
             <!-- ADMIN / STAFF HEADER CONTROLS -->
-            <div class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="flex flex-wrap justify-end items-center gap-1.5 flex-shrink-0 max-w-full">
                 <button id="btn-reports-analytics" onclick="adminApp.openReportsPage()" class="hidden px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-semibold text-emerald-300 transition items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span class="hidden md:inline">Reports & Analytics</span>
+                </button>
+                <button id="btn-announcements" type="button" onclick="adminApp.openAnnouncements()" title="Announcements" class="hidden px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-[11px] font-semibold text-sky-200 transition min-h-11">
+                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i> <span>Announcements</span>
                 </button>
                 <button id="btn-staff-management" onclick="adminApp.openStaffSignupModal()" class="hidden px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-semibold text-amber-300 transition items-center gap-1.5">
                     <i class="fa-solid fa-users-gear"></i>
@@ -800,6 +803,55 @@
     </footer>
 
     <!-- LOGIC CONTROLLER -->
+    <div id="announcements-panel" hidden class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md p-3 sm:p-6 overflow-y-auto">
+      <section role="dialog" aria-modal="true" aria-labelledby="announcements-heading" class="glass-card rounded-2xl p-4 sm:p-6 max-w-4xl mx-auto my-3 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="announcements-heading" class="text-xl font-bold text-white">Announcements</h2>
+          <button id="announcements-close" type="button" onclick="adminApp.closeAnnouncements()" class="rounded-xl bg-slate-800 px-4 py-3 text-white text-sm">Close</button>
+        </div>
+        <p class="rounded-xl border border-amber-700 bg-amber-950/30 p-3 text-sm text-amber-200">Stage 1 — admin/staff only. Saved announcements do not appear on member profiles yet. No email or push notifications are sent.</p>
+        <p id="announcements-access" class="text-sm text-slate-300"></p>
+        <div class="flex flex-wrap items-end gap-3">
+          <button id="announcement-new" hidden type="button" onclick="adminApp.newAnnouncement()" class="rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white text-sm">New announcement</button>
+          <label class="text-sm text-slate-300">Show
+            <select id="announcements-filter" onchange="adminApp.reloadAnnouncements(true)" class="glass-input block rounded-xl p-3 text-white mt-1">
+              <option value="all">All schedules</option><option value="current">Active schedules</option><option value="scheduled">Scheduled</option><option value="expired">Expired</option><option id="announcements-archived-option" value="archived" hidden>Removed</option>
+            </select>
+          </label>
+          <button id="announcements-refresh" type="button" onclick="adminApp.reloadAnnouncements()" class="rounded-xl border border-slate-600 px-4 py-3 text-white text-sm">Refresh</button>
+        </div>
+        <p id="announcements-message" role="status" aria-live="polite" class="text-sm text-emerald-300"></p>
+        <form id="announcement-editor" hidden onsubmit="adminApp.saveAnnouncement(event)" class="rounded-2xl border border-slate-700 p-4 space-y-4">
+          <h3 id="announcement-editor-title" class="font-bold text-white">New announcement</h3>
+          <label class="block text-sm text-slate-300">Title
+            <input id="announcement-title" required maxlength="160" class="glass-input block w-full rounded-xl p-3 mt-1 text-white" placeholder="Holiday closure" />
+          </label>
+          <label class="block text-sm text-slate-300">Message
+            <textarea id="announcement-body" required maxlength="4000" rows="5" class="glass-input block w-full rounded-xl p-3 mt-1 text-white" placeholder="We will be closed on Monday. Regular hours resume Tuesday."></textarea>
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="block text-sm text-slate-300">Starts (Manila time)<input id="announcement-start" type="datetime-local" required class="glass-input block w-full rounded-xl p-3 mt-1 text-white" /></label>
+            <label class="block text-sm text-slate-300">Ends (Manila time)<input id="announcement-end" type="datetime-local" required class="glass-input block w-full rounded-xl p-3 mt-1 text-white" /></label>
+          </div>
+          <p class="text-xs text-slate-400">The schedule is active from the start time up to, but not including, the end time. Times use Asia/Manila regardless of your device timezone.</p>
+          <label class="flex items-center gap-3 text-sm text-slate-300 min-h-11"><input id="announcement-pinned" type="checkbox" />Pin as important</label>
+          <div class="flex flex-wrap gap-2">
+            <button id="announcement-save" type="submit" class="rounded-xl bg-emerald-600 px-4 py-3 text-white font-bold text-sm">Save announcement</button>
+            <button type="button" onclick="adminApp.previewAnnouncement()" class="rounded-xl border border-slate-600 px-4 py-3 text-white text-sm">Preview draft</button>
+            <button type="button" onclick="adminApp.cancelAnnouncement()" class="rounded-xl border border-slate-600 px-4 py-3 text-white text-sm">Cancel</button>
+          </div>
+          <section id="announcement-preview" hidden class="rounded-xl bg-slate-900 p-4 space-y-2"><h4 class="text-xs text-amber-300">Draft preview — not visible to members yet</h4><p id="announcement-preview-title" class="font-bold text-white break-words"></p><p id="announcement-preview-body" class="text-sm text-slate-200 whitespace-pre-wrap break-words"></p></section>
+        </form>
+        <p id="announcements-asof" class="text-xs text-slate-400"></p>
+        <div id="announcements-list" class="space-y-3"></div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="announcements-prev" type="button" onclick="adminApp.announcementsPage(-1)" class="rounded-xl border border-slate-600 px-4 py-3 text-white text-sm">Previous</button>
+          <button id="announcements-next" type="button" onclick="adminApp.announcementsPage(1)" class="rounded-xl border border-slate-600 px-4 py-3 text-white text-sm">Next</button>
+          <span id="announcements-page" class="text-xs text-slate-400"></span>
+        </div>
+      </section>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
@@ -2471,5 +2523,7 @@ adminApp.logoutAdmin=async function(){
 <script src="../assets/branch-auth.js"></script>
 <script src="../assets/application-workflows.js"></script>
 <script>IronVaultWorkflows.install(adminApp,supabaseClient,'admin');</script>
+<script src="../assets/announcements.js"></script>
+<script>IronVaultAnnouncements.install(adminApp,supabaseClient);</script>
 </body>
 </html>
