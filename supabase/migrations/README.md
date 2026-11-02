@@ -37,3 +37,7 @@ After 016, manually run only `202611010017_super_admin_tenant_purge.sql` and dep
 ### 018–020: Short display codes, staff contact policy and clearer reports
 
 For an existing installation through 017, run only `supabase/manual/usability_update.sql` once; it combines 018, 019 and 020 atomically. Internal IDs, balances and history are preserved. Then update existing iv-branch-auth (JWT OFF), provision-gym-tenant (JWT ON), and the frontend. See docs/security/usability-update.md. No SQL executed by the agent.
+
+### 022: Activity names and roles
+
+After installed 020/021, manually run only `supabase/manual/activity_actor_names.sql` (same contents as `202611020022_activity_actor_names.sql`). It replaces the report snapshot function and appends tenant-scoped actor names/roles; it does not rewrite records or change permissions. Apply SQL before merging the matching frontend. No Edge update is needed. See `docs/security/activity-actor-names.md`.

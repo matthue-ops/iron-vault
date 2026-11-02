@@ -316,10 +316,11 @@
 
         <!-- TABLE SECTION 3: SYSTEM AUDIT LOGS TAB -->
         <div id="section-audit-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
-<label class="no-print">Show activity <select id="report-activity-kind" onchange="reportsApp.ivChoose(this.value)" class="glass-input rounded-xl p-3"><option value="all">All activity</option><option value="activity">Administrative changes</option><option value="sessions">Staff sign-ins / sign-outs</option></select></label>
+<label class="no-print">Show activity <select id="report-activity-kind" onchange="reportsApp.ivChoose(this.value)" class="glass-input rounded-xl p-3"><option value="all">All activity</option><option value="activity">Administrative changes</option><option value="sessions">Admin / staff sign-ins / sign-outs</option></select></label>
+<p class="text-xs text-slate-400">Names and roles reflect current account details, including deactivated accounts where available. Missing identities are shown as Account unavailable; original activity records remain unchanged.</p>
 
             <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
-                <i class="fa-solid fa-list-check text-purple-400"></i> Administrative Activity & Staff Sessions
+                <i class="fa-solid fa-list-check text-purple-400"></i> Administrative Activity & Account Sessions
             </h3>
 
             <div class="overflow-x-auto">
@@ -619,7 +620,7 @@ async function ivRequireRole(roles, tenant){
 reportsApp.ivMode='activity';
 reportsApp.ivClear=function(){
  this.ivRequest=(this.ivRequest||0)+1;
- this.ivFinance=[];this.ivPurchases=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
+ this.ivActors=[];this.ivFinance=[];this.ivPurchases=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
  this.allMembers=[];this.branchMembers=[];
  for(const id of ['financial-tbody','attendance-tbody','audit-tbody'])document.getElementById(id).textContent='';
  for(const id of ['metric-revenue','metric-credits','metric-registrations','metric-subscriptions',
@@ -643,7 +644,7 @@ reportsApp.ivLoadLogs=async function(start,end){
  const {data,error}=await supabaseClient.rpc('iv_report_snapshot',{p_tenant:this.currentTenant.id,p_start:start,p_end:end});
  if(error||!data)throw new Error(error?.message||'Report snapshot unavailable.');
  await this.ivRequireReport();
- return {logs:[data.financial,data.attendance,data.activity,data.sessions],purchases:data.purchases||[],members:(data.members||[]).map(m=>({id:m.id,displayCode:m.display_code||m.id,display_code:m.display_code,created_at:m.created_at,expiration_date:m.expiration_date,scans_used:m.scans_used,last_scanned_date:m.last_scanned_date,tenantId:m.tenant_id,name:m.name,
+ return {actors:data.actors||[],logs:[data.financial,data.attendance,data.activity,data.sessions],purchases:data.purchases||[],members:(data.members||[]).map(m=>({id:m.id,displayCode:m.display_code||m.id,display_code:m.display_code,created_at:m.created_at,expiration_date:m.expiration_date,scans_used:m.scans_used,last_scanned_date:m.last_scanned_date,tenantId:m.tenant_id,name:m.name,
   classification:m.classification,plan:m.plan,walletBalance:m.wallet_balance,status:m.status}))};
 };
 reportsApp.ivRender=async function(start,end){
@@ -675,7 +676,7 @@ reportsApp.filterAndRenderReport=async function(start,end){
   const result=await this.ivLoadLogs(start,end);
   if(request!==this.ivRequest)return;
   [this.ivFinance,this.ivAttendance,this.ivActivity,this.ivSessions]=result.logs;
-  this.ivPurchases=result.purchases;this.branchMembers=result.members;this.allMembers=result.members;
+  this.ivActors=result.actors;this.ivPurchases=result.purchases;this.branchMembers=result.members;this.allMembers=result.members;
   await this.ivRender(start,end);
   document.body?.classList.remove('iv-auth-pending');
  }catch(error){if(request===this.ivRequest)this.ivDeny(error);}

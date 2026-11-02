@@ -6,7 +6,7 @@ const path=require('node:path');
 function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();let created=0;
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
- function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],appendChild(child){this.children.push(child)},addEventListener(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
+ function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],appendChild(child){this.children.push(child)},addEventListener(name,fn){(this.listeners??={})[name]=fn},click(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
@@ -325,7 +325,7 @@ test('attendance shows current expiry and activity never falls back to the money
  const p=reportFixture();await p.app.init();p.app.branchMembers=[{id:'member-a',name:'Member',displayCode:'MEM-0001',plan:'1-Week Pass',expiration_date:'2026-11-08',status:'ACTIVE'}];
  p.app.ivAttendance=[{member_id:'member-a',method:'manual',created_at:'2026-11-01T01:00:00+08:00'}];
  p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',event:'Pricing updated',details:'New rates'}];
- p.app.ivSessions=[{created_at:'2026-11-01T02:00:00+08:00',event:'login',actor_id:'staff'}];
+ p.app.ivActors=[{user_id:'staff',name:'Staff Person',role:'staff'}];p.app.ivSessions=[{created_at:'2026-11-01T02:00:00+08:00',event:'login',actor_id:'staff'}];
  await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('attendance');
  const attendance=p.element('attendance-tbody').children.at(-1).children.map(c=>c.textContent);assert.match(attendance[5],/8 Nov 2026.*7 days left/);
  p.app.switchTab('audit');assert.equal(p.app.ivMode,'all');p.app.ivChoose('activity');let row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Pricing updated');
@@ -379,4 +379,44 @@ test('staff list collapses email and management actions beneath name, role and v
  assert.ok(details.children.some(child=>child.textContent==='Send password recovery'));
  assert.ok(details.children.some(child=>child.textContent==='Deactivate access'));
  assert.equal(details.children[1].dataset.staffTenant,'gym-a');
+});
+
+const activityOwner='11111111-1111-4111-8111-111111111111',activityStaff='22222222-2222-4222-8222-222222222222';
+async function namedActivity(){
+ const p=reportFixture();await p.app.init();
+ p.app.ivActors=[{user_id:activityOwner,name:'Yannie Hue',role:'owner'},{user_id:activityStaff,name:'Desk Person',role:'staff'}];
+ p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',actor_id:activityOwner,event:'Financial report access granted',details:'Target account: '+activityStaff}];
+ p.app.ivSessions=[{created_at:'2026-11-01T03:00:00+08:00',actor_id:activityOwner,event:'login'},{created_at:'2026-11-01T04:00:00+08:00',actor_id:activityStaff,event:'logout'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('audit');return p;
+}
+test('Activity resolves owner and staff names/roles in sessions and administrative target details',async()=>{
+ const p=await namedActivity();const rows=p.element('audit-tbody').children.slice(-3).map(r=>r.children.map(c=>c.textContent));
+ assert.deepEqual(rows.map(r=>r[1]),['Desk Person — Staff','Yannie Hue — Gym Admin','Yannie Hue — Gym Admin']);
+ assert.equal(rows[0][2],'Staff logout');assert.equal(rows[1][2],'Gym Admin login');assert.equal(rows[2][3],'Target account: Desk Person — Staff');
+ assert.ok(rows.flat().every(value=>!String(value).includes(activityOwner)&&!String(value).includes(activityStaff)));
+ p.element('report-search').value='Yannie';p.element('report-search').listeners.input();assert.match(p.element('report-page').textContent,/of 2 matching rows/);
+ p.element('report-search').value='Gym Admin';p.element('report-search').listeners.input();assert.match(p.element('report-page').textContent,/of 2 matching rows/);
+});
+test('Activity CSV and print use the same filtered names and roles, with permission checks',async()=>{
+ const p=await namedActivity();let blob,printed=0;
+ p.context.Blob=Blob;p.context.URL={createObjectURL:value=>{blob=value;return 'blob:synthetic'},revokeObjectURL(){}};p.context.print=()=>{printed++};
+ p.element('report-search').value='Yannie';p.element('report-search').listeners.input();
+ await p.app.exportReportCsv();const csv=await blob.text();assert.match(csv,/Name \/ role/);assert.match(csv,/Yannie Hue — Gym Admin/);assert.match(csv,/Target account: Desk Person — Staff/);assert.doesNotMatch(csv,new RegExp(activityOwner+'|'+activityStaff));
+ await p.app.printReport();assert.equal(printed,1);
+ p.permission.enabled=false;await p.app.printReport();assert.equal(printed,1);assert.equal(p.app.ivActors.length,0);
+});
+test('unavailable actors and system events remain honest and names are rendered as text',async()=>{
+ const p=await namedActivity();p.app.ivActors=[{user_id:activityStaff,name:'<img src=x onerror=alert(1)>',role:'staff'}];
+ p.app.ivActivity=[{created_at:'2026-11-01T03:00:00+08:00',actor_id:null,event:'System task',details:'No user'},
+ {created_at:'2026-11-01T02:00:00+08:00',actor_id:activityOwner,event:'Old event',details:'Target account: '+activityOwner}];
+ p.app.ivSessions=[{created_at:'2026-11-01T04:00:00+08:00',actor_id:activityStaff,event:'login'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');const rows=p.element('audit-tbody').children.slice(-3);
+ assert.equal(rows[0].children[1].textContent,'<img src=x onerror=alert(1)> — Staff');assert.equal(rows[0].children[1].innerHTML,'');
+ assert.equal(rows[1].children[1].textContent,'System');assert.equal(rows[2].children[1].textContent,'Account unavailable');assert.equal(rows[2].children[3].textContent,'Target account: Account unavailable');
+});
+
+test('non-account UUID details such as transaction references remain unchanged',async()=>{
+ const p=await namedActivity(),reference='33333333-3333-4333-8333-333333333333';
+ p.app.ivSessions=[];p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',actor_id:activityOwner,event:'Payment reference',details:'Receipt: '+reference}];
+ await p.app.ivRender('2026-11-01','2026-11-01');assert.equal(p.element('audit-tbody').children.at(-1).children[3].textContent,'Receipt: '+reference);
 });
