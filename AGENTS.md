@@ -10,5 +10,6 @@
 8. Explain which SQL statements the user needs to execute and in what order.
 9. Do not assume database changes have been applied until the user confirms.
 10. Test affected functions whenever possible.
-11. Avoid modifying unrelated files or features.
+11. Do not alter any functions, UI, files, or features unrelated to the current implementation. Preserve existing behavior and appearance outside the requested scope.
 12. Never commit passwords, secret keys, or other credentials.
+13. Before implementing any change that affects the database, inform the user of the intended changes, affected data or schema, and potential impact, and wait for explicit approval. This includes changes to database queries, writes, migrations, permissions, policies, and stored functions, even when no SQL will be executed by the agent. Approval does not override the rule that the user manually executes Supabase SQL.
