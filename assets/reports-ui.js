@@ -7,14 +7,39 @@
   const code=(m,fallback)=>m?.display_code||m?.displayCode||m?.id||fallback||'—';
   function clear(){model=null;period=null;node('report-overview').textContent='';node('report-insights').textContent='';node('report-daily').textContent='';node('report-expiring').textContent='';node('overview-period').textContent='';node('report-expiring-count').textContent='';node('report-money-summary').textContent='';node('report-attendance-summary').textContent='';node('report-print-context').textContent='';node('report-sales-details').textContent='';}
   app.ivClear=function(){oldClear.call(this);clear();};
+  const roleNames={owner:'Gym Admin',staff:'Staff',member:'Member',super_admin:'Super Admin'};
+  function actorLabel(id){
+   if(!id)return 'System';
+   const actor=(app.ivActors||[]).find(a=>String(a.user_id).toLowerCase()===String(id).toLowerCase()&&Object.hasOwn(roleNames,a.role));
+   if(!actor)return 'Account unavailable';
+   const name=typeof actor.name==='string'&&actor.name.trim()?actor.name.trim():'Name unavailable';
+   return name+' — '+roleNames[actor.role];
+  }
+  function activityDetailsFormatter(){
+   const members=new Map((model?.members||[]).filter(m=>(m.tenantId??m.tenant_id)===app.currentTenant?.id).map(m=>[String(m.id).toLowerCase(),m]));
+   const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+   const ids=Array.from(members.keys()).sort((a,b)=>b.length-a.length).map(escape);
+   const uuid='[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}';
+   const references=new RegExp('(?<![a-z0-9_-])(?:'+[...ids,uuid].join('|')+')(?![a-z0-9_-])','gi');
+   return text=>String(text||'').replace(references,id=>{
+    const member=members.get(id.toLowerCase());
+    if(member){
+     const name=typeof member.name==='string'&&member.name.trim()?member.name.trim():'Name unavailable';
+     const shortCode=member.display_code||member.displayCode||member.id;
+     return name+(/^MEM-\d{4,}$/i.test(shortCode)?' · '+shortCode:'');
+    }
+    return (app.ivActors||[]).some(a=>String(a.user_id).toLowerCase()===id.toLowerCase())?actorLabel(id):id;
+   }).replace(/(Target account:\s*)([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\b/gi,(_,prefix,id)=>prefix+actorLabel(id));
+  }
   function tableRows(){
    if(!model)return[];const members=new Map(model.members.map(m=>[m.id,m]));
    if(app.currentTab==='attendance')return model.attendance.map(a=>[code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',members.get(a.member_id)?.plan||'—',stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,R.expiryLabel(members.get(a.member_id)),members.get(a.member_id)?.status||'—']);
    if(app.currentTab==='audit'){
     const within=row=>{const d=R.date(row.created_at);return d>=period.start&&d<=period.end;};
-    const sessions=(app.ivSessions||[]).map(s=>({...s,event:'Staff '+s.event,details:s.event}));
+    const sessions=(app.ivSessions||[]).map(s=>{const actor=(app.ivActors||[]).find(a=>a.user_id===s.actor_id);return {...s,event:(roleNames[actor?.role]||'Account')+' '+s.event,details:s.event};});
     const rows=(app.ivMode==='sessions'?sessions:app.ivMode==='activity'?(app.ivActivity||[]):[...(app.ivActivity||[]),...sessions]).filter(within).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-    return rows.map(a=>[stamp(a.created_at),a.actor_id||'System',a.event,a.details||'']);
+    const details=activityDetailsFormatter();
+    return rows.map(a=>[stamp(a.created_at),actorLabel(a.actor_id),a.event,details(a.details)]);
    }
    return model.financial.map(t=>[code(members.get(t.member_id),t.member_id),members.get(t.member_id)?.name||'—',members.get(t.member_id)?.classification||'—',R.kinds[t.kind]||t.kind,R.money(t.amount),R.money(members.has(t.member_id)?members.get(t.member_id).wallet_balance??members.get(t.member_id).walletBalance:null),stamp(t.created_at),t.description||'—']);
   }
@@ -64,7 +89,7 @@
    }
    const tools=node('report-table-tools');tools.hidden=tab==='overview';
    if(tab!=='overview'){const panel=node('section-'+tab+'-table');if(panel.insertBefore)panel.insertBefore(tools,panel.querySelector('.overflow-x-auto'));else panel.appendChild(tools);}
-   node('report-search').placeholder=tab==='audit'?'Actor, action, date…':'Member code, name, type, date…';
+   node('report-search').placeholder=tab==='audit'?'Name, role, action, date…':'Member code, name, type, date…';
    renderDetails();
   };
   app.ivChoose=function(mode){this.ivMode=['sessions','activity'].includes(mode)?mode:'all';page=0;renderDetails();};
@@ -72,7 +97,7 @@
   app.exportReportCsv=async function(){try{
    await this.ivRequireReport();if(this.currentTab==='overview')return;if(!model||!period)throw Error('Load a report first.');
    const kind=this.currentTab==='attendance'?'attendance':this.currentTab==='audit'?'audit':'financial';
-   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Current pass expiry / days left','Current status']:kind==='audit'?['Time (Asia/Manila)','Actor ID','Action','Details']:['Member code','Name','Classification','Entry type','Amount','Current wallet credit','Time (Asia/Manila)','Description'];
+   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Current pass expiry / days left','Current status']:kind==='audit'?['Time (Asia/Manila)','Name / role','Action','Details']:['Member code','Name','Classification','Entry type','Amount','Current wallet credit','Time (Asia/Manila)','Description'];
    const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note','Balances, plans, classifications and statuses reflect the current snapshot. CSV includes all matching detail rows.'],headings,...matches()]);
    const url=root.URL.createObjectURL(new root.Blob([text],{type:'text/csv;charset=utf-8'}));const link=root.document.createElement('a');link.href=url;link.download='IronVault_'+kind+'_'+period.start+'_'+period.end+'.csv';link.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);
   }catch(error){this.ivDeny(error);}};

@@ -109,3 +109,14 @@ Validation: 168 native Node tests pass (no failed/skipped), including owner prov
 Implemented the requested four report tabs, four-card Overview, one shared date range, per-table search/CSV/Print and expandable explanations. Added phone card layouts, touch targets, secondary-action menus, expandable staff details with existing report/recovery/deactivation controls, and consistent “At least 8 characters.” wording for creation/password changes. Existing shorter-password sign-in remains supported. No financial calculation, role/tenant permission rule, SQL/Edge source or stored record changed. See [interface-usability.md](interface-usability.md).
 
 175 local Node tests pass, 0 failed/skipped. Chromium with synthetic data passed at 320, 375 and 1280 pixels, including table filters, print panel isolation, staff controls and member cards/menus with no page overflow or JavaScript errors. No hosted acceptance, SQL execution, deployment or merge performed. Earlier unconfirmed SQL/backend installation remains unconfirmed; this UI change introduces no new migrations.
+
+## Activity actor names and roles
+
+Owner approved the report-query enhancement before implementation. Prepared manual migration 022 to append referenced, tenant-scoped actor names/roles to the existing report snapshot, preserving its authorization and existing report data. Activity, name/role search, CSV and Print now identify gym administrators and staff, including known administrative targets. Names/roles reflect current available identity data; unavailable accounts and system events are labeled honestly. No event records, credentials, permissions or unrelated UI are modified. See [activity-actor-names.md](activity-actor-names.md) for the SQL-first manual rollout and limitations.
+
+182 local tests pass; SQL/PLpgSQL syntax parsed without execution. Mocked Chromium checks passed at phone and desktop widths. No SQL executed, Edge deployed, production deployed or PR merged by the agent.
+
+
+## Activity member reference follow-up
+
+On the same Activity branch, known member references in Details now use the member name and short code from the existing selected-tenant report snapshot. Search/CSV/Print use the same labels. No query, SQL, database data, Edge code, access rule or unrelated UI changed. Existing actor-name SQL 022 is unchanged and does not need reapplying for this follow-up. All 187 native tests pass, including preserved raw logs, inactive members, complete-reference matching, other-tenant exclusion, safe text, missing short codes and receipt-reference preservation.
