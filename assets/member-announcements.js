@@ -6,13 +6,12 @@
   let epoch=0,serial=0,items=[],identity=null,offset=0,visible=false,busy=false,timer=null,lastFocus=null;
   const now=()=>Date.now()+offset;
   const active=row=>Date.parse(row.starts_at)<=now()&&Date.parse(row.ends_at)>now();
-  function clear(){epoch++;serial++;busy=false;items=[];identity=null;visible=false;bell.hidden=true;panel.hidden=true;el('member-notices-banner').hidden=true;el('member-notices-list').textContent='';el('member-notices-banners').textContent='';el('member-notices-count').textContent='';if(timer)root.clearTimeout(timer);timer=null;}
+  function clear(){epoch++;serial++;busy=false;items=[];identity=null;visible=false;bell.hidden=true;panel.hidden=true;el('member-notices-list').textContent='';el('member-notices-count').textContent='';if(timer)root.clearTimeout(timer);timer=null;}
   function text(tag,value,cls){const n=root.document.createElement(tag);n.textContent=value;n.className=cls||'';return n;}
   function cards(target,rows){target.textContent='';if(!rows.length)target.appendChild(text('p','No active announcements.','text-slate-400'));
    for(const row of rows){const card=text('article','','rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-2');card.appendChild(text('h3',row.title,'font-bold text-white break-words'));card.appendChild(text('p',row.body,'whitespace-pre-wrap break-words text-slate-200 text-sm'));card.appendChild(text('p',(row.pinned?'Pinned · ':'')+'Until '+new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(row.ends_at))+' · Manila time','text-xs text-slate-400'));target.appendChild(card);}
   }
   function render(){items=items.filter(active);const unread=items.filter(r=>r.unread).length;el('member-notices-count').textContent=unread?String(unread):'';bell.setAttribute('aria-label','Announcements'+(unread?', '+unread+' unread':''));
-   const pinned=items.filter(r=>r.pinned);el('member-notices-banner').hidden=!pinned.length;const banners=el('member-notices-banners');banners.textContent='';for(const row of pinned){const b=text('button',row.title,'block text-left font-semibold text-amber-100 break-words min-h-11');b.type='button';b.onclick=()=>app.openMemberAnnouncements();banners.appendChild(b);}
    if(visible)cards(el('member-notices-list'),items);
    if(timer)root.clearTimeout(timer);const next=items.length?Math.min(...items.map(r=>Date.parse(r.ends_at)))-now():60000;timer=root.setTimeout(()=>{render();refresh(false);},Math.min(Math.max(next+30,100),60000));
   }
