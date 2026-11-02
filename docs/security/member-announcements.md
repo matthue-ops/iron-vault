@@ -1,6 +1,6 @@
 # Member announcements: stage two
 
-The member profile has a Notices bell with an unread badge, a wide announcement dialog. Only notices currently within their gym's start/end schedule are returned. The end time is exclusive. Members can reopen active notices through the bell; expired, future and removed notices are unavailable to members.
+The member profile has a Notices bell with an unread badge and a wide announcement dialog. Only notices currently within their gym's start/end schedule are returned. The end time is exclusive. Members can reopen active notices through the bell; expired, future and removed notices are unavailable to members.
 
 Opening the profile automatically shows unread announcements once per member per content revision. Read receipts persist across devices. An atomic server claim prevents two simultaneous devices from both showing the automatic popup. Title, message and start/end schedule changes increment a separate content revision, including edits reverting earlier text. Pinning/unpinning alone does not. Opening the bell acknowledges only the exact ID/revision pairs fetched for display.
 
@@ -23,3 +23,7 @@ Create a harmless current notice in gym A. Open a gym A member profile: confirm 
 Check two simultaneous devices for one member, and a second member independently. Test member deactivation, role revocation, inactive gyms, wrong-gym requests and owner/staff requests against the member RPC. Confirm all are denied appropriately and normal QR, purchases, profile updates and sign-out still work. Test against the live backend using approved fixtures; local mocks cannot establish live authorization or concurrent database acceptance.
 
 Local validation: controller/SQL contract tests, full existing test suite, SQL and PL/pgSQL parsing without execution, and mocked Chromium checks at 320, 375 and 1280 pixels. The agent did not execute SQL, deploy production or merge a PR.
+
+## Member profile usability follow-up
+
+On phones (below 640px), Notices and Sign Out use accessible icon-only 44px controls at the top right. An unread count and gentle bell animation indicate new notices; reduced-motion preferences disable the animation. An empty badge is hidden. Personal Information & Security is collapsed by default using a keyboard-accessible disclosure; its existing form and save behavior are preserved. No database or SQL change is required for this follow-up.
