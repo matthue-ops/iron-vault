@@ -1,0 +1,14 @@
+# Review-only Edge deployment configuration. No CLI deployment is performed.
+# Public branch gateway validates sessions itself for every authenticated action;
+# signin/signup/recovery/confirmation are rate-limited public operations.
+[functions.iv-branch-auth]
+verify_jwt = false
+[functions.iv-create-member]
+verify_jwt = true
+[functions.provision-gym-tenant]
+verify_jwt = true
+[functions.iv-admin-correct-member-email]
+verify_jwt = true
+
+[functions.iv-purge-tenant]
+verify_jwt = true

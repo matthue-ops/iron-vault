@@ -1,0 +1,44 @@
+[hidden]{display:none!important}
+.report-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem;width:100%}
+.report-tabs button{justify-content:center;min-height:44px;padding:.65rem;border:1px solid #334155;border-radius:.75rem;background:#1e293b;color:#cbd5e1;font-weight:700;font-size:.8rem}
+.report-tabs button.report-tab-active{background:#34d399;color:#022c22;border-color:#34d399}
+summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:.5rem}
+summary::before{content:'▸'}details[open]>summary::before{content:'▾'}
+.iv-staff-summary{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+.iv-staff-status{font-size:.75rem;color:#6ee7b7}
+.iv-staff-details{display:flex;flex-wrap:wrap;gap:.75rem;padding-top:1rem;overflow-wrap:anywhere}
+.iv-staff-details>p,.iv-staff-details>[data-staff-id]{width:100%}
+.iv-staff-details button{min-height:44px;padding:.6rem .85rem;border:1px solid #475569;border-radius:.65rem}
+.iv-secondary-actions{display:inline-block;vertical-align:top;margin-left:.5rem}
+.iv-secondary-actions>summary{padding:0 .8rem;font-size:1.4rem;list-style:none}
+.iv-secondary-actions[open]{padding:.4rem;background:#0f172a;border-radius:.75rem}
+.iv-secondary-actions[open]>button,.iv-secondary-actions[open]>a{display:block;margin:.25rem 0}
+@media(max-width:640px){
+ body{overflow-wrap:anywhere}main,section,form,.glass-card{min-width:0;max-width:100%}
+ input:not([type=checkbox]):not([type=radio]),select,textarea{max-width:100%;min-width:0;font-size:16px!important;min-height:44px}
+ button,a[role=button],summary{min-height:44px}button{white-space:normal}
+ header{flex-wrap:wrap;gap:.5rem}header nav{flex-wrap:wrap}
+ form.grid{grid-template-columns:minmax(0,1fr)!important}
+ .report-tabs{gap:.3rem}.report-tabs button{padding:.5rem .2rem;font-size:.75rem}
+ .report-tabs i{display:none}
+ .iv-card-table,.iv-card-table tbody{display:block;width:100%;min-width:0!important}
+ .iv-card-table thead{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%)}
+ .iv-card-table tbody tr{display:block;background:#0f172a;border:1px solid #334155;border-radius:1rem;padding:.65rem;margin:.75rem 0}
+ .iv-card-table td{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.5rem!important;text-align:right;white-space:normal!important;overflow-wrap:anywhere}
+ .iv-card-table td[data-label]::before{content:attr(data-label);text-align:left;color:#94a3b8;font:500 .75rem sans-serif;flex:0 0 35%}
+ .iv-card-table td[colspan]{display:block;text-align:center}
+ #report-table-tools{padding:.75rem}#report-table-tools>div{width:100%}
+ #staff-signup-modal>div{max-height:calc(100dvh - 1.5rem);overflow-y:auto}
+ #existing-staff-list{max-height:none}
+}
+@media print{
+ [hidden],.no-print{display:none!important}
+ .iv-card-table{display:table!important}.iv-card-table tbody{display:table-row-group!important}
+ .iv-card-table tr{display:table-row!important}.iv-card-table td{display:table-cell!important}
+ .iv-card-table thead{position:static;width:auto;height:auto;clip-path:none;display:table-header-group!important}
+ .iv-card-table td::before{display:none!important}
+}
+@media print{#report-money-summary,#report-attendance-summary{display:none!important}}
+#inspect-staff-list{max-height:none}
+#staff-tab-register{background:#f59e0b;color:#020617;width:auto;margin-left:auto;order:2;padding:.65rem 1rem}
+#staff-tab-list{width:auto;flex:1;background:transparent;color:#cbd5e1}

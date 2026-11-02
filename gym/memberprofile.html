@@ -42,6 +42,7 @@
     </script>
 
     <style>
+        body.iv-auth-pending { visibility: hidden; }
         :root {
             --brand-primary: #10b981;
             --brand-primary-glow: rgba(16, 185, 129, 0.2);
@@ -79,8 +80,13 @@
             animation: pulseGlow 8s infinite ease-in-out;
         }
     </style>
+    <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
+    <script src="../assets/financial-requests.js"></script>
+<link rel="stylesheet" href="../assets/mobile-ui.css">
+<script defer src="../assets/mobile-ui.js"></script>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
     <!-- BACKGROUND GLOW EFFECTS -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -316,8 +322,9 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New Password (Optional, 8+ characters)</label>
-                                <input type="password" id="edit-password" placeholder="Leave blank to keep current" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New password (optional)</label>
+                                <p id="new-password-help" class="text-xs text-slate-400 mb-2">At least 8 characters. Leave blank to keep your current password.</p>
+                                <input type="password" aria-describedby="new-password-help" id="edit-password" placeholder="At least 8 characters." minlength="8" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                             </div>
                         </div>
 
@@ -350,6 +357,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
@@ -426,10 +434,10 @@
             loadData: async function() {
                 let loadedMembers = [];
                 try {
-                    const { data, error } = await supabaseClient.from('members').select('*');
+                    const { data, error } = await supabaseClient.from('members').select('*').eq('id',this.authenticatedRole.member_id).eq('tenant_id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedMembers = data.map(m => ({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenantId: m.tenant_id,
                             tenantToken: m.tenant_token,
                             name: m.name,
@@ -451,13 +459,6 @@
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedMembers.length === 0) {
-                    const data = localStorage.getItem(MEMBERS_STORAGE_KEY);
-                    if (data) {
-                        try { loadedMembers = JSON.parse(data); } catch(e) {}
-                    }
-                }
 
                 this.allMembersSystem = loadedMembers;
             },
@@ -510,16 +511,7 @@
                     return;
                 }
 
-                this.currentMember = this.allMembersSystem.find(m => m.id === activeId || m.email === activeId);
-                // Once the corrected email is verified in Auth, synchronize the member profile.
-                // This does not change member IDs, balances, subscriptions or QR credentials.
-                if (this.currentMember) {
-                    const {data:{user}} = await supabaseClient.auth.getUser();
-                    if (user?.email_confirmed_at && user.email && user.email.toLowerCase() !== (this.currentMember.email || '').toLowerCase()) {
-                        this.currentMember.email = user.email;
-                        await this.saveData();
-                    }
-                }
+                this.currentMember = this.allMembersSystem.find(m => m.id === activeId && m.tenantId === this.authenticatedRole?.tenant_id);
                 if (!this.currentMember) {
                     this.redirectWithToken();
                     return;
@@ -556,31 +548,18 @@
                 let loadedOwners = [];
 
                 try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    const { data, error } = await supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing').eq('id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
-                            ownerName: o.owner_name,
-                            email: o.email,
-                            password: o.password,
                             token: o.token,
                             logo: o.logo,
                             status: o.status,
                             pricing: o.pricing,
-                            staff: o.staff,
-                            auditLogs: o.audit_logs,
-                            dateCreated: o.date_created
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedOwners.length === 0) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
-                    }
-                }
 
                 if (loadedOwners.length > 0) {
                     const owner = loadedOwners.find(o => o.id === tenantId || (this.currentMember.tenantToken && o.token === this.currentMember.tenantToken));
@@ -682,7 +661,7 @@
                 const m = this.currentMember;
 
                 document.getElementById('profile-card-name').innerText = m.name;
-                document.getElementById('profile-card-id').innerText = m.id;
+                document.getElementById('profile-card-id').innerText = m.displayCode || m.id;
                 document.getElementById('profile-card-plan').innerText = m.plan || 'Not Selected';
                 
                 const statusBadge = document.getElementById('profile-card-status');
@@ -724,7 +703,7 @@
                 const discountPct = this.getEffectiveDiscount();
                 const badgeContainer = document.getElementById('profile-classification-badge-container');
                 if (classification !== 'Regular') {
-                    badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/35">${classification} (${discountPct}%)</span>`;
+                    badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/35">${IronVaultData.escape(classification)} (${discountPct}%)</span>`;
                 } else {
                     badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">Regular</span>`;
                 }
@@ -935,46 +914,6 @@
                 document.getElementById('btn-generate-qr').classList.add('opacity-50', 'cursor-not-allowed');
             },
 
-            handleProfileUpdate: async function(e) {
-                e.preventDefault();
-                if (!this.currentMember) return;
-                try {
-                    const {data:{user},error:userError} = await supabaseClient.auth.getUser();
-                    if (userError || !user) throw Error('Please sign in again before changing account settings.');
-                    const name = document.getElementById('edit-name').value.trim();
-                    const email = document.getElementById('edit-email').value.trim().toLowerCase();
-                    const phone = document.getElementById('edit-phone').value.trim();
-                    const password = document.getElementById('edit-password').value;
-                    const currentPassword = document.getElementById('edit-current-password').value;
-                    if (password) {
-                        if (password.length < 8) throw Error('New password must have at least 8 characters.');
-                        if (!currentPassword) throw Error('Enter your current password to change it.');
-                        const {error:verifyError} = await supabaseClient.auth.signInWithPassword({email:user.email,password:currentPassword});
-                        if (verifyError) throw Error('Current password is incorrect.');
-                        const {error:passwordError} = await supabaseClient.auth.updateUser({password});
-                        if (passwordError) throw passwordError;
-                    }
-                    let pendingEmail = false;
-                    if (email !== (user.email || '').toLowerCase()) {
-                        const {error:emailError} = await supabaseClient.auth.updateUser({email});
-                        if (emailError) throw emailError;
-                        pendingEmail = true;
-                    }
-                    this.currentMember.name = name;
-                    this.currentMember.phone = phone;
-                    // Do not update the member record email until Supabase Auth verifies the new address.
-                    this.currentMember.email = user.email;
-                    delete this.currentMember.password;
-                    await this.saveData();
-                    this.renderProfile();
-                    document.getElementById('edit-email').value = email;
-                    document.getElementById('edit-password').value = '';
-                    document.getElementById('edit-current-password').value = '';
-                    this.showAlert(pendingEmail ? 'Profile saved. Confirm the new email using the verification link before it becomes your login email.' : 'Profile information updated successfully!',true);
-                    ivRefreshEmailVerification();
-                } catch(error) { this.showAlert(error.message || 'Unable to update account.',false); }
-            },
-
             showAlert: function(msg, isSuccess = true) {
                 const alertBox = document.getElementById('profile-alert');
                 const alertMsg = document.getElementById('profile-alert-msg');
@@ -1008,16 +947,20 @@
                 }
             },
 
-            logout: function() {
-                this.redirectWithToken();
+            logout: async function() {
+                const token=sessionStorage.getItem(TOKEN_SESSION_KEY)||this.currentMember?.tenantToken;
+                try {await IronVaultAuth.signOut(supabaseClient,sessionStorage,localStorage);}
+                catch(error){alert(error.message);}
+                this.currentMember=null;this.allMembersSystem=[];
+                location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
             }
         };
 
         async function ivRefreshEmailVerification() {
             const status = document.getElementById('iv-email-verification-status');
             if (!status) return;
-            const {data:{user}} = await supabaseClient.auth.getUser();
-            status.textContent = user ? ('Email: ' + (user.email || 'Not set') + ' — ' + (user.email_confirmed_at ? 'Verified' : 'Not verified')) : 'Email verification status unavailable. Please sign in.';
+            const {data,error}=await supabaseClient.rpc('iv_contact_status');
+            status.textContent=error||!data?'Contact verification status unavailable.':('Email: '+data.email+' — '+(data.verified?'Verified':'Not verified'));
         }
         window.addEventListener('load', () => setTimeout(ivRefreshEmailVerification, 600));
         window.onload = function() {
@@ -1027,7 +970,7 @@
         // PREVENT GO BACK ACCESS AFTER SIGN OUT (BFCACHE RE-CHECK)
         window.addEventListener('pageshow', function(event) {
             if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                profileApp.checkSession();
+                profileApp.init();
             }
         });
     </script>
@@ -1036,21 +979,46 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles,tenant){
- const {data:{user},error:ue}=await supabaseClient.auth.getUser();
- if(ue||!user) throw Error('Please sign in using your Supabase Auth account.');
- const {data:r,error}=await supabaseClient.from('iv_user_roles').select('*').eq('user_id',user.id).single();
- if(error||!r||!roles.includes(r.role)||(tenant&&r.role!=='super_admin'&&r.tenant_id!==tenant)) throw Error('Account does not have permission for this portal.');
- return r;
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
 }
 
 profileApp.purchasePlan=profileApp.purchasePlan||undefined;
 // Supabase role is checked when opening this page; browser-stored member ID is not an authorization mechanism.
 const ivProfileInit=profileApp.init;
-profileApp.init=async function(...args){try{const role=await ivRequireRole(['member']);
- sessionStorage.setItem(SESSION_KEY,role.member_id);return await ivProfileInit.apply(this,args);}
- catch(e){alert(e.message);location.href='memberlogin.html'+location.search;}};
+profileApp.init=async function(...args){
+ document.body?.classList.add('iv-auth-pending');
+ try{
+  const role=await ivRequireRole(['member'],this.authenticatedRole?.tenant_id);
+  this.authenticatedRole=role;
+  sessionStorage.setItem(SESSION_KEY,role.member_id);
+  await ivProfileInit.apply(this,args);
+  const current=await ivRequireRole(['member'],role.tenant_id);
+  if(current.user_id!==role.user_id||current.member_id!==role.member_id)throw new Error('The signed-in membership changed.');
+  document.body?.classList.remove('iv-auth-pending');
+ }catch(error){
+  const token=this.currentMember?.tenantToken||sessionStorage.getItem(TOKEN_SESSION_KEY);
+  this.currentMember=null;this.allMembersSystem=[];
+  IronVaultAuth.clearState(sessionStorage,localStorage);
+  alert(error.message);
+  location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):location.search));
+ }
+};
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&profileApp.authenticatedRole&&session?.user?.id!==profileApp.authenticatedRole.user_id)){
+  document.body?.classList.add('iv-auth-pending');
+  const token=profileApp.currentMember?.tenantToken||sessionStorage.getItem(TOKEN_SESSION_KEY);
+  profileApp.currentMember=null;profileApp.allMembersSystem=[];
+  IronVaultAuth.clearState(sessionStorage,localStorage);
+  location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+ }
+});
 
 </script>
+<script src="../assets/branch-auth.js"></script>
+<script src="../assets/application-workflows.js"></script>
+<script>IronVaultWorkflows.install(profileApp,supabaseClient,'member');</script>
 </body>
 </html>

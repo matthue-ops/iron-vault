@@ -39,6 +39,7 @@
     </script>
 
     <style>
+        body.iv-auth-pending { visibility: hidden; }
         :root {
             --brand-primary: #10b981;
             --bg-base: #090d16;
@@ -71,8 +72,14 @@
             -webkit-overflow-scrolling: touch;
         }
     </style>
+    <script src="../assets/auth-session.js"></script>
+    <script src="../assets/application-data.js"></script>
+    <script src="../assets/financial-requests.js"></script>
+    <script src="../assets/staff-report-permissions.js"></script>
+<link rel="stylesheet" href="../assets/mobile-ui.css">
+<script defer src="../assets/mobile-ui.js"></script>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
     <!-- TOP HEADER / NAV BAR -->
     <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur-md px-3 py-3 sm:px-4">
@@ -485,7 +492,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Initial Plan</label>
-                        <select id="new-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none bg-slate-900">
+                        <select id="new-member-plan" disabled title="Managed by plan purchases" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none bg-slate-900">
                             <option value="Not Selected">Not Selected</option>
                             <option value="1-Day Pass">1-Day Pass</option>
                             <option value="1-Week Pass">1-Week Pass</option>
@@ -500,7 +507,7 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-slate-300 mb-1">Account Password (Optional)</label>
-                    <input type="text" id="new-member-password" value="" minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
+                    <input type="password" id="new-member-password" value="" required minlength="8" placeholder="At least 8 characters." class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -649,7 +656,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] text-slate-400 mb-1">Membership Plan</label>
-                                <select id="edit-member-plan" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
+                                <select id="edit-member-plan" disabled title="Managed by plan purchases" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none bg-slate-900">
                                     <option value="Not Selected">Not Selected</option>
                                     <option value="1-Day Pass">1-Day Pass</option>
                                     <option value="1-Week Pass">1-Week Pass</option>
@@ -680,7 +687,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] text-slate-400 mb-1">Expiration Date</label>
-                                <input type="date" id="edit-member-expiry" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                <input type="date" id="edit-member-expiry" disabled title="Managed by plan purchases" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
                             </div>
                         </div>
 
@@ -737,7 +744,7 @@
             <!-- TAB SWITCHER BUTTONS -->
             <div class="flex bg-slate-900 p-1 rounded-2xl border border-slate-800 gap-1">
                 <button id="staff-tab-register" onclick="adminApp.switchStaffTab('register')" class="w-1/2 py-2 rounded-xl font-bold text-xs transition bg-amber-500 text-slate-950 shadow">
-                    Register New Staff
+                    Add staff
                 </button>
                 <button id="staff-tab-list" onclick="adminApp.switchStaffTab('list')" class="w-1/2 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                     Registered Staff
@@ -746,6 +753,7 @@
 
             <!-- REGISTER STAFF CONTENT TAB -->
             <div id="staff-content-register" class="space-y-3.5">
+<p class="text-xs text-slate-400">Owner-created staff can sign in immediately without confirming email. You can correct an unverified contact email later; password recovery requires access to that inbox.</p>
                 <form onsubmit="adminApp.handleStaffSignup(event)" class="space-y-3.5 text-xs">
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Full Name</label>
@@ -759,7 +767,7 @@
 
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Password</label>
-                        <input type="password" id="staff-reg-password" required minlength="6" placeholder="At least 6 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="password" id="staff-reg-password" required minlength="8" placeholder="At least 8 characters." class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                     </div>
 
                     <div class="flex gap-2 pt-2">
@@ -776,6 +784,7 @@
             <!-- REGISTERED STAFF CONTENT TAB -->
             <div id="staff-content-list" class="hidden space-y-2">
                 <div id="existing-staff-list" class="max-h-60 overflow-y-auto space-y-2 text-xs touch-scroll"></div>
+                <div id="staff-report-permissions"></div>
                 <div class="pt-2">
                     <button type="button" onclick="adminApp.closeStaffSignupModal()" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
                         Close
@@ -795,6 +804,7 @@
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
         const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
@@ -869,8 +879,20 @@
             scanPaused: false,
 
             init: async function() {
-                await this.detectTenantFromUrl();
-                this.checkExistingSession();
+                document.body?.classList.add('iv-auth-pending');
+                try {
+                    this.authenticatedRole = await ivRequireRole(['owner','staff']);
+                    await this.detectTenantFromUrl();
+                    await this.checkExistingSession();
+                    const current=await ivRequireRole(['owner','staff'],this.authenticatedRole.tenant_id);
+                    if(current.user_id!==this.authenticatedRole.user_id||current.role!==this.authenticatedRole.role)throw new Error('The signed-in account or role changed.');
+                    document.body?.classList.remove('iv-auth-pending');
+                } catch(error) {
+                    IronVaultAuth.clearState(sessionStorage,localStorage);
+                    alert(error.message);
+                    const key = new URLSearchParams(location.search).get('key');
+                    location.replace('memberlogin.html' + (key ? '?key='+encodeURIComponent(key) : ''));
+                }
             },
 
             detectTenantFromUrl: async function() {
@@ -880,10 +902,10 @@
 
                 let loadedOwners = [];
                 try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
+                    const { data, error } = await supabaseClient.from('owners').select('*').eq('id',this.authenticatedRole.tenant_id);
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
                             ownerName: o.owner_name,
                             email: o.email,
@@ -898,13 +920,6 @@
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedOwners.length === 0) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try { loadedOwners = JSON.parse(ownersData); } catch(e) {}
-                    }
-                }
 
                 this.allOwnersSystem = loadedOwners;
                 let matched = null;
@@ -1004,7 +1019,7 @@
                 }
 
                 try {
-                    await supabaseClient.from('owners').upsert({
+                    const pricingResult=await supabaseClient.from('owners').upsert({
                         id: this.matchedOwnerRecord.id,
                         gym_name: this.matchedOwnerRecord.gymName,
                         owner_name: this.matchedOwnerRecord.ownerName,
@@ -1018,7 +1033,8 @@
                         audit_logs: this.matchedOwnerRecord.auditLogs || [],
                         date_created: this.matchedOwnerRecord.dateCreated || new Date().toISOString()
                     });
-                } catch(e) {}
+                    if(pricingResult.error)throw Error(pricingResult.error.message);
+                } catch(e) {alert('Pricing was not saved: '+e.message);await this.loadMembers();return;}
 
                 this.loadBranchPricingIntoUI(this.matchedOwnerRecord);
                 this.closePricingModal();
@@ -1044,25 +1060,16 @@
                 }
             },
 
-            checkExistingSession: function() {
-                if (!this.currentTenantId) {
-                    this.logoutAdmin();
-                    return;
-                }
-
-                // A page restored from browser history must not recreate a session after sign-out.
-                const signedOut = sessionStorage.getItem(SIGNED_OUT_KEY) === '1';
-                const hasFreshLogin = !!(sessionStorage.getItem(ACTIVE_TENANT_KEY) || sessionStorage.getItem(LOGGED_USER_KEY));
-                if (signedOut && !hasFreshLogin) {
-                    const token = this.matchedOwnerRecord ? this.matchedOwnerRecord.token : new URLSearchParams(window.location.search).get('key');
-                    window.location.replace(token ? `memberlogin.html?key=${token}` : 'memberlogin.html');
-                    return;
-                }
-                if (hasFreshLogin) sessionStorage.removeItem(SIGNED_OUT_KEY);
-
-                const savedRole = sessionStorage.getItem(ACTIVE_ROLE_KEY) || 'admin';
-                this.applyUIRoleVisibility(savedRole);
-                this.loadMembers();
+            checkExistingSession: async function() {
+                if(!this.currentTenantId)throw new Error('Open a valid gym link.');
+                const role=await ivRequireRole(['owner','staff'],this.currentTenantId);
+                this.authenticatedRole=role;
+                sessionStorage.setItem(ACTIVE_TENANT_KEY,role.tenant_id);
+                sessionStorage.setItem(ACTIVE_ROLE_KEY,role.role==='owner'?'admin':'staff');
+                sessionStorage.removeItem(SIGNED_OUT_KEY);
+                this.applyUIRoleVisibility(role.role==='owner'?'admin':'staff');
+                await this.refreshFinancialReportAccess();
+                await this.loadMembers();
             },
 
             applyUIRoleVisibility: function(role) {
@@ -1087,13 +1094,21 @@
                 }
             },
 
-            openReportsPage: function() {
-                const token = this.matchedOwnerRecord ? this.matchedOwnerRecord.token : '';
-                if (token) {
-                    window.location.href = `reports.html?key=${token}`;
-                } else {
-                    window.location.href = 'reports.html';
+            refreshFinancialReportAccess: async function() {
+                const button=document.getElementById('btn-reports-analytics');
+                button?.classList.add('hidden');
+                try {
+                    await IronVaultAuth.requireFinancialReport(supabaseClient,this.currentTenantId);
+                    button?.classList.remove('hidden');return true;
+                } catch(error){return false;}
+            },
+
+            openReportsPage: async function() {
+                if(!await this.refreshFinancialReportAccess()){
+                    alert('Financial reports require current administrator-granted access and verified security migrations.');return;
                 }
+                const token=this.matchedOwnerRecord?.token;
+                location.href='reports.html'+(token?'?key='+encodeURIComponent(token):'');
             },
 
             logoutAdmin: function() {
@@ -1174,12 +1189,15 @@
 
             openStaffSignupModal: async function() {
                 if (!this.currentTenantId) return;
+                try {await ivRequireRole(['owner'],this.currentTenantId);}
+                catch(error){alert(error.message);return;}
 
                 try {
-                    const { data, error } = await supabaseClient.from('owners').select('*');
-                    if (!error && data) {
+                    const { data, error } = await supabaseClient.from('owners').select('*').eq('id',this.currentTenantId);
+                    if (error || !data?.length) throw new Error('Gym staff data is unavailable.');
+                    if (data) {
                         this.allOwnersSystem = data.map(o => ({
-                            id: o.id,
+                            id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
                             ownerName: o.owner_name,
                             email: o.email,
@@ -1196,18 +1214,12 @@
                         if (refreshed) this.matchedOwnerRecord = refreshed;
                     }
                 } catch(e) {
-                    const ownersData = localStorage.getItem(OWNERS_STORAGE_KEY);
-                    if (ownersData) {
-                        try {
-                            this.allOwnersSystem = JSON.parse(ownersData);
-                            const refreshed = this.allOwnersSystem.find(o => o.id === this.currentTenantId);
-                            if (refreshed) this.matchedOwnerRecord = refreshed;
-                        } catch(err) {}
-                    }
+                    alert('Unable to verify gym staff data. Please try again.');return;
                 }
 
-                this.switchStaffTab('register');
+                this.switchStaffTab('list');
                 this.renderExistingStaffList();
+                await IronVaultStaffReports.render(supabaseClient,this.currentTenantId,'staff-report-permissions');
                 document.getElementById('staff-signup-modal').classList.remove('hidden');
             },
 
@@ -1334,12 +1346,12 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <span class="font-bold text-white text-xs">${s.name}</span>
+                                        <span class="font-bold text-white text-xs">${IronVaultData.escape(s.name)}</span>
                                         <span class="px-2 py-0.5 rounded text-[9px] font-bold ${isAdmin ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
                                             ${isAdmin ? 'Admin Privilege' : 'Standard Staff'}
                                         </span>
                                     </div>
-                                    <span class="text-[10px] text-slate-400 block">${s.email}</span>
+                                    <span class="text-[10px] text-slate-400 block">${IronVaultData.escape(s.email)}</span>
                                 </div>
                                 <div class="flex items-center gap-1.5 flex-wrap justify-end">
                                     <button type="button" onclick="adminApp.toggleStaffAdminPrivilege(${idx})" class="px-2.5 py-1 rounded-lg ${isAdmin ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30'} text-[10px] font-bold transition flex items-center gap-1" title="Toggle Admin Functionality">
@@ -1358,8 +1370,8 @@
                             </div>
                             <div id="staff-edit-box-${idx}" class="hidden pt-2 border-t border-slate-800/80 space-y-2">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="text" id="staff-edit-name-${idx}" value="${s.name}" placeholder="Name..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none">
-                                    <input type="text" id="staff-edit-pass-${idx}" value="${s.password}" placeholder="Password..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none font-mono">
+                                    <input type="text" id="staff-edit-name-${idx}" value="${IronVaultData.escape(s.name)}" placeholder="Name..." class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none">
+                                    <input type="text" id="staff-edit-pass-${idx}" disabled value="" placeholder="Use account recovery" class="glass-input text-white text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none font-mono">
                                 </div>
                                 <button type="button" onclick="adminApp.saveStaffEdit(${idx})" class="w-full py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] uppercase transition shadow">
                                     Save Changes
@@ -1461,10 +1473,10 @@
             loadMembers: async function() {
                 let loadedMembers = [];
                 try {
-                    const { data, error } = await supabaseClient.from('members').select('*');
+                    const { data, error } = await supabaseClient.from('members').select('*').eq('tenant_id',this.currentTenantId);
                     if (!error && data) {
                         loadedMembers = data.map(m => ({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenantId: m.tenant_id,
                             tenantToken: m.tenant_token,
                             name: m.name,
@@ -1486,13 +1498,6 @@
                         }));
                     }
                 } catch(e) {}
-
-                if (loadedMembers.length === 0) {
-                    const data = localStorage.getItem(MEMBERS_STORAGE_KEY);
-                    if (data) {
-                        try { loadedMembers = JSON.parse(data); } catch(e) {}
-                    }
-                }
 
                 this.allMembersSystem = loadedMembers;
 
@@ -1538,7 +1543,7 @@
                 try {
                     for (const m of this.members) {
                         await supabaseClient.from('members').upsert({
-                            id: m.id,
+                            id: m.id, displayCode: m.display_code || m.id,
                             tenant_id: m.tenantId,
                             tenant_token: m.tenantToken,
                             name: m.name,
@@ -1612,19 +1617,19 @@
                     const badgeText = classification === 'Regular' ? 'Regular' : `${classification} (${discountPercentage}%)`;
 
                     return `
-                        <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="adminApp.openProfileModal('${m.id}')">
-                            <td class="p-2.5 font-mono font-bold text-amber-400">${m.id}</td>
-                            <td class="p-2.5 font-semibold text-white">${m.name}</td>
+                        <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(m.id)}'))">
+                            <td class="p-2.5 font-mono font-bold text-amber-400">${IronVaultData.escape(m.displayCode || m.id)}</td>
+                            <td class="p-2.5 font-semibold text-white">${IronVaultData.escape(m.name)}</td>
                             <td class="p-2.5">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                    ${badgeText}
+                                    ${IronVaultData.escape(badgeText)}
                                 </span>
                             </td>
-                            <td class="p-2.5 text-slate-300">${m.email}</td>
-                            <td class="p-2.5 text-slate-300">${m.phone || 'N/A'}</td>
-                            <td class="p-2.5 font-mono text-slate-400">${m.dateJoined || 'Today'}</td>
+                            <td class="p-2.5 text-slate-300">${IronVaultData.escape(m.email)}</td>
+                            <td class="p-2.5 text-slate-300">${IronVaultData.escape(m.phone || 'N/A')}</td>
+                            <td class="p-2.5 font-mono text-slate-400">${IronVaultData.escape(m.dateJoined || 'Today')}</td>
                             <td class="p-2.5 text-right" onclick="event.stopPropagation()">
-                                <button onclick="adminApp.quickApproveMember('${m.id}')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow-md flex items-center gap-1.5 ml-auto">
+                                <button onclick="adminApp.quickApproveMember(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow-md flex items-center gap-1.5 ml-auto">
                                     <i class="fa-solid fa-user-check"></i> Approve Member
                                 </button>
                             </td>
@@ -1635,7 +1640,7 @@
 
             renderRoster: function(list) {
                 const tbody = document.getElementById('roster-tbody');
-                const activeList = list.filter(m => m.status !== 'PENDING');
+                const activeList = list.filter(m => m.status === 'ACTIVE');
                 document.getElementById('showing-count').innerText = activeList.length;
 
                 if (activeList.length === 0) {
@@ -1680,22 +1685,22 @@
                     if (status === 'INACTIVE') statusClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
 
                     return `
-                        <tr class="hover:bg-slate-900/50 transition cursor-pointer" onclick="adminApp.openProfileModal('${member.id}')">
-                            <td class="p-3 font-mono font-bold text-emerald-400">${member.id}</td>
-                            <td class="p-3 font-semibold text-white">${member.name}</td>
+                        <tr class="hover:bg-slate-900/50 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(member.id)}'))">
+                            <td class="p-3 font-mono font-bold text-emerald-400">${IronVaultData.escape(member.displayCode || member.id)}</td>
+                            <td class="p-3 font-semibold text-white">${IronVaultData.escape(member.name)}</td>
                             <td class="p-3">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                    ${badgeText}
+                                    ${IronVaultData.escape(badgeText)}
                                 </span>
                             </td>
-                            <td class="p-3">${planName}</td>
+                            <td class="p-3">${IronVaultData.escape(planName)}</td>
                             <td class="p-3 font-mono text-amber-400 font-bold">${daysLeft}</td>
                             <td class="p-3 font-mono text-xs">${scanStatusText}</td>
                             <td class="p-3 font-mono font-bold text-emerald-400">₱${(member.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusClass}">${status}</span></td>
                             <td class="p-3 text-right space-x-1" onclick="event.stopPropagation()">
-                                <button onclick="adminApp.openProfileModal('${member.id}')" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 transition text-[11px]" title="Edit"><i class="fa-solid fa-user-gear mr-1"></i> Edit</button>
-                                <button onclick="adminApp.deleteMember('${member.id}')" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition text-[11px]" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 transition text-[11px]" title="Edit"><i class="fa-solid fa-user-gear mr-1"></i> Edit</button>
+                                <button onclick="adminApp.deleteMember(decodeURIComponent('${IronVaultData.argument(member.id)}'))" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 transition text-[11px]" title="Remove member (zero balance required)"><i class="fa-solid fa-trash mr-1"></i> Remove</button>
                             </td>
                         </tr>
                     `;
@@ -1716,12 +1721,12 @@
                 const query = document.getElementById('manual-search-input').value.trim().toLowerCase();
                 const container = document.getElementById('manual-search-results');
 
-                const filtered = this.members.filter(m => 
+                const filtered = this.members.filter(m => m.status === 'ACTIVE' && (
                     m.name.toLowerCase().includes(query) ||
-                    m.id.toLowerCase().includes(query) ||
+                    m.id.toLowerCase().includes(query) || (m.displayCode || '').toLowerCase().includes(query) ||
                     (m.phone && m.phone.toLowerCase().includes(query)) ||
                     (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
-                );
+                ));
 
                 if (filtered.length === 0) {
                     container.innerHTML = `<p class="text-xs text-slate-500 italic p-3 text-center">No matching members found.</p>`;
@@ -1751,7 +1756,7 @@
                         `;
                     } else {
                         actionButtonHtml = `
-                            <button onclick="adminApp.admitMemberDirectly('${m.id}')" class="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition shadow-md whitespace-nowrap flex-shrink-0">
+                            <button onclick="adminApp.admitMemberDirectly(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition shadow-md whitespace-nowrap flex-shrink-0">
                                 Admit / Log Entry
                             </button>
                         `;
@@ -1761,16 +1766,16 @@
                         <div class="bg-slate-900/90 border ${isAlreadyAdmittedToday ? 'border-slate-800 opacity-75' : 'border-slate-800/80'} p-3 rounded-2xl flex items-center justify-between gap-3">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-white text-xs">${m.name}</span>
-                                    <span class="text-[10px] font-mono text-emerald-400 font-bold">${m.id}</span>
+                                    <span class="font-bold text-white text-xs">${IronVaultData.escape(m.name)}</span>
+                                    <span class="text-[10px] font-mono text-emerald-400 font-bold">${IronVaultData.escape(m.displayCode || m.id)}</span>
                                     ${isAlreadyAdmittedToday ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Checked In Today</span>' : ''}
                                 </div>
                                 <div class="text-[10px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
-                                    <span>Plan: ${m.plan || 'None'}</span>
+                                    <span>Plan: ${IronVaultData.escape(m.plan || 'None')}</span>
                                     <span>•</span>
                                     <span class="text-amber-400 font-medium">${daysLeft}</span>
                                     <span>• Credits: ₱${(m.walletBalance || 0).toLocaleString()}</span>
-                                    ${m.phone ? `<span>• Phone: ${m.phone}</span>` : ''}
+                                    ${m.phone ? `<span>• Phone: ${IronVaultData.escape(m.phone)}</span>` : ''}
                                 </div>
                             </div>
                             ${actionButtonHtml}
@@ -1783,7 +1788,7 @@
                 const member = this.members.find(m => m.id === memberId);
                 if (!member) return;
 
-                if (!confirm(`Are you sure you want to admit ${member.name} (${member.id})?`)) {
+                if (!confirm(`Are you sure you want to admit ${member.name} (${member.displayCode || member.id})?`)) {
                     return;
                 }
 
@@ -1828,81 +1833,34 @@
             },
 
             confirmPlanSelection: async function(selectedPlanName) {
-                document.getElementById('plan-selection-modal').classList.add('hidden');
-                if (!this.activeCheckInMemberId) return;
-                const memberId = this.activeCheckInMemberId;
-                this.activeCheckInMemberId = null;
-
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) return;
-
-                const pricing = this.matchedOwnerRecord?.pricing || { day: 150, week: 700, month: 2500 };
-                let baseCost = 150;
-                if (selectedPlanName === '1-Day Pass') baseCost = pricing.day !== undefined ? Number(pricing.day) : 150;
-                else if (selectedPlanName === '1-Week Pass') baseCost = pricing.week !== undefined ? Number(pricing.week) : 700;
-                else if (selectedPlanName === '1-Month Unlimited') baseCost = pricing.month !== undefined ? Number(pricing.month) : 2500;
-
-                const discountPct = member.discountPercentage !== undefined ? Number(member.discountPercentage) : 0;
-                const collectedAmount = discountPct > 0 ? Math.round(baseCost * (1 - (discountPct / 100))) : baseCost;
-                const currentBalance = member.walletBalance || 0;
-
-                let cashToCollect = 0;
-                let creditsUsed = 0;
-
-                if (currentBalance >= collectedAmount) {
-                    member.walletBalance = currentBalance - collectedAmount;
-                    creditsUsed = collectedAmount;
-                    alert(`Deducted ₱${collectedAmount.toLocaleString()} from ${member.name}'s wallet credits for ${selectedPlanName}.\nRemaining Balance: ₱${member.walletBalance.toLocaleString()}`);
-                } else {
-                    creditsUsed = currentBalance;
-                    cashToCollect = collectedAmount - currentBalance;
-
-                    const payPartial = confirm(
-                        `INSUFFICIENT CREDITS!\n\n` +
-                        `Required Plan Cost (${selectedPlanName}): ₱${collectedAmount.toLocaleString()}\n` +
-                        `Member Wallet Balance: ₱${currentBalance.toLocaleString()} (Will be fully used)\n` +
-                        `Remaining Balance to Collect in Cash: ₱${cashToCollect.toLocaleString()}\n\n` +
-                        `Deduct all credits and collect ₱${cashToCollect.toLocaleString()} CASH at desk to admit member?`
-                    );
-
-                    if (!payPartial) {
-                        alert(`ENTRY BLOCKED: ${member.name} was NOT admitted due to insufficient funds.`);
-                        return;
+                const id=this.activeCheckInMemberId;
+                if(!id)return;
+                try{
+                    await ivRequireRole(['owner','staff'],this.currentTenantId);
+                    const pending=await IronVaultFinance.pending(supabaseClient,sessionStorage,this.currentTenantId);
+                    let price,cash;
+                    if(pending){
+                        if(pending.p_operation!=='purchase'||pending.p_member_id!==id||pending.p_plan!==selectedPlanName)
+                            throw new Error('Retry the unresolved payment before starting a different payment.');
+                        price=pending.p_amount;cash=pending.p_cash_amount;
+                    }else{
+                        const {data:quote,error}=await supabaseClient.rpc('iv_quote_plan',{p_member_id:id,p_plan:selectedPlanName});
+                        if(error||!quote)throw new Error('Unable to quote this plan.');
+                        price=Number(quote.price);const balance=Number(quote.wallet_balance);
+                        if(!Number.isFinite(price)||price<=0||!Number.isFinite(balance)||balance<0)throw new Error('Invalid plan quote.');
+                        cash=Math.round(Math.max(0,price-balance)*100)/100;
                     }
-
-                    member.walletBalance = 0;
-                }
-
-                let planDays = 0;
-                if (selectedPlanName === '1-Week Pass') planDays = 7;
-                else if (selectedPlanName === '1-Month Unlimited') planDays = 30;
-
-                const now = new Date();
-                let expiryDate = new Date();
-                if (planDays > 0) {
-                    expiryDate.setDate(now.getDate() + planDays);
-                } else {
-                    expiryDate.setDate(now.getDate());
-                }
-
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                
-                member.plan = selectedPlanName;
-                member.amount = (member.amount || 0) + collectedAmount;
-                member.dateJoined = todayStr;
-                member.expirationDate = expiryDate.toISOString().split('T')[0];
-                member.scansUsed = (member.scansUsed || 0) + 1;
-                member.lastScannedDate = todayStr;
-
-                await this.saveMembers();
-                await this.loadMembers();
-
-                const daysLeft = this.calculateDaysLeft(member.expirationDate);
-                this.logAudit('Desk Entry & Plan Subscription', `Manual desk check-in & ${member.plan} subscription (Credits used: ₱${creditsUsed}, Cash collected: ₱${cashToCollect}) for ${member.name} (${member.id})`);
-                this.closeManualCheckInModal();
-                this.searchManualCheckIn();
-
-                alert(`SUCCESS: Subscribed to ${member.plan}!\nCredits Deducted: ₱${creditsUsed}\nCash Collected: ₱${cashToCollect}\nEntry Logged for ${member.name}!`);
+                    if(!confirm((pending?'Retry the previous payment; do not collect cash again. ':'Purchase ')+selectedPlanName+' for '+ivMoney(price)+'? Wallet: '+ivMoney(price-cash)+', cash to collect: '+ivMoney(cash)))return;
+                    const result=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{
+                        p_operation:'purchase',p_member_id:id,p_plan:selectedPlanName,p_amount:price,p_cash_amount:cash
+                    });
+                    this.activeCheckInMemberId=null;
+                    document.getElementById('plan-selection-modal').classList.add('hidden');
+                    alert('Purchase recorded. Remaining wallet: '+ivMoney(result.wallet_balance));
+                }catch(error){alert('Purchase not confirmed: '+error.message);return;}
+                // Admission is a separate authorized operation; its failure must not
+                // make a committed sale appear failed or trigger another purchase.
+                await this.finalizeDeskCheckIn(id,selectedPlanName);
             },
 
             cancelPlanSelection: function() {
@@ -1928,7 +1886,7 @@
                 await this.loadMembers();
 
                 const daysLeft = this.calculateDaysLeft(member.expirationDate);
-                this.logAudit('Desk Entry (Active Pass)', `Manual desk check-in for ${member.name} (${member.id}) - Plan: ${member.plan} (${daysLeft})`);
+                this.logAudit('Desk Entry (Active Pass)', `Manual desk check-in for ${member.name} (${member.displayCode || member.id}) - Plan: ${member.plan} (${daysLeft})`);
                 this.closeManualCheckInModal();
                 this.searchManualCheckIn();
 
@@ -1943,7 +1901,7 @@
                 document.getElementById('new-member-discount').value = 0;
                 document.getElementById('new-member-plan').value = 'Not Selected';
                 document.getElementById('new-member-barcode').value = '';
-                document.getElementById('new-member-password').value = 'gym12345';
+                document.getElementById('new-member-password').value = '';
                 
                 document.getElementById('add-member-modal').classList.remove('hidden');
             },
@@ -1963,7 +1921,7 @@
                 const plan = document.getElementById('new-member-plan').value;
                 const cardBarcode = document.getElementById('new-member-barcode').value.trim();
                 if (!email || !email.includes('@')) return alert('A real email address is required for member login and recovery.');
-                if (password.length < 8) return alert('Set a password of at least 8 characters.');
+                if (password.length < 8) return alert('At least 8 characters.');
                 try {
                     await ivRequireRole(['owner','staff'], this.currentTenantId);
                     const {data,error} = await supabaseClient.functions.invoke('iv-create-member', {
@@ -1985,8 +1943,8 @@
                     member.status = 'ACTIVE';
                     await this.saveMembers();
                     await this.loadMembers();
-                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
-                    alert(`Member ${member.name} (${member.id}) has been approved and is now ACTIVE!`);
+                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.displayCode || member.id})`);
+                    alert(`Member ${member.name} (${member.displayCode || member.id}) has been approved and is now ACTIVE!`);
                 }
             },
 
@@ -2181,53 +2139,42 @@
             },
 
             processScannedCode: async function(qrData) {
-                const parts = qrData.split('|');
-                if (parts.length !== 2) {
-                    this.showScanResult(false, "ACCESS DENIED", "Malformed QR code payload structure.");
-                    return;
+                const parts = String(qrData).split('|');
+                if(parts.length!==2 || !parts[0] || !/^\d{4}-\d{2}-\d{2}$/.test(parts[1])){
+                    this.showScanResult(false,'ACCESS DENIED','Malformed QR code payload.');return;
                 }
-
-                const memberId = parts[0];
-                const qrDate = parts[1];
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                // QR payloads are date-stamped using ISO/UTC by the member pass generator.
-                const qrTodayStr = now.toISOString().split('T')[0];
-
-                const member = this.members.find(m => m.id === memberId);
-                if (!member) {
-                    this.showScanResult(false, "ACCESS DENIED", `Member ID ${memberId} not found.`);
-                    return;
+                const member=this.members.find(m=>m.id===parts[0] && m.tenantId===this.currentTenantId);
+                if(!member){this.showScanResult(false,'ACCESS DENIED','Member not found in this gym.');return;}
+                if(parts[1]!==ivDate(new Date())){
+                    this.showScanResult(false,'ACCESS DENIED','QR Pass is outdated.');return;
                 }
-
-                if (member.status !== 'ACTIVE') {
-                    this.showScanResult(false, "ACCESS DENIED", `${member.name}'s account is not ACTIVE.`);
-                    return;
+                try {
+                    await ivRequireRole(['owner','staff'],this.currentTenantId);
+                    // The reviewed existing RPC owns the row lock, current status/expiry,
+                    // Manila business date, duplicate check and attendance insert.
+                    const {error}=await supabaseClient.rpc('iv_checkin',{p_member_id:member.id,p_method:'qr'});
+                    if(error)throw error;
+                } catch(error) {
+                    this.showScanResult(false,'ACCESS DENIED',error.message||'Check-in was not confirmed.');return;
                 }
-
-                if (qrDate !== qrTodayStr) {
-                    this.showScanResult(false, "ACCESS DENIED", `QR Pass is outdated! Generated for ${qrDate}.`);
-                    return;
-                }
-
-                if (member.expirationDate && todayStr > member.expirationDate) {
-                    this.showScanResult(false, "ACCESS DENIED", `Membership expired on ${member.expirationDate}.`);
-                    return;
-                }
-
-                if (member.lastScannedDate === todayStr) {
-                    this.showScanResult(false, "ACCESS DENIED", `ALERT: QR code for today has ALREADY been scanned!`);
-                    return;
-                }
-
-                member.scansUsed = (member.scansUsed || 0) + 1;
-                member.lastScannedDate = todayStr;
-                await this.saveMembers();
-                await this.loadMembers();
-
-                this.showScanResult(true, "SCAN SUCCESS", `Welcome, ${member.name}!\nEntry recorded • Scan #${member.scansUsed}`);
-                this.logAudit('QR Scan Success', `Access granted for ${member.name} (${member.id})`);
                 this.pauseScannerAfterSuccess();
+                let activityRecorded=true;
+                try {
+                    // Preserve the activity-report note without the legacy owner's JSON upsert.
+                    const {error}=await supabaseClient.rpc('iv_log_event',{
+                        p_tenant:this.currentTenantId,p_event:'QR Scan Success',
+                        p_details:`Member ${IronVaultData.escape(member.displayCode || member.id)} admitted with QR`
+                    });
+                    if(error)activityRecorded=false;
+                } catch(error){activityRecorded=false;}
+                try {await this.loadMembers();}
+                catch(error){
+                    this.showScanResult(true,'ENTRY RECORDED','Check-in succeeded; refresh the roster before another operation.');return;
+                }
+                this.showScanResult(true,'SCAN SUCCESS',`Welcome, ${IronVaultData.escape(member.name)}! Entry recorded.`+
+                    (activityRecorded?'':' Activity note unavailable; attendance history was recorded.'));
+                // iv_checkin already records trusted actor/time in attendance history.
+                // Signed pass verification and stronger server plan validation remain pending.
             },
 
             showScanResult: function(isSuccess, title, desc) {
@@ -2271,7 +2218,7 @@
                 this.isPasswordVisible = false;
 
                 document.getElementById('modal-member-name').innerText = member.name;
-                document.getElementById('modal-member-id').innerText = member.id;
+                document.getElementById('modal-member-id').innerText = member.displayCode || member.id;
                 document.getElementById('modal-member-status-badge').innerText = member.status || 'ACTIVE';
 
                 const pendingBanner = document.getElementById('modal-pending-banner');
@@ -2314,7 +2261,7 @@
                     member.status = 'ACTIVE';
                     await this.saveMembers();
                     await this.loadMembers();
-                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.id})`);
+                    this.logAudit('Member Approved', `Approved pending registration for ${member.name} (${member.displayCode || member.id})`);
                     this.openProfileModal(this.activeModalMemberId);
                     alert(`Member ${member.name} has been approved successfully!`);
                 }
@@ -2337,8 +2284,8 @@
                         if (error) throw error;
                         if (!data?.ok) throw Error(data?.error || 'Email correction was not accepted.');
                         // The Edge Function updates Auth and the member record together.
-                        member.email = proposedEmail;
-                        alert('Email corrected. The member must verify the new email before using password recovery.');
+                        if(!data.pending)member.email = proposedEmail;
+                        alert(data.message||'Contact change requested; complete email verification.');
                     } catch(error) {
                         alert('Email was NOT changed: ' + (error.message || String(error)) + '. Deploy the secure email-correction Edge Function first.');
                         return;
@@ -2354,7 +2301,7 @@
 
                 await this.saveMembers();
                 await this.loadMembers();
-                this.logAudit('Member Updated', `Updated profile details for ${member.name} (${member.id})`);
+                this.logAudit('Member Updated', `Updated profile details for ${member.name} (${member.displayCode || member.id})`);
                 alert(`Member details updated successfully!`);
             },
 
@@ -2382,7 +2329,7 @@
                 await this.saveMembers();
                 await this.loadMembers();
 
-                this.logAudit('Credit Top-up', `Added ₱${amount.toLocaleString()} to ${member.name} (${member.id})`);
+                this.logAudit('Credit Top-up', `Added ₱${amount.toLocaleString()} to ${member.name} (${member.displayCode || member.id})`);
                 this.openProfileModal(this.activeModalMemberId);
                 alert(`Successfully added ₱${amount.toLocaleString()} to account credits!`);
             },
@@ -2428,7 +2375,7 @@
                 const filtered = this.members.filter(m => {
                     const matchesSearch = (
                         m.name.toLowerCase().includes(query) ||
-                        m.id.toLowerCase().includes(query) ||
+                        m.id.toLowerCase().includes(query) || (m.displayCode || '').toLowerCase().includes(query) ||
                         m.email.toLowerCase().includes(query) ||
                         (m.cardBarcode && m.cardBarcode.toLowerCase().includes(query))
                     );
@@ -2466,14 +2413,7 @@
         };
 
         window.addEventListener('pageshow', function(event) {
-            const signedOut = sessionStorage.getItem(SIGNED_OUT_KEY) === '1';
-            const hasFreshLogin = !!(sessionStorage.getItem(ACTIVE_TENANT_KEY) || sessionStorage.getItem(LOGGED_USER_KEY));
-            if (signedOut && !hasFreshLogin) {
-                const token = new URLSearchParams(window.location.search).get('key');
-                window.location.replace(token ? `memberlogin.html?key=${token}` : 'memberlogin.html');
-            } else if (hasFreshLogin) {
-                sessionStorage.removeItem(SIGNED_OUT_KEY);
-            }
+            if(event.persisted) adminApp.init();
         });
     </script>
 <script>
@@ -2481,25 +2421,10 @@
 const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function ivRequireRole(roles, tenant) {
- // The portal's sessionStorage role is UI state, not proof of Supabase authorization.
- // A member login in another tab can replace the shared Supabase Auth session.
- const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
- if (authError || !user) {
-   throw new Error('No authenticated admin/staff session. Sign out and sign in again through the Admin / Staff tab.');
- }
- let query = supabaseClient.from('iv_user_roles')
-   .select('user_id,tenant_id,role')
-   .eq('user_id', user.id)
-   .in('role', roles);
- if (tenant) query = query.eq('tenant_id', tenant);
- const { data: matches, error: roleError } = await query.limit(1);
- if (roleError) throw new Error('Could not verify admin/staff permissions: ' + roleError.message);
- if (!matches || matches.length === 0) {
-   throw new Error('Supabase is signed in as ' + (user.email || 'another account') +
-     ', which has no Admin / Staff role for this gym. Sign out, then sign in using the Admin / Staff tab.');
- }
- return matches[0];
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
 }
 
 adminApp.addModalCredits=async function(amount){
@@ -2511,9 +2436,10 @@ adminApp.addModalCredits=async function(amount){
  if(memberError || !record)throw new Error('Unable to verify this member’s approval status. No top-up was made.');
  if(String(record.status || '').toUpperCase() !== 'ACTIVE')throw new Error('Approve this member first before adding wallet credits.');
  if(!confirm('Add '+ivMoney(amount)+' to '+m.name+'?'))return;
- const {data,error}=await supabaseClient.rpc('iv_topup',{p_member_id:id,p_amount:+amount,p_request_id:crypto.randomUUID()});
- if(error)throw error;m.walletBalance=+data;await this.loadMembers();this.openProfileModal(id);alert('Top-up recorded: '+ivMoney(amount));}
- catch(e){alert('Top-up failed: '+e.message);}
+ const data=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{p_operation:'topup',p_member_id:id,p_plan:null,p_amount:+amount,p_cash_amount:0});
+ m.walletBalance=+data.wallet_balance;alert('Top-up recorded: '+ivMoney(amount));
+ try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){alert('Top-up is recorded; refresh the roster to see the updated balance.');}}
+ catch(e){alert('Top-up not confirmed: '+e.message);}
 };
 adminApp.finalizeDeskCheckIn=async function(id,plan){
  try{await ivRequireRole(['owner','staff'],this.currentTenantId);
@@ -2526,6 +2452,15 @@ adminApp.logAudit=async function(action,details){
  try{await supabaseClient.rpc('iv_log_event',{p_tenant:this.currentTenantId,p_event:String(action),p_details:String(details)});}catch(e){console.error('Activity log error',e);}
  return ivOriginalLogAudit.call(this,action,details);
 };
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&adminApp.authenticatedRole&&session?.user?.id!==adminApp.authenticatedRole.user_id)){
+  document.body?.classList.add('iv-auth-pending');
+  adminApp.members=[];adminApp.allMembersSystem=[];
+  const token=adminApp.matchedOwnerRecord?.token;
+  IronVaultAuth.clearState(sessionStorage,localStorage);
+  location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+ }
+});
 const ivOriginalAdminLogout=adminApp.logoutAdmin;
 adminApp.logoutAdmin=async function(){
  if(this.currentTenantId)await supabaseClient.rpc('iv_staff_event',{p_tenant:this.currentTenantId,p_event:'logout'});
@@ -2533,5 +2468,8 @@ adminApp.logoutAdmin=async function(){
 };
 
 </script>
+<script src="../assets/branch-auth.js"></script>
+<script src="../assets/application-workflows.js"></script>
+<script>IronVaultWorkflows.install(adminApp,supabaseClient,'admin');</script>
 </body>
 </html>
