@@ -120,3 +120,9 @@ Owner approved the report-query enhancement before implementation. Prepared manu
 ## Activity member reference follow-up
 
 On the same Activity branch, known member references in Details now use the member name and short code from the existing selected-tenant report snapshot. Search/CSV/Print use the same labels. No query, SQL, database data, Edge code, access rule or unrelated UI changed. Existing actor-name SQL 022 is unchanged and does not need reapplying for this follow-up. All 187 native tests pass, including preserved raw logs, inactive members, complete-reference matching, other-tenant exclusion, safe text, missing short codes and receipt-reference preservation.
+
+## Money historical wallet display
+
+Owner authorized the database-related report correction. Prepared manual migration 023: Money now labels the columns Transaction amount and Wallet after, reading the saved result balance from exactly linked payment receipts. The existing financial API already records those balances, so payment logic and stored balances/history remain unchanged. Unlinked/invalid history displays Unavailable instead of today's balance or an inferred value. Overview current credit, other report tabs, permissions and unrelated UI are preserved. See [wallet-after-history.md](wallet-after-history.md), including the unlinked cash portion of split-payment limitation.
+
+195 local Node tests pass. SQL/PLpgSQL parsed without execution. Mocked Chromium checks at phone and desktop widths passed, including stable historical values after later current-balance changes. No SQL executed, record backfilled, Edge deployed, production deployed or PR merged by the agent. SQL-first owner rollout remains pending.

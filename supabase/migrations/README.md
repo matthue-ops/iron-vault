@@ -41,3 +41,7 @@ For an existing installation through 017, run only `supabase/manual/usability_up
 ### 022: Activity names and roles
 
 After installed 020/021, manually run only `supabase/manual/activity_actor_names.sql` (same contents as `202611020022_activity_actor_names.sql`). It replaces the report snapshot function and appends tenant-scoped actor names/roles; it does not rewrite records or change permissions. Apply SQL before merging the matching frontend. No Edge update is needed. See `docs/security/activity-actor-names.md`.
+
+### 023: Historical wallet values in Money
+
+After installed 022, manually run only `supabase/manual/wallet_after_history.sql` (same as `202611020023_wallet_after_history.sql`). It reads saved balances from exactly linked financial receipts in the existing report RPC; no transaction, balance, receipt or ledger data is rewritten. Unavailable history is labeled rather than guessed. Apply SQL before the matching frontend; no Edge update is needed. See `docs/security/wallet-after-history.md`.
