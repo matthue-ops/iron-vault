@@ -31,7 +31,7 @@ test('announcement time inputs use Manila regardless of device timezone and reje
 });
 test('owner creates an announcement with tenant, stable ID, version and explicit Manila schedule',async()=>{
  const f=fixture();await f.app.openAnnouncements();assert.equal(f.node('announcement-new').hidden,false);await f.app.newAnnouncement();draft(f);await f.app.saveAnnouncement({preventDefault(){}});
- const call=f.calls.find(c=>c.name==='iv_save_announcement');assert.equal(call.args.p_tenant,'gym-a');assert.equal(call.args.p_expected_version,null);assert.match(call.args.p_id,/^[a-f0-9-]{36}$/);assert.equal(call.args.p_starts_at,'2026-11-02T00:00:00.000Z');assert.equal(f.rows().length,1);assert.match(f.node('announcements-message').textContent,/members do not see/);
+ const call=f.calls.find(c=>c.name==='iv_save_announcement');assert.equal(call.args.p_tenant,'gym-a');assert.equal(call.args.p_expected_version,null);assert.match(call.args.p_id,/^[a-f0-9-]{36}$/);assert.equal(call.args.p_starts_at,'2026-11-02T00:00:00.000Z');assert.equal(f.rows().length,1);assert.match(f.node('announcements-message').textContent,/Announcement saved/);
 });
 test('staff see announcements but cannot create, edit, pin or remove even through direct method calls',async()=>{
  const f=fixture('staff');f.notices([notice()]);await f.app.openAnnouncements();assert.equal(f.node('announcement-new').hidden,true);assert.match(f.node('announcements-access').textContent,/Staff view/);

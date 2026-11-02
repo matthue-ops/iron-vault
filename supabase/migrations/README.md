@@ -49,3 +49,7 @@ After installed 022, manually run only `supabase/manual/wallet_after_history.sql
 ### 024: Admin announcements, stage one
 
 After installed 023, manually run only `supabase/manual/admin_announcements.sql` (same as `202611020024_admin_announcements.sql`). Adds announcement storage and owner/staff-scoped RPCs; owner writes only, Remove archives. Existing account, balance, plan and financial records are preserved. New notices follow the existing explicitly confirmed whole-tenant purge. Apply SQL before the matching frontend; no Edge update is needed. Member-profile display and notification delivery are not included. See `docs/security/admin-announcements-stage1.md` for rollout and acceptance checks. No SQL executed by the agent.
+
+### 025: Member announcement display and read receipts
+
+After successful 024, manually run only `supabase/manual/member_announcements.sql` (same as `202611020025_member_announcements.sql`). Adds announcement content revisions, a private per-member read-receipt table and a member-only active-notice RPC. Text/schedule edits become unread; pin-only edits do not. Existing member/financial data remains intact. Apply SQL before the matching frontend; no Edge update needed. See `docs/security/member-announcements.md`, including claim-delivery limits and live acceptance checks. No SQL executed by the agent.

@@ -96,7 +96,7 @@
 
     <!-- TOP HEADER / NAV BAR -->
     <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3">
-        <div class="max-w-5xl mx-auto flex items-center justify-between">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
                 <div id="header-logo-container" class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 overflow-hidden transition-all duration-300">
                     <i id="header-logo-icon" class="fa-solid fa-dumbbell text-lg"></i>
@@ -108,16 +108,21 @@
                 </div>
             </div>
 
+            <div class="flex flex-wrap items-center gap-2">
+            <button id="member-notices-bell" hidden type="button" onclick="profileApp.openMemberAnnouncements()" aria-label="Announcements" class="min-h-11 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm"><i class="fa-solid fa-bell" aria-hidden="true"></i> Notices <span id="member-notices-count" class="rounded-full bg-rose-600 px-1 text-white text-xs" aria-live="polite"></span></button>
             <!-- LOGOUT BUTTON -->
             <button onclick="profileApp.logout()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
                 <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
                 <span>Sign Out</span>
             </button>
         </div>
+            </div>
     </header>
 
     <!-- MAIN PROFILE CONTAINER -->
     <main class="relative z-10 flex-grow p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full">
+        <p id="member-notices-status" role="status" class="text-sm text-amber-200 mb-3"></p>
+        <section id="member-notices-banner" hidden class="rounded-2xl border border-amber-600 bg-amber-950/40 p-4 mb-6"><h2 class="text-xs uppercase text-amber-300">Gym announcements</h2><div id="member-notices-banners"></div></section>
 
         <!-- Alert Notification Box -->
         <div id="profile-alert" class="hidden max-w-2xl mx-auto mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-3 rounded-xl text-xs flex items-center gap-2 shadow-lg">
@@ -1017,8 +1022,16 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 });
 
 </script>
+<div id="member-notices-dialog" hidden style="position:fixed;inset:0;z-index:70;overflow-y:auto;background:rgba(2,6,23,.94);padding:16px">
+ <section role="dialog" aria-modal="true" aria-labelledby="member-notices-title" class="glass-card rounded-2xl p-4 sm:p-6 max-w-4xl mx-auto my-4 space-y-4">
+  <div class="flex items-center justify-between gap-3"><h2 id="member-notices-title" class="text-xl font-bold">Gym announcements</h2><button id="member-notices-close" type="button" onclick="profileApp.closeMemberAnnouncements()" class="min-h-11 shrink-0 whitespace-nowrap rounded-xl bg-slate-700 px-4 py-3">Close</button></div>
+  <div id="member-notices-list" class="space-y-4"></div>
+ </section>
+</div>
 <script src="../assets/branch-auth.js"></script>
 <script src="../assets/application-workflows.js"></script>
 <script>IronVaultWorkflows.install(profileApp,supabaseClient,'member');</script>
+<script src="../assets/member-announcements.js"></script>
+<script>IronVaultMemberAnnouncements.install(profileApp,supabaseClient);</script>
 </body>
 </html>
