@@ -41,7 +41,7 @@
     const details=activityDetailsFormatter();
     return rows.map(a=>[stamp(a.created_at),actorLabel(a.actor_id),a.event,details(a.details)]);
    }
-   return model.financial.map(t=>[code(members.get(t.member_id),t.member_id),members.get(t.member_id)?.name||'—',members.get(t.member_id)?.classification||'—',R.kinds[t.kind]||t.kind,R.money(t.amount),R.money(members.has(t.member_id)?members.get(t.member_id).wallet_balance??members.get(t.member_id).walletBalance:null),stamp(t.created_at),t.description||'—']);
+   return model.financial.map(t=>[code(members.get(t.member_id),t.member_id),members.get(t.member_id)?.name||'—',members.get(t.member_id)?.classification||'—',R.kinds[t.kind]||t.kind,R.money(t.amount),R.walletAfter(t),stamp(t.created_at),t.description||'—']);
   }
   function matches(){const query=node('report-search').value.trim().toLowerCase();return tableRows().filter(row=>!query||row.some(cell=>String(cell).toLowerCase().includes(query)));}
   function rowsInto(id,rows){const body=node(id);body.textContent='';for(const cells of rows){const row=root.document.createElement('tr');for(const value of cells){const cell=root.document.createElement('td');cell.className='p-3';cell.textContent=value;row.appendChild(cell);}body.appendChild(row);}}
@@ -97,8 +97,8 @@
   app.exportReportCsv=async function(){try{
    await this.ivRequireReport();if(this.currentTab==='overview')return;if(!model||!period)throw Error('Load a report first.');
    const kind=this.currentTab==='attendance'?'attendance':this.currentTab==='audit'?'audit':'financial';
-   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Current pass expiry / days left','Current status']:kind==='audit'?['Time (Asia/Manila)','Name / role','Action','Details']:['Member code','Name','Classification','Entry type','Amount','Current wallet credit','Time (Asia/Manila)','Description'];
-   const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note','Balances, plans, classifications and statuses reflect the current snapshot. CSV includes all matching detail rows.'],headings,...matches()]);
+   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Current pass expiry / days left','Current status']:kind==='audit'?['Time (Asia/Manila)','Name / role','Action','Details']:['Member code','Name','Classification','Entry type','Transaction amount','Wallet after','Time (Asia/Manila)','Description'];
+   const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note',kind==='financial'?'Wallet after is the saved balance immediately after that transaction; Unavailable means the historical balance cannot be verified. Names and classifications reflect current profiles. CSV includes all matching rows.':'Plans, classifications and statuses reflect the current snapshot. CSV includes all matching detail rows.'],headings,...matches()]);
    const url=root.URL.createObjectURL(new root.Blob([text],{type:'text/csv;charset=utf-8'}));const link=root.document.createElement('a');link.href=url;link.download='IronVault_'+kind+'_'+period.start+'_'+period.end+'.csv';link.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);
   }catch(error){this.ivDeny(error);}};
   node('report-search').addEventListener('input',()=>{page=0;renderDetails();});node('report-prev').addEventListener('click',()=>{page--;renderDetails();});node('report-next').addEventListener('click',()=>{page++;renderDetails();});

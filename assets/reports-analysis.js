@@ -3,6 +3,7 @@
  const kinds={topup:'Wallet top-up',plan_cash:'Pass paid in cash',plan_wallet:'Pass paid from wallet',refund_cash:'Cash refund'};
  function cents(value){const match=/^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(value??0));if(!match)return null;return (match[1]?-1n:1n)*(BigInt(match[2])*100n+BigInt((match[3]||'').padEnd(2,'0')));}
  function money(value){if(value===null)return 'Unavailable';const n=typeof value==='bigint'?value:cents(value);if(n===null)return 'Unavailable';const absolute=n<0n?-n:n;return (n<0n?'-':'')+'₱'+(absolute/100n).toLocaleString('en-PH')+'.'+String(absolute%100n).padStart(2,'0');}
+ function walletAfter(row){const value=row?.wallet_after;if(value===null||value===undefined||!['number','string'].includes(typeof value))return 'Unavailable';const amount=cents(value);return amount===null||amount<0n?'Unavailable':money(amount);}
  function date(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const get=k=>parts.find(p=>p.type===k).value;return get('year')+'-'+get('month')+'-'+get('day');}
  function validDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;const d=new Date(value+'T00:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===value;}
  function expiryLabel(member,today=date(new Date())){
@@ -39,5 +40,5 @@
    otherAdmissions:attendance.length-qr-manual,peakHours:peak?hours.flatMap((n,h)=>n===peak?[h]:[]):[],peakVisits:peak,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day))};
  }
  function csv(rows){return '\uFEFF'+rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[\t\r\n]|^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');}
- const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,csv,kinds});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(globalThis);

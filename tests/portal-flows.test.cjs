@@ -454,3 +454,38 @@ test('member reference matching escapes regex punctuation in legacy IDs',async()
  const p=await memberActivity();p.app.branchMembers[0].id='MEM-old.123';p.app.ivActivity[0].details='MEM-old.123 / MEM-oldX123';
  await p.app.ivRender('2026-11-01','2026-11-01');assert.equal(p.element('audit-tbody').children.at(-1).children[3].textContent,'Anika Kelly · MEM-0013 / MEM-oldX123');
 });
+
+async function walletHistoryReport(){
+ const p=reportFixture();await p.app.init();
+ p.app.branchMembers=[{id:'ian',displayCode:'MEM-0014',tenantId:'gym-a',name:'Ian Debo',walletBalance:50}];
+ p.app.ivFinance=[{id:'topup-1',member_id:'ian',kind:'topup',amount:100,wallet_after:100,created_at:'2026-11-01T01:00:00+08:00'},
+ {id:'purchase',member_id:'ian',kind:'plan_wallet',amount:100,wallet_after:0,created_at:'2026-11-01T02:00:00+08:00'},
+ {id:'topup-2',member_id:'ian',kind:'topup',amount:50,wallet_after:50,created_at:'2026-11-01T03:00:00+08:00'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('financial');return p;
+}
+test('Money retains 100, zero, 50 historical wallet values when the current wallet changes',async()=>{
+ const p=await walletHistoryReport();const balances=()=>p.element('financial-tbody').children.slice(-3).map(row=>row.children[5].textContent);
+ assert.deepEqual(balances(),['₱100.00','₱0.00','₱50.00']);
+ p.app.branchMembers[0].walletBalance=999;await p.app.ivRender('2026-11-01','2026-11-01');assert.deepEqual(balances(),['₱100.00','₱0.00','₱50.00']);
+ assert.equal(p.element('metric-credits').textContent,'₱999.00');assert.equal(p.element('metric-revenue').textContent,'₱100.00');
+ p.element('report-search').value='wallet';p.element('report-search').listeners.input();assert.deepEqual(balances(),['₱100.00','₱0.00','₱50.00']);
+});
+test('Money marks unlinked, cash-part and invalid historical values unavailable rather than guessing',async()=>{
+ const p=await walletHistoryReport();p.app.ivFinance=[
+ {member_id:'ian',kind:'plan_cash',amount:50,created_at:'2026-11-01T02:00:00+08:00'},
+ {member_id:'ian',kind:'refund_cash',amount:50,wallet_after:null,created_at:'2026-11-01T02:00:00+08:00'},
+ {member_id:'ian',kind:'topup',amount:50,wallet_after:-5,created_at:'2026-11-01T02:00:00+08:00'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');assert.deepEqual(p.element('financial-tbody').children.slice(-3).map(row=>row.children[5].textContent),['Unavailable','Unavailable','Unavailable']);
+});
+test('Money CSV and Print share historical values and the new headings',async()=>{
+ const p=await walletHistoryReport();let blob,printed=0;
+ p.context.Blob=Blob;p.context.URL={createObjectURL:value=>{blob=value;return 'blob:wallet'},revokeObjectURL(){}};p.context.print=()=>{printed++};
+ await p.app.exportReportCsv();const csv=await blob.text();assert.match(csv,/"Transaction amount","Wallet after"/);assert.doesNotMatch(csv,/Current wallet credit/);
+ assert.match(csv,/"Pass paid from wallet","₱100.00","₱0.00"/);assert.match(csv,/"Wallet top-up","₱100.00","₱100.00"/);
+ await p.app.printReport();assert.equal(printed,1);assert.deepEqual(p.element('financial-tbody').children.slice(-3).map(row=>row.children[5].textContent),['₱100.00','₱0.00','₱50.00']);
+ p.permission.enabled=false;blob=null;await p.app.exportReportCsv();assert.equal(blob,null);
+});
+test('changing the report period filters entries without recalculating saved wallet history',async()=>{
+ const p=await walletHistoryReport();p.app.ivFinance.push({id:'tomorrow',member_id:'ian',kind:'topup',amount:30,wallet_after:80,created_at:'2026-11-02T03:00:00+08:00'});
+ await p.app.ivRender('2026-11-02','2026-11-02');const cells=p.element('financial-tbody').children.at(-1).children;assert.equal(cells[5].textContent,'₱80.00');assert.match(p.element('report-page').textContent,/of 1 matching rows/);
+});

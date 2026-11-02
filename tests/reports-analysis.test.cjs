@@ -46,3 +46,9 @@ test('expiry labels distinguish no pass, missing date, expired, today and remain
  assert.match(R.expiryLabel({plan:'1-Day Pass',expiration_date:'2026-11-02'},'2026-11-02'),/^Expires today/);
  assert.match(R.expiryLabel({plan:'1-Week Pass',expiration_date:'2026-11-09'},'2026-11-02'),/7 days left/);
 });
+
+test('Wallet after uses only the saved transaction value, including zero',()=>{
+ for(const [value,expected] of [[100,'₱100.00'],[0,'₱0.00'],['50.25','₱50.25']])assert.equal(R.walletAfter({wallet_after:value} ),expected);
+ for(const value of [null,undefined,'',true,false,{},[],NaN,Infinity,-1,'-1.00','1.234'])assert.equal(R.walletAfter({wallet_after:value}), 'Unavailable');
+ assert.equal(R.walletAfter({wallet_balance:999}), 'Unavailable');
+});
