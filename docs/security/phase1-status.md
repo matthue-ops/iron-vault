@@ -115,3 +115,8 @@ Implemented the requested four report tabs, four-card Overview, one shared date 
 Owner approved the report-query enhancement before implementation. Prepared manual migration 022 to append referenced, tenant-scoped actor names/roles to the existing report snapshot, preserving its authorization and existing report data. Activity, name/role search, CSV and Print now identify gym administrators and staff, including known administrative targets. Names/roles reflect current available identity data; unavailable accounts and system events are labeled honestly. No event records, credentials, permissions or unrelated UI are modified. See [activity-actor-names.md](activity-actor-names.md) for the SQL-first manual rollout and limitations.
 
 182 local tests pass; SQL/PLpgSQL syntax parsed without execution. Mocked Chromium checks passed at phone and desktop widths. No SQL executed, Edge deployed, production deployed or PR merged by the agent.
+
+
+## Activity member reference follow-up
+
+On the same Activity branch, known member references in Details now use the member name and short code from the existing selected-tenant report snapshot. Search/CSV/Print use the same labels. No query, SQL, database data, Edge code, access rule or unrelated UI changed. Existing actor-name SQL 022 is unchanged and does not need reapplying for this follow-up. All 187 native tests pass, including preserved raw logs, inactive members, complete-reference matching, other-tenant exclusion, safe text, missing short codes and receipt-reference preservation.

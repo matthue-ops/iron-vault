@@ -15,10 +15,21 @@
    const name=typeof actor.name==='string'&&actor.name.trim()?actor.name.trim():'Name unavailable';
    return name+' — '+roleNames[actor.role];
   }
-  function activityDetails(text){
-   const uuid=/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi;
-   return String(text||'').replace(uuid,id=>(app.ivActors||[]).some(a=>String(a.user_id).toLowerCase()===id.toLowerCase())?actorLabel(id):id)
-    .replace(/(Target account:\s*)([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\b/gi,(_,prefix,id)=>prefix+actorLabel(id));
+  function activityDetailsFormatter(){
+   const members=new Map((model?.members||[]).filter(m=>(m.tenantId??m.tenant_id)===app.currentTenant?.id).map(m=>[String(m.id).toLowerCase(),m]));
+   const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+   const ids=Array.from(members.keys()).sort((a,b)=>b.length-a.length).map(escape);
+   const uuid='[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}';
+   const references=new RegExp('(?<![a-z0-9_-])(?:'+[...ids,uuid].join('|')+')(?![a-z0-9_-])','gi');
+   return text=>String(text||'').replace(references,id=>{
+    const member=members.get(id.toLowerCase());
+    if(member){
+     const name=typeof member.name==='string'&&member.name.trim()?member.name.trim():'Name unavailable';
+     const shortCode=member.display_code||member.displayCode||member.id;
+     return name+(/^MEM-\d{4,}$/i.test(shortCode)?' · '+shortCode:'');
+    }
+    return (app.ivActors||[]).some(a=>String(a.user_id).toLowerCase()===id.toLowerCase())?actorLabel(id):id;
+   }).replace(/(Target account:\s*)([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\b/gi,(_,prefix,id)=>prefix+actorLabel(id));
   }
   function tableRows(){
    if(!model)return[];const members=new Map(model.members.map(m=>[m.id,m]));
@@ -27,7 +38,8 @@
     const within=row=>{const d=R.date(row.created_at);return d>=period.start&&d<=period.end;};
     const sessions=(app.ivSessions||[]).map(s=>{const actor=(app.ivActors||[]).find(a=>a.user_id===s.actor_id);return {...s,event:(roleNames[actor?.role]||'Account')+' '+s.event,details:s.event};});
     const rows=(app.ivMode==='sessions'?sessions:app.ivMode==='activity'?(app.ivActivity||[]):[...(app.ivActivity||[]),...sessions]).filter(within).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-    return rows.map(a=>[stamp(a.created_at),actorLabel(a.actor_id),a.event,activityDetails(a.details)]);
+    const details=activityDetailsFormatter();
+    return rows.map(a=>[stamp(a.created_at),actorLabel(a.actor_id),a.event,details(a.details)]);
    }
    return model.financial.map(t=>[code(members.get(t.member_id),t.member_id),members.get(t.member_id)?.name||'—',members.get(t.member_id)?.classification||'—',R.kinds[t.kind]||t.kind,R.money(t.amount),R.money(members.has(t.member_id)?members.get(t.member_id).wallet_balance??members.get(t.member_id).walletBalance:null),stamp(t.created_at),t.description||'—']);
   }

@@ -420,3 +420,37 @@ test('non-account UUID details such as transaction references remain unchanged',
  p.app.ivSessions=[];p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',actor_id:activityOwner,event:'Payment reference',details:'Receipt: '+reference}];
  await p.app.ivRender('2026-11-01','2026-11-01');assert.equal(p.element('audit-tbody').children.at(-1).children[3].textContent,'Receipt: '+reference);
 });
+
+async function memberActivity(){
+ const p=await namedActivity(),memberId='MEM-6f27ac52-443b-43c5-8f4a-22d91682f534';
+ p.app.branchMembers=[{id:memberId,tenantId:'gym-a',name:'Anika Kelly',displayCode:'MEM-0013',status:'INACTIVE'}];
+ p.app.ivSessions=[];p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',actor_id:activityOwner,event:'Member profile updated',details:memberId}];
+ await p.app.ivRender('2026-11-01','2026-11-01');return {...p,memberId};
+}
+test('Activity member references show name and short code without changing the stored log',async()=>{
+ const p=await memberActivity();assert.equal(p.element('audit-tbody').children.at(-1).children[3].textContent,'Anika Kelly · MEM-0013');
+ assert.equal(p.app.ivActivity[0].details,p.memberId);
+ for(const query of ['Anika','MEM-0013']){p.element('report-search').value=query;p.element('report-search').listeners.input();assert.match(p.element('report-page').textContent,/of 1 matching rows/);}
+ p.element('report-search').value='No such member';p.element('report-search').listeners.input();assert.equal(p.element('report-page').textContent,'No matching records');
+});
+test('Activity CSV and print use the member name and code in matching details',async()=>{
+ const p=await memberActivity();let blob,prints=0;
+ p.context.Blob=Blob;p.context.URL={createObjectURL:value=>{blob=value;return 'blob:member'},revokeObjectURL(){}};p.context.print=()=>{prints++};
+ p.element('report-search').value='Anika';p.element('report-search').listeners.input();
+ await p.app.exportReportCsv();const csv=await blob.text();assert.match(csv,/Anika Kelly · MEM-0013/);assert.ok(!csv.includes(p.memberId));
+ await p.app.printReport();assert.equal(prints,1);assert.equal(p.element('audit-tbody').children.at(-1).children[3].textContent,'Anika Kelly · MEM-0013');
+});
+test('member details match complete references only and preserve unknown and other-tenant IDs',async()=>{
+ const p=await memberActivity();const foreign='MEM-foreign',unknown='MEM-unknown';p.app.branchMembers.push({id:foreign,tenantId:'gym-b',name:'Private Name',displayCode:'MEM-9999'});
+ p.app.ivActivity[0].details=p.memberId+', '+p.memberId.toUpperCase()+'; '+p.memberId+'-suffix; '+foreign+'; '+unknown;
+ await p.app.ivRender('2026-11-01','2026-11-01');const details=p.element('audit-tbody').children.at(-1).children[3].textContent;
+ assert.equal(details,'Anika Kelly · MEM-0013, Anika Kelly · MEM-0013; '+p.memberId+'-suffix; '+foreign+'; '+unknown);assert.ok(!details.includes('Private Name'));
+});
+test('member names are safe text and missing short codes never fall back to long internal IDs',async()=>{
+ const p=await memberActivity();p.app.branchMembers[0].name='<img src=x onerror=alert(1)>';p.app.branchMembers[0].displayCode=p.memberId;
+ await p.app.ivRender('2026-11-01','2026-11-01');const cell=p.element('audit-tbody').children.at(-1).children[3];assert.equal(cell.textContent,'<img src=x onerror=alert(1)>');assert.equal(cell.innerHTML,'');
+});
+test('member reference matching escapes regex punctuation in legacy IDs',async()=>{
+ const p=await memberActivity();p.app.branchMembers[0].id='MEM-old.123';p.app.ivActivity[0].details='MEM-old.123 / MEM-oldX123';
+ await p.app.ivRender('2026-11-01','2026-11-01');assert.equal(p.element('audit-tbody').children.at(-1).children[3].textContent,'Anika Kelly · MEM-0013 / MEM-oldX123');
+});
