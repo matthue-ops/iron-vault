@@ -52,3 +52,16 @@ test('an older gym permission request cannot replace a newer panel or mutate thr
  await pending;assert.equal(f.container().children[0],content);
  const before=f.calls.length;await oldButton.onclick();assert.equal(f.calls.length,before);
 });
+
+test('report permission controls live inside the matching staff details and remain scoped on writes',async()=>{
+ const f=fixture(),slot=f.document.createElement('div');slot.dataset={staffId:'staff-id',staffTenant:'gym-a'};
+ f.document.querySelectorAll=()=>[slot];await render(f.client,'gym-a','permissions',f.document);
+ assert.equal(f.container().children.length,0);assert.equal(slot.children[0].children[0].textContent,'Report permission: Not allowed');
+ await slot.children[0].children[1].onclick();assert.equal(f.calls[1].args.p_user,'staff-id');assert.equal(f.calls[1].args.p_tenant,'gym-a');
+ assert.equal(slot.children[0].children[0].textContent,'Report permission: Allowed');
+});
+test('a same-ID staff slot in another tenant does not receive permission controls',async()=>{
+ const f=fixture(),slot=f.document.createElement('div');slot.dataset={staffId:'staff-id',staffTenant:'gym-b'};
+ f.document.querySelectorAll=()=>[slot];await render(f.client,'gym-a','permissions',f.document);
+ assert.equal(slot.children.length,0);assert.equal(f.container().children.length,1);
+});

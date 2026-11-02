@@ -25,3 +25,12 @@ test('branch login only installs an actual returned Supabase session and carries
 test('an absent session or failed gateway never establishes browser-only login',async()=>{
  const f=fixture();await assert.rejects(branch.signIn(f.client,{}),/Sign-in not completed/);assert.equal(f.calls.filter(x=>x.session).length,0);
 });
+
+test('creation explains the eight-character minimum before storing a request or sending credentials',async()=>{
+ const f=fixture();await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',{email:'member@example.invalid',password:'short'}),/^Error: At least 8 characters\.$/);
+ assert.equal(f.calls.length,0);assert.equal(f.values.size,0);
+});
+test('sign-in keeps existing shorter passwords usable',async()=>{
+ const f=fixture();f.client.functions.invoke=async(name,{body})=>{f.calls.push({name,body});return{data:{session:{access_token:'access',refresh_token:'refresh'}}}};
+ await branch.signIn(f.client,{email:'member@example.invalid',password:'six123'});assert.equal(f.calls[0].body.password,'six123');assert.equal(f.calls[1].session.access_token,'access');
+});

@@ -83,6 +83,8 @@
     <script src="../assets/auth-session.js"></script>
     <script src="../assets/application-data.js"></script>
     <script src="../assets/financial-requests.js"></script>
+<link rel="stylesheet" href="../assets/mobile-ui.css">
+<script defer src="../assets/mobile-ui.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -320,8 +322,9 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New Password (Optional, 8+ characters)</label>
-                                <input type="password" id="edit-password" placeholder="Leave blank to keep current" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                                <label class="block text-xs font-medium text-slate-300 mb-1.5">New password (optional)</label>
+                                <p id="new-password-help" class="text-xs text-slate-400 mb-2">At least 8 characters. Leave blank to keep your current password.</p>
+                                <input type="password" aria-describedby="new-password-help" id="edit-password" placeholder="At least 8 characters." minlength="8" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                             </div>
                         </div>
 

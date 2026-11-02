@@ -8,6 +8,7 @@
   }return data;
  }
  async function provision(client,storage,name,body){
+  if(typeof body.password==='string'&&body.password.length<8)throw Error('At least 8 characters.');
   const {data}=await client.auth.getUser();const actor=data?.user?.id||'public';
   const key='ironvault_provision:'+actor+':'+name+':'+(body.tenant_id||body.tenantId||body.gym_token||'new')+':'+String(body.email).trim().toLowerCase();
   body={...body,email:String(body.email||'').trim().toLowerCase()};

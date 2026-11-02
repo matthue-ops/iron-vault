@@ -70,6 +70,8 @@
     <script src="../assets/application-data.js"></script>
     <script src="../assets/super-admin-session.js"></script>
     <script src="../assets/staff-report-permissions.js"></script>
+<link rel="stylesheet" href="../assets/mobile-ui.css">
+<script defer src="../assets/mobile-ui.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -194,7 +196,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-300 mb-1.5">Initial Supabase Auth Password</label>
-                                <input type="password" id="reg-owner-pass" placeholder="At least 8 characters" required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                                <input type="password" id="reg-owner-pass" placeholder="At least 8 characters." required class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none" minlength="8">
                             </div>
                         </div>
 
@@ -243,7 +245,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-[10px] text-slate-400 mb-1">Staff Password</label>
-                                    <input type="password" id="reg-staff-pass" placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                                    <input type="password" id="reg-staff-pass" placeholder="At least 8 characters." class="w-full glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none" minlength="8">
                                 </div>
                             </div>
                         </div>
@@ -449,18 +451,18 @@
                 </button>
                 <div id="toggle-content-staff" class="p-4 pt-0 space-y-3 hidden">
                     <div id="inspect-staff-list" class="space-y-2 max-h-40 overflow-y-auto text-xs">
-                <p class="text-xs font-bold">Financial report access</p><div id="inspect-report-permissions"></div>
                         <!-- Dynamic staff list -->
                     </div>
+                    <div id="inspect-report-permissions"></div>
                     <!-- Add Staff Form Inside Inspect Modal -->
-                    <form onsubmit="indexApp.handleInspectAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
+                    <details class="mt-3"><summary class="rounded-xl bg-amber-500 text-slate-950 px-4 font-bold">Add staff</summary><form onsubmit="indexApp.handleInspectAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
                         <input type="text" id="inspect-new-staff-name" placeholder="Staff Name" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
                         <input type="email" id="inspect-new-staff-email" placeholder="staff@gym.com" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
-                        <input type="password" id="inspect-new-staff-pass" placeholder="Password" required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none">
+                        <input type="password" id="inspect-new-staff-pass" placeholder="At least 8 characters." required class="glass-input text-white text-xs rounded-xl px-3 py-2 focus:outline-none" minlength="8">
                         <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase transition shadow">
                             Add Staff
                         </button>
-                    </form>
+                    </form></details>
                 </div>
             </div>
 
@@ -1083,7 +1085,7 @@
                 const logoInput = document.getElementById('reg-gym-logo');
 
                 if (password.length < 8) {
-                    alert("Password must be at least 8 characters long.");
+                    alert("At least 8 characters.");
                     return;
                 }
 

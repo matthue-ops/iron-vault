@@ -4,15 +4,42 @@
  function install(app,client,kind){
   const value=id=>root.document.getElementById(id).value;
   async function provision(name,body){return root.IronVaultBranchAuth.provision(client,root.sessionStorage,name,body);}
+  const staffRevisions=new WeakMap();
+  async function recoverStaff(owner,index){
+   const staff=owner?.staff?.[index];if(!staff?.auth_user_id)return;
+   if(!root.confirm('Send password recovery to '+staff.email+'? A working inbox is required.'))return;
+   try{const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',portal:'admin',gym_token:owner.token,email:staff.email});root.alert(result.message);}catch(error){root.alert(error.message);}
+  }
   function renderStaff(owner,containerId,onRevoke,onEdit){
    const container=root.document.getElementById(containerId);if(!container)return;container.textContent='';
-   for(const [index,staff] of (owner?.staff||[]).entries()){
-    const row=root.document.createElement('div');row.className='p-3 rounded-xl bg-slate-900 text-xs space-x-2';
-    const label=root.document.createElement('span');label.textContent=staff.name+' — '+staff.email;row.appendChild(label);
-    const button=root.document.createElement('button');button.type='button';button.textContent='Revoke access';button.onclick=()=>onRevoke(index);row.appendChild(button);
-    if(onEdit){const edit=root.document.createElement('button');edit.type='button';edit.textContent='Edit name / email';edit.onclick=()=>onEdit(index);row.appendChild(edit);}
-    container.appendChild(row);
+   const revision=(staffRevisions.get(container)||0)+1;staffRevisions.set(container,revision);const statuses=new Map();
+   if(owner)root.IronVaultStaffReports?.render(client,owner.id,containerId==='existing-staff-list'?'staff-report-permissions':'inspect-report-permissions');
+   if(!owner?.staff?.length){container.textContent='No staff accounts registered.';return;}
+   for(const [index,staff] of owner.staff.entries()){
+    const row=root.document.createElement('details');row.className='p-3 rounded-xl bg-slate-900 text-xs';
+    const summary=root.document.createElement('summary');summary.className='iv-staff-summary';
+    const label=root.document.createElement('span');label.textContent=staff.name+' · Staff';summary.appendChild(label);
+    const status=root.document.createElement('span');status.className='iv-staff-status';status.textContent=staff.auth_user_id?'Checking access…':'Account link unavailable';summary.appendChild(status);statuses.set(staff.auth_user_id,status);row.appendChild(summary);
+    const panel=root.document.createElement('div');panel.className='iv-staff-details';
+    const email=root.document.createElement('p');email.textContent='Email: '+staff.email;panel.appendChild(email);
+    const permission=root.document.createElement('div');permission.dataset.staffId=staff.auth_user_id||'';permission.dataset.staffTenant=owner.id;permission.textContent='Report permission unavailable.';panel.appendChild(permission);
+    function action(label,callback){const button=root.document.createElement('button');button.type='button';button.textContent=label;button.onclick=callback;button.disabled=!staff.auth_user_id;panel.appendChild(button);}
+    if(onEdit)action('Edit name / email',()=>onEdit(index));
+    action('Send password recovery',()=>recoverStaff(owner,index));action('Deactivate access',()=>onRevoke(index));
+    const note=root.document.createElement('p');note.textContent='Recovery requires a working inbox. Deactivation retains history.';panel.appendChild(note);
+    row.appendChild(panel);container.appendChild(row);
    }
+   (async()=>{
+    try{
+     const actor=await root.IronVaultAuth.requireRole(client,{roles:['super_admin','owner'],tenantId:owner.id,allowGlobalSuperAdmin:true});
+     const {data,error}=await client.from('iv_user_roles').select('user_id,enabled,disabled_at').eq('tenant_id',owner.id).eq('role','staff');
+     if(error||!Array.isArray(data))throw Error('Status unavailable');
+     const current=await root.IronVaultAuth.requireRole(client,{roles:['super_admin','owner'],tenantId:owner.id,allowGlobalSuperAdmin:true});
+     if(current.user_id!==actor.user_id)throw Error('Status unavailable');
+     if(staffRevisions.get(container)!==revision)return;
+     for(const [id,node] of statuses){const binding=data.find(r=>r.user_id===id);node.textContent=!binding?'No enabled access':binding.disabled_at?'Deactivated':owner.status!=='ACTIVE'?'Gym inactive':binding.enabled?'Active':'Access disabled';}
+    }catch(error){if(staffRevisions.get(container)===revision)for(const node of statuses.values())node.textContent='Status unavailable';}
+   })();
   }
 
   if(kind==='admin'){
@@ -73,12 +100,11 @@
     const name=root.prompt('Staff name',staff.name);if(!name)return;
     try{await root.IronVaultData.call(client,'iv_update_staff_name',{p_tenant:this.currentTenantId,p_user:staff.auth_user_id,p_name:name.trim()});
      const email=root.prompt('Staff contact email (used for password recovery)',staff.email);
-     let pending=false;let recipient=staff.email;
      if(email!==null&&email.trim().toLowerCase()!==staff.email.toLowerCase()){
       const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'staff_email_change',user_id:staff.auth_user_id,new_email:email.trim().toLowerCase()});
-      root.alert(result.message);pending=result.pending;recipient=pending?staff.email:email.trim().toLowerCase();
+      root.alert(result.message);
      }
-     if(!pending&&root.confirm('Send a password recovery email to this staff member?'))await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',portal:'admin',gym_token:this.matchedOwnerRecord.token,email:recipient});
+     // Password recovery has its own explicit action in staff details.
      await this.openStaffSignupModal();this.switchStaffTab('list');
     }catch(error){root.alert(error.message);}
    };
@@ -97,7 +123,7 @@
     try{await root.IronVaultData.call(client,'iv_revoke_staff',{p_tenant:this.currentTenantId,p_user:staff.auth_user_id});await this.openStaffSignupModal();this.switchStaffTab('list');}
     catch(error){root.alert(error.message);}
    };
-   app.toggleStaffAdminPrivilege=async function(){root.alert('Use the Financial report access controls below. Staff accounts retain their assigned role.');};
+   app.toggleStaffAdminPrivilege=async function(){root.alert('Open staff details to manage report access. Staff accounts retain their assigned role.');};
   }else if(kind==='master'){
    root.IronVaultTenantPurge.install(app,client);
    app.sendOwnerRecovery=async function(id){const gym=this.owners.find(g=>g.id===id);if(!gym)return;
@@ -207,7 +233,7 @@
     try{
      const {data,error}=await client.auth.getUser();if(error||!data.user)throw Error('Sign in required.');
      const email=value('edit-email').trim().toLowerCase(),password=value('edit-password');
-     if(password){if(password.length<8||!value('edit-current-password'))throw Error('Enter your current password and a new password of at least 8 characters.');
+     if(password){if(password.length<8||!value('edit-current-password'))throw Error('At least 8 characters. Enter your current password to confirm the change.');
       const checked=await client.auth.signInWithPassword({email:data.user.email,password:value('edit-current-password')});if(checked.error)throw Error('Current password is incorrect.');
       const changed=await client.auth.updateUser({password});if(changed.error)throw Error('Password change failed.');}
      let pending=false;

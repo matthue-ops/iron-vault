@@ -6,7 +6,7 @@ const path=require('node:path');
 function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();let created=0;
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
- function element(id){if(!elements.has(id))elements.set(id,{children:[],appendChild(child){this.children.push(child)},addEventListener(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
+ function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],appendChild(child){this.children.push(child)},addEventListener(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
@@ -328,9 +328,9 @@ test('attendance shows current expiry and activity never falls back to the money
  p.app.ivSessions=[{created_at:'2026-11-01T02:00:00+08:00',event:'login',actor_id:'staff'}];
  await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('attendance');
  const attendance=p.element('attendance-tbody').children.at(-1).children.map(c=>c.textContent);assert.match(attendance[5],/8 Nov 2026.*7 days left/);
- p.app.switchTab('audit');let row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Pricing updated');
+ p.app.switchTab('audit');assert.equal(p.app.ivMode,'all');p.app.ivChoose('activity');let row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Pricing updated');
  p.app.ivChoose('sessions');row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Staff login');
- p.app.switchTab('audit');assert.equal(p.app.ivMode,'activity');
+ p.app.switchTab('audit');assert.equal(p.app.ivMode,'sessions');
 });
 
 test('server wallet checks can still reject removal after a stale zero-balance preview',async()=>{
@@ -348,4 +348,35 @@ test('active gym owner portal stays enabled and incomplete provisioning gives se
   if(status==='PROVISIONING')assert.match(p.element('portal-subtitle').innerText,/setup is incomplete/);
   assert.doesNotMatch(p.element('portal-subtitle').innerText,/owner email verification/);
  }
+});
+
+test('reports start with four overview cards and table switching preserves the shared period without another fetch',async()=>{
+ const p=reportFixture();await p.app.init();assert.equal(p.app.currentTab,'overview');
+ assert.equal(p.element('report-overview').children.length,4);assert.equal(p.element('report-table-tools').hidden,true);
+ const count=p.permission.snapshots.length;
+ p.app.switchTab('financial');assert.equal(p.element('report-table-tools').hidden,false);
+ p.element('report-search').value='top-up';p.app.switchTab('attendance');assert.equal(p.element('report-search').value,'');
+ p.element('report-search').value='manual';p.app.switchTab('financial');assert.equal(p.element('report-search').value,'top-up');
+ assert.equal(p.permission.snapshots.length,count);assert.equal(p.element('filter-date-start').value,'2026-11-01');
+});
+test('activity combines administrative and staff events within the selected dates and supports independent filtering',async()=>{
+ const p=reportFixture();await p.app.init();p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',event:'Pricing updated',actor_id:'owner'}];
+ p.app.ivSessions=[{created_at:'2026-11-01T03:00:00+08:00',event:'login',actor_id:'staff'},{created_at:'2026-10-01T03:00:00+08:00',event:'logout',actor_id:'staff'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('audit');
+ assert.match(p.element('report-page').textContent,/of 2 matching rows/);
+ p.app.ivChoose('sessions');assert.match(p.element('report-page').textContent,/of 1 matching rows/);
+ p.element('report-search').value='Pricing';p.element('report-search').listeners?.input?.();
+ p.app.ivChoose('activity');assert.match(p.element('report-page').textContent,/of 1 matching rows/);
+});
+
+test('staff list collapses email and management actions beneath name, role and verified access status',async()=>{
+ const p=portal('gym/admin.html',{user:{id:'owner'},roles:[{user_id:'owner',role:'owner',tenant_id:'gym-a',enabled:true},{user_id:'staff-id',role:'staff',tenant_id:'gym-a',enabled:true}]});
+ const app=p.get('adminApp');app.matchedOwnerRecord={id:'gym-a',status:'ACTIVE',token:'token-a',staff:[{name:'Staff Person',email:'staff@example.invalid',auth_user_id:'staff-id'}]};
+ app.renderExistingStaffList();await new Promise(resolve=>setImmediate(resolve));
+ const card=p.element('existing-staff-list').children.at(-1),summary=card.children[0],details=card.children[1];
+ assert.equal(summary.children[0].textContent,'Staff Person · Staff');assert.equal(summary.children[1].textContent,'Active');assert.equal(card.open,undefined);
+ assert.equal(details.children[0].textContent,'Email: staff@example.invalid');
+ assert.ok(details.children.some(child=>child.textContent==='Send password recovery'));
+ assert.ok(details.children.some(child=>child.textContent==='Deactivate access'));
+ assert.equal(details.children[1].dataset.staffTenant,'gym-a');
 });

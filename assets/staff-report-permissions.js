@@ -56,7 +56,12 @@
                         row.appendChild(message);
                     }
                 };
-                row.appendChild(label);row.appendChild(button);container.appendChild(row);
+                const slot = Array.from(document.querySelectorAll?.('[data-staff-id]') || []).find(node => node.dataset.staffId === account.user_id && node.dataset.staffTenant === tenantId);
+                if (slot) {
+                    slot.textContent = '';
+                    label.textContent = 'Report permission: ' + (account.financial_reports_read ? 'Allowed' : 'Not allowed');
+                    row.appendChild(label);row.appendChild(button);slot.appendChild(row);
+                } else {row.appendChild(label);row.appendChild(button);container.appendChild(row);}
             }
         } catch (error) {if (isCurrent()) container.textContent = error.message;}
     }

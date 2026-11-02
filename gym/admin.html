@@ -76,6 +76,8 @@
     <script src="../assets/application-data.js"></script>
     <script src="../assets/financial-requests.js"></script>
     <script src="../assets/staff-report-permissions.js"></script>
+<link rel="stylesheet" href="../assets/mobile-ui.css">
+<script defer src="../assets/mobile-ui.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -505,7 +507,7 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-slate-300 mb-1">Account Password (Optional)</label>
-                    <input type="password" id="new-member-password" value="" required minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
+                    <input type="password" id="new-member-password" value="" required minlength="8" placeholder="At least 8 characters." class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none font-mono">
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -742,7 +744,7 @@
             <!-- TAB SWITCHER BUTTONS -->
             <div class="flex bg-slate-900 p-1 rounded-2xl border border-slate-800 gap-1">
                 <button id="staff-tab-register" onclick="adminApp.switchStaffTab('register')" class="w-1/2 py-2 rounded-xl font-bold text-xs transition bg-amber-500 text-slate-950 shadow">
-                    Register New Staff
+                    Add staff
                 </button>
                 <button id="staff-tab-list" onclick="adminApp.switchStaffTab('list')" class="w-1/2 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                     Registered Staff
@@ -765,7 +767,7 @@
 
                     <div>
                         <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff Password</label>
-                        <input type="password" id="staff-reg-password" required minlength="8" placeholder="At least 8 characters" class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
+                        <input type="password" id="staff-reg-password" required minlength="8" placeholder="At least 8 characters." class="w-full glass-input text-white text-xs rounded-xl px-3.5 py-2.5 focus:outline-none">
                     </div>
 
                     <div class="flex gap-2 pt-2">
@@ -782,7 +784,7 @@
             <!-- REGISTERED STAFF CONTENT TAB -->
             <div id="staff-content-list" class="hidden space-y-2">
                 <div id="existing-staff-list" class="max-h-60 overflow-y-auto space-y-2 text-xs touch-scroll"></div>
-                <p class="text-xs font-bold">Financial report access</p><div id="staff-report-permissions"></div>
+                <div id="staff-report-permissions"></div>
                 <div class="pt-2">
                     <button type="button" onclick="adminApp.closeStaffSignupModal()" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
                         Close
@@ -1215,7 +1217,7 @@
                     alert('Unable to verify gym staff data. Please try again.');return;
                 }
 
-                this.switchStaffTab('register');
+                this.switchStaffTab('list');
                 this.renderExistingStaffList();
                 await IronVaultStaffReports.render(supabaseClient,this.currentTenantId,'staff-report-permissions');
                 document.getElementById('staff-signup-modal').classList.remove('hidden');
@@ -1919,7 +1921,7 @@
                 const plan = document.getElementById('new-member-plan').value;
                 const cardBarcode = document.getElementById('new-member-barcode').value.trim();
                 if (!email || !email.includes('@')) return alert('A real email address is required for member login and recovery.');
-                if (password.length < 8) return alert('Set a password of at least 8 characters.');
+                if (password.length < 8) return alert('At least 8 characters.');
                 try {
                     await ivRequireRole(['owner','staff'], this.currentTenantId);
                     const {data,error} = await supabaseClient.functions.invoke('iv-create-member', {
