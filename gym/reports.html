@@ -96,6 +96,7 @@
     <script src="../assets/auth-session.js"></script>
     <script src="../assets/application-data.js"></script>
 <script src="../assets/reports-analysis.js"></script>
+<script src="../assets/reports-excel.js"></script>
 <script src="../assets/reports-ui.js"></script>
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
@@ -172,7 +173,8 @@
 <style>#report-metadata [id^="metrics-"]{display:none!important}</style>
 <p id="report-validation" role="alert" class="text-sm text-rose-300"></p>
 <section id="section-overview" class="glass-card rounded-2xl p-5 space-y-4 border border-slate-700">
- <h2 class="text-lg font-bold text-white">At a glance</h2>
+ <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-bold text-white">At a glance</h2><button id="report-export-excel" type="button" disabled onclick="reportsApp.exportAllReportsXlsx()" class="no-print rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 text-xs disabled:opacity-50">Export all reports (.xlsx)</button></div>
+<p class="text-xs text-slate-400 no-print">Four sheets for the selected dates: Overview, Money, Attendance and Activity. Includes all loaded period records, regardless of table search or page.</p>
  <p id="overview-period" class="text-xs text-emerald-300"></p>
  <details><summary>How these numbers work</summary><p class="text-sm text-slate-300">Report dates and check-in times use Asia/Manila. Period totals follow the selected dates; cards marked “Current” use the current member snapshot.</p>
 

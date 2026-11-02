@@ -1,11 +1,11 @@
 (function(root){
  'use strict';
  function install(app,client){
-  const R=root.IronVaultReports,node=id=>root.document.getElementById(id);let page=0,model=null,period=null;
+  const R=root.IronVaultReports,node=id=>root.document.getElementById(id);let page=0,model=null,period=null,snapshotAt=null,reportVersion=0,exporting=false;
   const oldRender=app.ivRender,oldClear=app.ivClear;
   const stamp=value=>new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila'});
   const code=(m,fallback)=>m?.display_code||m?.displayCode||m?.id||fallback||'—';
-  function clear(){model=null;period=null;node('report-overview').textContent='';node('report-insights').textContent='';node('report-daily').textContent='';node('report-expiring').textContent='';node('overview-period').textContent='';node('report-expiring-count').textContent='';node('report-money-summary').textContent='';node('report-attendance-summary').textContent='';node('report-print-context').textContent='';node('report-sales-details').textContent='';}
+  function clear(){reportVersion++;snapshotAt=null;node('report-export-excel').disabled=true;model=null;period=null;node('report-overview').textContent='';node('report-insights').textContent='';node('report-daily').textContent='';node('report-expiring').textContent='';node('overview-period').textContent='';node('report-expiring-count').textContent='';node('report-money-summary').textContent='';node('report-attendance-summary').textContent='';node('report-print-context').textContent='';node('report-sales-details').textContent='';}
   app.ivClear=function(){oldClear.call(this);clear();};
   const roleNames={owner:'Gym Admin',staff:'Staff',member:'Member',super_admin:'Super Admin'};
   function actorLabel(id){
@@ -31,13 +31,13 @@
     return (app.ivActors||[]).some(a=>String(a.user_id).toLowerCase()===id.toLowerCase())?actorLabel(id):id;
    }).replace(/(Target account:\s*)([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\b/gi,(_,prefix,id)=>prefix+actorLabel(id));
   }
-  function tableRows(){
+  function tableRows(tab=app.currentTab,mode=app.ivMode){
    if(!model)return[];const members=new Map(model.members.map(m=>[m.id,m]));
-   if(app.currentTab==='attendance')return model.attendance.map(a=>[code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',members.get(a.member_id)?.plan||'—',stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,R.expiryLabel(members.get(a.member_id)),members.get(a.member_id)?.status||'—']);
-   if(app.currentTab==='audit'){
+   if(tab==='attendance')return model.attendance.map(a=>[code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',members.get(a.member_id)?.plan||'—',stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,R.expiryLabel(members.get(a.member_id)),members.get(a.member_id)?.status||'—']);
+   if(tab==='audit'){
     const within=row=>{const d=R.date(row.created_at);return d>=period.start&&d<=period.end;};
     const sessions=(app.ivSessions||[]).map(s=>{const actor=(app.ivActors||[]).find(a=>a.user_id===s.actor_id);return {...s,event:(roleNames[actor?.role]||'Account')+' '+s.event,details:s.event};});
-    const rows=(app.ivMode==='sessions'?sessions:app.ivMode==='activity'?(app.ivActivity||[]):[...(app.ivActivity||[]),...sessions]).filter(within).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const rows=(mode==='sessions'?sessions:mode==='activity'?(app.ivActivity||[]):[...(app.ivActivity||[]),...sessions]).filter(within).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
     const details=activityDetailsFormatter();
     return rows.map(a=>[stamp(a.created_at),actorLabel(a.actor_id),a.event,details(a.details)]);
    }
@@ -72,8 +72,8 @@
   }
   app.ivRender=async function(start,end){
    await oldRender.call(this,start,end);if(!this.ivFinance)return;
-   model=R.analyze({financial:this.ivFinance,attendance:this.ivAttendance,purchases:this.ivPurchases||[],members:this.branchMembers},start,end);period={start,end};
-   node('report-range-subtitle').textContent='Report period: '+start+' to '+end;node('report-generated-timestamp').textContent=stamp(new Date());
+   model=R.analyze({financial:this.ivFinance,attendance:this.ivAttendance,purchases:this.ivPurchases||[],members:this.branchMembers},start,end);period={start,end};snapshotAt=new Date();reportVersion++;node('report-export-excel').disabled=exporting;
+   node('report-range-subtitle').textContent='Report period: '+start+' to '+end;node('report-generated-timestamp').textContent=stamp(snapshotAt);
    node('metric-revenue').textContent=R.money(model.grossSales);node('metric-credits').textContent=R.money(model.wallet);node('metric-registrations').textContent=model.purchaseCount;node('metric-subscriptions').textContent=model.currentPasses;
    overview();renderDetails();
   };
@@ -94,6 +94,53 @@
   };
   app.ivChoose=function(mode){this.ivMode=['sessions','activity'].includes(mode)?mode:'all';page=0;renderDetails();};
   app.printReport=async function(){try{await this.ivRequireReport();if(!model||this.currentTab==='overview')return;renderDetails();root.print();}catch(error){this.ivDeny(error);}};
+  function excelMoney(value){
+   const cents=typeof value==='bigint'?value:R.cents(value);
+   if(cents===null)return 'Unavailable';
+   if(cents>999999999999999n||cents< -999999999999999n)return R.money(cents);
+   return {value:Number(cents)/100,format:'money'};
+  }
+  app.exportAllReportsXlsx=async function(){
+   if(exporting)return;
+   const button=node('report-export-excel');exporting=true;button.disabled=true;button.textContent='Preparing Excel…';
+   try{
+    let actor;try{actor=await this.ivRequireReport();}catch(error){this.ivDeny(error);return;}
+    if(!model||!period||!snapshotAt)throw Error('Load a report first.');
+    const loaded=model,version=reportVersion,request=this.ivRequest,tenant=this.currentTenant.id;
+    const exportedAt=new Date(),gym=this.currentTenant.gymName,start=period.start,end=period.end;
+    const metadata=[['Gym',gym],['Report period',start+' to '+end],['Timezone','Asia/Manila'],['Current snapshot as of',stamp(snapshotAt)],['Export generated',stamp(exportedAt)],['Scope','All selected-period records; table search, Activity type filter and pagination do not limit this workbook. Current values are not historical month-end balances.']];
+    const summary=[['Metric','Value','Scope / explanation'],
+     ['Membership sales',excelMoney(loaded.grossSales),'Selected period: cash and wallet pass payments.'],
+     ['Outstanding wallet credit',excelMoney(loaded.wallet),'Current snapshot at the time this report loaded.'],
+     ['Visits',loaded.visits,'Selected period'],['Valid passes',loaded.currentPasses,'Current snapshot at the time this report loaded.'],[],
+     ['Money summary','Amount (PHP)','Selected-period totals'],
+     ['Membership sales',excelMoney(loaded.grossSales),'Cash and wallet pass payments; top-ups are not additional sales.'],
+     ['Wallet top-ups',excelMoney(loaded.totals.topup),'Prepaid credit collected'],
+     ['Wallet spending',excelMoney(loaded.totals.plan_wallet),'Credit spent on passes'],
+     ['Cash refunds',excelMoney(loaded.totals.refund_cash),'Recorded cash refunds only'],
+     ['Net cash received',excelMoney(loaded.cashIn),'Top-ups + cash pass payments − cash refunds. Do not add to membership sales.'],[],
+     ['Attendance summary','Count','Scope'],['Unique visitors',loaded.uniqueVisitors,'Selected period'],['QR entries',loaded.qr,'Selected period'],['Manual entries',loaded.manual,'Selected period'],['Other entries',loaded.otherAdmissions,'Selected period'],[],
+     ['Other report counts','Count','Scope'],['Recorded pass purchases',loaded.purchaseCount,'Selected-period receipts; split payment counts as one purchase.'],['Repeat purchases',loaded.renewals,'Selected-period receipts with an earlier recorded purchase.'],['New registrations',loaded.newMembers,'Selected period'],['Pending approvals',loaded.pending,'Current snapshot'],[],
+     ['Data notes','', 'Wallet after comes from a matching saved receipt. Unavailable history is not inferred. Member names, roles, classifications, plans and statuses use current available profiles. Older sales without receipts do not contribute to purchase counts.'],
+     ['Excluded invalid money values',loaded.invalid,'Excluded from summary totals; original detail records remain included.'],['Unclassified financial entries',loaded.other,'Excluded from summary totals; original detail records remain included.'],[],
+     ['Daily totals (Manila)','Net cash (PHP)','Membership sales (PHP)','Visits'],...loaded.daily.map(day=>[day.day,excelMoney(day.cash),excelMoney(day.sales),day.visits]),[],
+     ['Passes expiring within 7 days','Member name','Current plan','Current expiry'],...loaded.expiring.map(member=>[code(member),member.name,member.plan,member.expiration_date??member.expirationDate])];
+    const money=tableRows('financial').map((row,i)=>{const tx=loaded.financial[i];row[4]=excelMoney(tx.amount);row[5]=R.walletAfter(tx)==='Unavailable'?'Unavailable':excelMoney(tx.wallet_after);return row;});
+    const sheets=[
+     {name:'Overview',rows:[...metadata,...summary],headerRow:7,widths:[36,32,90,24]},
+     {name:'Money',rows:[...metadata,['Member code','Name','Classification','Entry type','Transaction amount (PHP)','Wallet after (PHP)','Recorded at (Manila)','Description'],...money],headerRow:7,widths:[18,28,18,28,25,23,27,65],filter:true},
+     {name:'Attendance',rows:[...metadata,['Member code','Name','Current plan','Check-in (Manila)','Entry method','Current expiry / days left','Current status'],...tableRows('attendance')],headerRow:7,widths:[18,28,25,27,25,40,20],filter:true},
+     {name:'Activity',rows:[...metadata,['Recorded at (Manila)','Name / role','Action','Details'],...tableRows('audit','all')],headerRow:7,widths:[27,36,40,85],filter:true}
+    ];
+    const bytes=await root.IronVaultReportsExcel.create(sheets,root.JSZip||await root.IronVaultReportsExcel.loadZip());
+    let after;try{after=await this.ivRequireReport();}catch(error){this.ivDeny(error);return;}
+    if(after.user_id!==actor.user_id||this.currentTenant?.id!==tenant||model!==loaded||reportVersion!==version||this.ivRequest!==request)throw Error('The report changed during export. Load the desired period and export again.');
+    const blob=new root.Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=root.URL.createObjectURL(blob),link=root.document.createElement('a');link.href=url;link.download=root.IronVaultReportsExcel.filename(gym,start,end);
+    try{link.click();}finally{root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);}
+   }catch(error){root.alert('Excel export not completed: '+error.message);}
+   finally{exporting=false;button.disabled=!model;button.textContent='Export all reports (.xlsx)';}
+  };
   app.exportReportCsv=async function(){try{
    await this.ivRequireReport();if(this.currentTab==='overview')return;if(!model||!period)throw Error('Load a report first.');
    const kind=this.currentTab==='attendance'?'attendance':this.currentTab==='audit'?'audit':'financial';
@@ -108,7 +155,7 @@
    else if(type==='month')start=today.slice(0,7)+'-01';else if(type==='all')start='1900-01-01';
    node('filter-date-start').value=start;node('filter-date-end').value=today;return this.onDateFilterChange();
   };
-  app.ivMode='all';app.switchTab('overview');
+  node('report-export-excel').disabled=true;app.ivMode='all';app.switchTab('overview');
  }
  root.IronVaultReportsUI=Object.freeze({install});
 })(globalThis);

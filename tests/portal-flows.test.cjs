@@ -489,3 +489,57 @@ test('changing the report period filters entries without recalculating saved wal
  const p=await walletHistoryReport();p.app.ivFinance.push({id:'tomorrow',member_id:'ian',kind:'topup',amount:30,wallet_after:80,created_at:'2026-11-02T03:00:00+08:00'});
  await p.app.ivRender('2026-11-02','2026-11-02');const cells=p.element('financial-tbody').children.at(-1).children;assert.equal(cells[5].textContent,'₱80.00');assert.match(p.element('report-page').textContent,/of 1 matching rows/);
 });
+
+function captureExcel(p){
+ let blob;const links=[];p.context.JSZip=require('jszip');p.context.Blob=Blob;
+ p.context.URL={createObjectURL:value=>{blob=value;return 'blob:excel'},revokeObjectURL(){}};
+ const create=p.context.document.createElement;p.context.document.createElement=tag=>{const node=create(tag);if(tag==='a')links.push(node);return node};
+ return {links,blob:()=>blob,zip:async()=>require('jszip').loadAsync(Buffer.from(await blob.arrayBuffer()))};
+}
+test('Overview Excel exports all four sheets and all period records regardless of table search, page and activity filter',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);p.app.currentTenant.gymName='FITNESS GYM';
+ p.app.ivFinance=Array.from({length:105},(_,i)=>({member_id:'ian',kind:'topup',amount:1,wallet_after:i+1,created_at:'2026-11-01T02:00:00+08:00',description:'Topup '+i}));
+ p.app.ivAttendance=[{member_id:'ian',method:'qr',created_at:'2026-11-01T02:00:00+08:00'}];
+ p.app.ivActivity=[{actor_id:null,event:'Pricing updated',details:'Rates',created_at:'2026-11-01T02:00:00+08:00'}];
+ p.app.ivSessions=[{actor_id:null,event:'login',created_at:'2026-11-01T03:00:00+08:00'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('financial');p.element('report-search').value='no matches';p.element('report-search').listeners.input();p.app.ivChoose('sessions');p.app.switchTab('overview');
+ const calls=p.permission.snapshots.length;await p.app.exportAllReportsXlsx();assert.equal(p.permission.snapshots.length,calls,'no new report query');assert.equal(captured.links.length,1);
+ assert.equal(captured.links[0].download,'FITNESS_GYM_REPORTS_2026-11-01_2026-11-01.xlsx');assert.equal(captured.blob().type,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+ const zip=await captured.zip();const workbook=await zip.file('xl/workbook.xml').async('string');assert.equal((workbook.match(/<sheet /g)||[]).length,4);
+ const overview=await zip.file('xl/worksheets/sheet1.xml').async('string');assert.match(overview,/Current snapshot/);assert.match(overview,/Money summary/);assert.match(overview,/Selected period/);
+ const money=await zip.file('xl/worksheets/sheet2.xml').async('string');assert.equal((money.match(/<row /g)||[]).length,112);assert.match(money,/Topup 104/);assert.match(money,/Transaction amount \(PHP\)/);
+ assert.match(await zip.file('xl/worksheets/sheet3.xml').async('string'),/QR scan/);
+ const activity=await zip.file('xl/worksheets/sheet4.xml').async('string');assert.match(activity,/Pricing updated/);assert.match(activity,/Account login/);
+ assert.equal(p.app.currentTab,'overview');assert.equal(p.app.ivMode,'sessions');assert.equal(p.element('report-export-excel').disabled,false);
+});
+test('all-report Excel preserves wallet-after history as numeric cells and missing history as unavailable',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);p.app.ivFinance.push({member_id:'ian',kind:'plan_cash',amount:20,created_at:'2026-11-01T03:00:00+08:00'});await p.app.ivRender('2026-11-01','2026-11-01');
+ await p.app.exportAllReportsXlsx();const zip=await captured.zip(),money=await zip.file('xl/worksheets/sheet2.xml').async('string');
+ assert.match(money,/<c r="F8" s="2"><v>100<\/v>/);assert.match(money,/<c r="F9" s="2"><v>0<\/v>/);assert.match(money,/<c r="F10" s="2"><v>50<\/v>/);assert.match(money,/<c r="F11"[^>]*t="inlineStr">.*?Unavailable/);
+});
+test('Excel blocks downloads when report access is revoked during generation and clears private report data',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);p.context.IronVaultReportsExcel={create:async()=>{p.permission.enabled=false;return new Uint8Array([1])}};
+ await p.app.exportAllReportsXlsx();assert.equal(captured.links.length,0);assert.equal(p.app.ivActors.length,0);assert.equal(p.redirects.length,1);assert.equal(p.element('report-export-excel').disabled,true);
+});
+test('Excel discards a workbook if the report changes during generation without logging out the user',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);p.context.IronVaultReportsExcel={create:async()=>{await p.app.ivRender('2026-11-01','2026-11-01');return new Uint8Array([1])}};
+ await p.app.exportAllReportsXlsx();assert.equal(captured.links.length,0);assert.match(p.alerts.at(-1),/report changed during export/);assert.equal(p.redirects.length,0);assert.equal(p.element('report-export-excel').disabled,false);
+});
+test('Excel library errors do not hide or clear a valid report',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);p.context.JSZip=null;await p.app.exportAllReportsXlsx();assert.equal(captured.links.length,0);assert.match(p.alerts.at(-1),/library could not load/);assert.equal(p.redirects.length,0);assert.equal(p.element('report-export-excel').disabled,false);
+});
+
+test('an empty report period exports four valid sheets with headers and zero summary values',async()=>{
+ const p=reportFixture();await p.app.init();const captured=captureExcel(p);p.app.ivFinance=[];p.app.ivAttendance=[];p.app.ivActivity=[];p.app.ivSessions=[];p.app.branchMembers=[];
+ await p.app.ivRender('2026-11-01','2026-11-01');await p.app.exportAllReportsXlsx();const zip=await captured.zip();
+ for(const index of [2,3,4])assert.equal(((await zip.file('xl/worksheets/sheet'+index+'.xml').async('string')).match(/<row /g)||[]).length,7);
+ assert.match(await zip.file('xl/worksheets/sheet1.xml').async('string'),/<v>0<\/v>/);
+});
+test('Excel never creates a download for staff without report permission',async()=>{
+ const p=reportFixture('staff',false),captured=captureExcel(p);await p.app.init();await p.app.exportAllReportsXlsx();assert.equal(captured.links.length,0);
+});
+test('repeated Excel clicks cannot start duplicate downloads',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);let release,signal,count=0;const entered=new Promise(resolve=>{signal=resolve});
+ p.context.IronVaultReportsExcel={create:async()=>{count++;signal();await new Promise(resolve=>{release=resolve});return new Uint8Array([1])},filename:()=> 'Gym_REPORTS.xlsx'};
+ const first=p.app.exportAllReportsXlsx();await entered;await p.app.exportAllReportsXlsx();release();await first;assert.equal(count,1);assert.equal(captured.links.length,1);
+});
