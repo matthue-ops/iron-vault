@@ -12,6 +12,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/vendor/qrcode.min.js"></script>
+    <script src="../assets/branch-qr.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
@@ -343,7 +345,9 @@
             <div class="bg-white p-4 rounded-2xl inline-block shadow-inner">
                 <img id="qr-code-img" src="" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
             </div>
-            <div class="pt-1">
+            <p id="qr-download-status" role="status" class="text-xs text-slate-400"></p>
+            <div class="pt-1 space-y-2">
+                <button id="qr-download" type="button" disabled onclick="IronVaultBranchQR.download()" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs disabled:opacity-50"><i class="fa-solid fa-download" aria-hidden="true"></i> Download high-resolution PNG</button>
                 <button onclick="indexApp.closeQrModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
                     Close
                 </button>
@@ -785,15 +789,11 @@
             },
 
             openQrModal: function(url, gymName) {
-                document.getElementById('qr-modal-title').innerText = `${gymName} Access Portal`;
-                document.getElementById('qr-modal-url-text').innerText = url;
-                const qrImg = document.getElementById('qr-code-img');
-                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
-                document.getElementById('qr-code-modal').classList.remove('hidden');
+                IronVaultBranchQR.open(url, gymName);
             },
 
             closeQrModal: function() {
-                document.getElementById('qr-code-modal').classList.add('hidden');
+                IronVaultBranchQR.close();
             },
 
             toggleInspectSection: function(sectionKey) {
