@@ -93,7 +93,7 @@
   const labels={connecting:'Connecting automatic updates…',live:'Live updates connected',fallback:'Automatic checks active; connecting live updates…',reconnecting:'Reconnecting — showing last confirmed values',unavailable:'Automatic updates unavailable — refresh manually'};
   controller=root.IronVaultLiveUpdates.create({client,context,authorize,read,apply,isVisible:()=>!d.hidden&&root.navigator?.onLine!==false,
    status:state=>{if(state==='stopped'){statusNode.hidden=true;return;}statusNode.hidden=false;const value=labels[state]||state;if(statusNode.textContent!==value)statusNode.textContent=value;},
-   onDenied:()=>{clearPrivate();if(kind==='master')Promise.resolve(app.logout()).catch(()=>{});else{const token=app.matchedOwnerRecord?.token;root.IronVaultAuth.clearState(root.sessionStorage,root.localStorage);root.location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));}}
+   onDenied:()=>{clearPrivate();if(kind==='master')Promise.resolve(app.logout()).catch(()=>{});else{const token=app.matchedOwnerRecord?.token;root.IronVaultAuth.clearState(root.sessionStorage,root.localStorage);root.location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));}}
   });app.liveUpdates=controller;
   const init=app.init;app.init=async function(...args){controller.stop();const result=await init.apply(this,args);await controller.start();return result;};
   if(kind==='master'){const hub=app.showHubView;if(typeof hub==='function')app.showHubView=function(...args){controller.stop();return hub.apply(this,args);};const check=app.checkSession;app.checkSession=async function(...args){const ok=await check.apply(this,args);if(ok)await controller.start();else controller.stop();return ok;};}

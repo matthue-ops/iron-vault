@@ -951,7 +951,7 @@
                     IronVaultAuth.clearState(sessionStorage,localStorage);
                     alert(error.message);
                     const key = new URLSearchParams(location.search).get('key');
-                    location.replace('memberlogin.html' + (key ? '?key='+encodeURIComponent(key) : ''));
+                    location.replace('login.html' + (key ? '?key='+encodeURIComponent(key) : ''));
                 }
             },
 
@@ -1179,9 +1179,9 @@
 
                 const token = this.matchedOwnerRecord ? this.matchedOwnerRecord.token : new URLSearchParams(window.location.search).get('key');
                 if (token) {
-                    window.location.href = `memberlogin.html?key=${token}`;
+                    window.location.href = `login.html?key=${token}`;
                 } else {
-                    window.location.href = 'memberlogin.html';
+                    window.location.href = 'login.html';
                 }
             },
 
@@ -2518,7 +2518,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
   adminApp.members=[];adminApp.allMembersSystem=[];
   const token=adminApp.matchedOwnerRecord?.token;
   IronVaultAuth.clearState(sessionStorage,localStorage);
-  location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+  location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));
  }
 });
 const ivOriginalAdminLogout=adminApp.logoutAdmin;

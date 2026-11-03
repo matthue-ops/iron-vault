@@ -40,30 +40,30 @@ test('actual admin initialization denies a gym link outside the role tenant',asy
  assert.equal(loaded,0);assert.equal(p.redirects.length,1);
 });
 test('public login initialization requests only selected branding and never a member roster',async()=>{
- const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status:'ACTIVE'}]});
+ const p=portal('gym/login.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status:'ACTIVE'}]});
  await p.get('app').init();assert.equal(p.calls.length,1);
  assert.equal(p.calls[0].table,'owners');assert.deepEqual(p.calls[0].filters,[['token','token-a']]);
  assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing');
  assert.equal(p.get('app').currentTenantId,'gym-a');
 });
 test('public login does not restore a deleted or denied gym from cache',async()=>{
- const p=portal('gym/memberlogin.html');p.storage.setItem('ironvault_owners_db',JSON.stringify([{id:'gym-a',token:'token-a'}]));
+ const p=portal('gym/login.html');p.storage.setItem('ironvault_owners_db',JSON.stringify([{id:'gym-a',token:'token-a'}]));
  await p.get('app').init();assert.equal(p.get('app').currentTenantId,null);
 });
 test('actual member data query binds both member identity and tenant',async()=>{
- const p=portal('gym/memberprofile.html',{members:[{id:'member-a',tenant_id:'gym-a'},{id:'member-b',tenant_id:'gym-b'}]});
+ const p=portal('gym/profile.html',{members:[{id:'member-a',tenant_id:'gym-a'},{id:'member-b',tenant_id:'gym-b'}]});
  const app=p.get('profileApp');app.authenticatedRole={member_id:'member-a',tenant_id:'gym-a'};
  await app.loadData();assert.equal(app.allMembersSystem.length,1);assert.equal(app.allMembersSystem[0].id,'member-a');
  assert.deepEqual(p.calls[0].filters,[['id','member-a'],['tenant_id','gym-a']]);
 });
 test('actual member logout signs out, clears private state, and returns to the gym link',async()=>{
- const p=portal('gym/memberprofile.html');const app=p.get('profileApp');let signouts=0;
+ const p=portal('gym/profile.html');const app=p.get('profileApp');let signouts=0;
  // The application client is the shared mock produced by createClient.
  p.context.supabase.createClient().auth.signOut=async()=>{signouts++;return {error:null}};
  app.currentMember={tenantToken:'token-a'};app.allMembersSystem=[{id:'private'}];
  p.storage.setItem('ironvault_active_member','private');await app.logout();
  assert.equal(signouts,1);assert.equal(app.currentMember,null);assert.equal(app.allMembersSystem.length,0);
- assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.redirects[0],'memberlogin.html?key=token-a');
+ assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.redirects[0],'login.html?key=token-a');
 });
 test('cached admin restoration verifies Auth again instead of trusting session flags',async()=>{
  const p=portal('gym/admin.html');p.storage.setItem('ironvault_active_role','admin');
@@ -71,11 +71,11 @@ test('cached admin restoration verifies Auth again instead of trusting session f
  p.events.pageshow({persisted:true});assert.equal(initializations,1);
 });
 test('cached member restoration re-enters the verified initialization gate',()=>{
- const p=portal('gym/memberprofile.html');const app=p.get('profileApp');let initializations=0;
+ const p=portal('gym/profile.html');const app=p.get('profileApp');let initializations=0;
  app.init=()=>{initializations++};p.events.pageshow({persisted:true});assert.equal(initializations,1);
 });
 test('Auth sign-out hides cached admin and member content before redirecting',()=>{
- for(const file of ['gym/admin.html','gym/memberprofile.html']){
+ for(const file of ['gym/admin.html','gym/profile.html']){
   const p=portal(file);for(const listener of p.authEvents)listener('SIGNED_OUT');
   assert.equal(p.redirects.length,1);
  }
@@ -89,7 +89,7 @@ test('admin role revoked during data loading prevents completing initialization'
 });
 test('member role revoked during data loading prevents completing initialization',async()=>{
  const roles=[{user_id:'member-user',role:'member',tenant_id:'gym-a',member_id:'member-a'}];
- const p=portal('gym/memberprofile.html',{user:{id:'member-user'},roles});const app=p.get('profileApp');
+ const p=portal('gym/profile.html',{user:{id:'member-user'},roles});const app=p.get('profileApp');
  app.loadData=async()=>{roles.splice(0)};app.checkSession=async()=>{};
  await app.init();assert.equal(p.redirects.length,1);assert.equal(app.currentMember,null);
 });
@@ -218,21 +218,21 @@ test('denied or missing financial backend cannot fall back to client balance mut
 });
 
 test('member plan selection uses wallet-only RPC and cannot submit a cash payment or local entitlement',async()=>{
- const p=portal('gym/memberprofile.html',{user:{id:'member'},roles:[{user_id:'member',role:'member',tenant_id:'gym-a',member_id:'member-a'}]});
+ const p=portal('gym/profile.html',{user:{id:'member'},roles:[{user_id:'member',role:'member',tenant_id:'gym-a',member_id:'member-a'}]});
  const app=p.get('profileApp');app.currentMember={id:'member-a',tenantId:'gym-a',name:'Member',plan:'Not Selected',walletBalance:200};p.context.confirm=()=>true;
  app.renderProfile=()=>{};app.showAlert=()=>{};app.saveData=async()=>{throw Error('No raw entitlement writes')};
  const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return name==='iv_quote_plan'?{data:{price:150,wallet_balance:200}}:{data:{request_id:args.p_request_id,wallet_balance:50,expiration_date:'2026-11-01'}}};
  await app.selectPlan('1-Day Pass');assert.equal(calls[1].args.p_cash_amount,0);assert.equal(app.currentMember.walletBalance,50);assert.equal(app.currentMember.plan,'1-Day Pass');
 });
 test('self profile save submits only name phone and avatar, never wallet status email or discounts',async()=>{
- const p=portal('gym/memberprofile.html');const app=p.get('profileApp');app.currentMember={id:'member',tenantId:'gym-a',name:'Member',email:'new@example.invalid',walletBalance:999,discountPercentage:100,status:'ACTIVE'};
+ const p=portal('gym/profile.html');const app=p.get('profileApp');app.currentMember={id:'member',tenantId:'gym-a',name:'Member',email:'new@example.invalid',walletBalance:999,discountPercentage:100,status:'ACTIVE'};
  const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return{data:null,error:null}};
  await app.saveData();const row=calls[0].args.p_records[0];for(const key of ['wallet_balance','status','email','discount_percentage'])assert.equal(key in row,false);
 });
 test('admin logout still attempts local signout after an audit network failure',async()=>{
  const p=portal('gym/admin.html');const app=p.get('adminApp');app.currentTenantId='gym-a';app.matchedOwnerRecord={token:'token-a'};let signs=0;
  p.client.rpc=async()=>{throw Error('Audit unavailable')};p.client.auth.signOut=async()=>{signs++;return{error:null}};
- await app.logoutAdmin();assert.equal(signs,1);assert.equal(p.redirects.at(-1),'memberlogin.html?key=token-a');
+ await app.logoutAdmin();assert.equal(signs,1);assert.equal(p.redirects.at(-1),'login.html?key=token-a');
 });
 
 test('top-up uses verified active member state and stable transaction RPC after the data cutover',async()=>{
@@ -317,7 +317,7 @@ test('member removal checks owner authority and zero wallet credit before invoki
  }
 });
 test('member profile renders the short code while its database query keeps the internal ID',async()=>{
- const p=portal('gym/memberprofile.html',{members:[{id:'long-internal-id',display_code:'MEM-0042',tenant_id:'gym-a',name:'Member',wallet_balance:0,status:'ACTIVE'}]});
+ const p=portal('gym/profile.html',{members:[{id:'long-internal-id',display_code:'MEM-0042',tenant_id:'gym-a',name:'Member',wallet_balance:0,status:'ACTIVE'}]});
  const app=p.get('profileApp');app.authenticatedRole={member_id:'long-internal-id',tenant_id:'gym-a'};await app.loadData();app.currentMember=app.allMembersSystem[0];app.renderProfile();
  assert.equal(p.element('profile-card-id').innerText,'MEM-0042');assert.equal(app.currentMember.id,'long-internal-id');
 });
@@ -342,7 +342,7 @@ test('server wallet checks can still reject removal after a stale zero-balance p
 
 test('active gym owner portal stays enabled and incomplete provisioning gives setup guidance without email gating',async()=>{
  for(const status of ['ACTIVE','PROVISIONING']){
-  const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status}]});
+  const p=portal('gym/login.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status}]});
   await p.get('app').init();
   assert.equal(p.element('btn-submit-admin').disabled,status!=='ACTIVE');
   if(status==='PROVISIONING')assert.match(p.element('portal-subtitle').innerText,/setup is incomplete/);
@@ -546,22 +546,22 @@ test('repeated Excel clicks cannot start duplicate downloads',async()=>{
 
 test('friendly gym login requests only exact slug branding, including a trailing slash',async()=>{
  for(const pathname of ['/fitness-gym','/fitness-gym/']){
-  const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:'?key=foreign-token'});p.context.location.pathname=pathname;await p.get('app').init();
+  const p=portal('gym/login.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:'?key=foreign-token'});p.context.location.pathname=pathname;await p.get('app').init();
   assert.equal(p.get('app').currentTenantId,'gym-a');assert.equal(p.element('header-gym-name').innerText,'Fitness Gym');assert.deepEqual(p.calls[0].filters,[['portal_slug','fitness-gym']]);assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing,portal_slug');assert.equal(p.calls.length,1);
  }
 });
 test('unknown friendly URL fails closed without a cached or first-gym fallback',async()=>{
- const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',portal_slug:'fitness-gym',token:'token-a',gym_name:'Fitness Gym'}],search:''});p.context.location.pathname='/unknown-gym';await p.get('app').init();assert.equal(p.get('app').currentTenantId,null);assert.equal(p.element('btn-submit-signin').disabled,true);assert.equal(p.element('btn-submit-admin').disabled,true);assert.equal(p.element('btn-submit-signup').disabled,true);assert.equal(p.calls.length,1);
+ const p=portal('gym/login.html',{owners:[{id:'gym-a',portal_slug:'fitness-gym',token:'token-a',gym_name:'Fitness Gym'}],search:''});p.context.location.pathname='/unknown-gym';await p.get('app').init();assert.equal(p.get('app').currentTenantId,null);assert.equal(p.element('btn-submit-signin').disabled,true);assert.equal(p.element('btn-submit-admin').disabled,true);assert.equal(p.element('btn-submit-signup').disabled,true);assert.equal(p.calls.length,1);
 });
 test('sign-in from a readable URL navigates into gym pages and retains scoped authentication',async()=>{
  for(const role of ['member','owner']){
-  const p=portal('gym/memberlogin.html',{user:{id:'user-a'},roles:[{user_id:'user-a',role,tenant_id:'gym-a',member_id:role==='member'?'member-a':null}],owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym/';const app=p.get('app');await app.init();let payload;
+  const p=portal('gym/login.html',{user:{id:'user-a'},roles:[{user_id:'user-a',role,tenant_id:'gym-a',member_id:role==='member'?'member-a':null}],owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym/';const app=p.get('app');await app.init();let payload;
   p.client.functions={invoke:async(_,args)=>{payload=args.body;return {data:{session:{access_token:'test-token',refresh_token:'test-refresh'}}}}};p.client.auth.setSession=async()=>({error:null});
   p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';p.element('admin-login-email').value='owner@example.invalid';p.element('admin-login-password').value='test-password';
   await (role==='member'?app.handleSignInSubmit({preventDefault(){}}):app.handleAdminLoginSubmit({preventDefault(){}}));
-  assert.equal(payload.gym_token,'token-a');assert.equal(p.context.location.href,role==='member'?'/gym/memberprofile.html':'/gym/admin.html?key=token-a');
+  assert.equal(payload.gym_token,'token-a');assert.equal(p.context.location.href,role==='member'?'/gym/profile.html':'/gym/admin.html?key=token-a');
  }
 });
 test('a different gym membership cannot sign in through a friendly URL',async()=>{
- const p=portal('gym/memberlogin.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-b',member_id:'member-b'}],owners:[{id:'gym-a',token:'token-a',portal_slug:'fitness-gym',gym_name:'Fitness Gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym';const app=p.get('app');await app.init();p.client.auth.setSession=async()=>({error:null});p.client.functions={invoke:async()=>({data:{session:{access_token:'test',refresh_token:'test-refresh'}}})};p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';const original=p.context.location.href;await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.context.location.href,original);assert.match(p.element('form-alert-msg').innerText,/cannot access/i);
+ const p=portal('gym/login.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-b',member_id:'member-b'}],owners:[{id:'gym-a',token:'token-a',portal_slug:'fitness-gym',gym_name:'Fitness Gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym';const app=p.get('app');await app.init();p.client.auth.setSession=async()=>({error:null});p.client.functions={invoke:async()=>({data:{session:{access_token:'test',refresh_token:'test-refresh'}}})};p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';const original=p.context.location.href;await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.context.location.href,original);assert.match(p.element('form-alert-msg').innerText,/cannot access/i);
 });
