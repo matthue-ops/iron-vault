@@ -524,6 +524,7 @@
                                     <th class="p-3">Account recovery</th>
                                     <th class="p-3">Plan</th>
                                     <th class="p-3">Wallet Balance</th>
+                                    <th class="p-3">Entry today</th>
                                     <th class="p-3">Status</th>
                                 </tr>
                             </thead>
@@ -959,6 +960,13 @@
 
                 this.renderInspectStaffList(owner);
 
+                this.refreshInspectMembers(owner);
+
+                document.getElementById('branch-inspect-modal').classList.remove('hidden');
+                IronVaultStaffReports.render(supabaseClient,ownerId,'inspect-report-permissions');
+            },
+
+            refreshInspectMembers: function(owner) {
                 const branchMembers = this.members.filter(m => (m.tenantId || 'GYM-001') === owner.id || (m.tenantToken && m.tenantToken === owner.token));
                 document.getElementById('inspect-stat-members').innerText = branchMembers.length;
                 
@@ -968,9 +976,10 @@
                 const totalRev = branchMembers.reduce((sum, m) => sum + (m.amount || 0), 0);
                 document.getElementById('inspect-stat-revenue').innerText = `₱${totalRev.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
+                const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
                 const tbody = document.getElementById('inspect-members-tbody');
                 if (branchMembers.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500 italic">No members registered under this branch yet.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-500 italic">No members registered under this branch yet.</td></tr>`;
                 } else {
                     tbody.innerHTML = branchMembers.map(m => {
                         const classification = m.classification || 'Regular';
@@ -991,6 +1000,7 @@
                                 <td class="p-3"><button type="button" onclick="indexApp.sendMemberRecovery(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="text-xs text-amber-300 underline">Send recovery</button></td>
                                 <td class="p-3">${IronVaultData.escape(m.plan || 'Not Selected')}</td>
                                 <td class="p-3 font-mono font-bold text-emerald-400">₱${(m.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                <td class="p-3 text-slate-300">${m.lastScannedDate===today?'Entered':'Not entered'}</td>
                                 <td class="p-3">
                                     <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${m.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
                                         ${IronVaultData.escape(m.status)}
@@ -1001,8 +1011,6 @@
                     }).join('');
                 }
 
-                document.getElementById('branch-inspect-modal').classList.remove('hidden');
-                IronVaultStaffReports.render(supabaseClient,ownerId,'inspect-report-permissions');
             },
 
             renderInspectStaffList: function(owner) {
@@ -1438,5 +1446,8 @@
   <div class="flex gap-3"><button type="button" onclick="indexApp.closeTenantPurge()" class="rounded bg-slate-700 text-white p-3">Cancel</button><button id="purge-submit" type="submit" class="rounded bg-rose-700 text-white p-3">Permanently purge</button></div>
  </form>
 </div>
+<script src="assets/live-updates.js"></script>
+<script src="assets/dashboard-live.js"></script>
+<script>IronVaultDashboardLive.install(indexApp,supabaseClient,'master');</script>
 </body>
 </html>
