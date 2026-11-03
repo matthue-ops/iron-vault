@@ -1,0 +1,61 @@
+/* Admin dashboard presentation only. Role visibility and action handlers stay in the page. */
+body { --bg-base:#0c111b; --card-bg:#131c29; background:var(--bg-base); }
+body > header { background:#111925; border-bottom-color:#263244; }
+.glass-card { background:var(--card-bg); border-color:#293447; box-shadow:0 4px 16px rgb(0 0 0 / .08); backdrop-filter:none; }
+.glass-input { background:#0e1622; border-color:#344156; }
+button, input, select, summary { transition:background-color .15s,border-color .15s,box-shadow .15s; }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline:2px solid var(--brand-primary); outline-offset:4px; }
+.admin-header-actions button:not(.hidden) { min-height:36px; border-radius:9px; background:#192434; border-color:#344156; color:#cbd5e1; }
+.admin-header-actions button:hover { background:#233247; color:#fff; }
+.admin-header-actions button i { color:inherit; }
+#header-logo-container { background:#192e31; border-color:var(--brand-primary); color:var(--brand-primary); border-radius:10px; }
+#header-gym-title { letter-spacing:.025em; font-weight:750; }
+#header-subtitle { font-family:inherit; }
+.dashboard-heading { padding:2px 0 4px; }
+.dashboard-eyebrow { color:var(--brand-primary); font-size:10px; font-weight:700; letter-spacing:.16em; margin-bottom:7px; }
+.dashboard-heading h1 { color:#f1f5f9; font-size:26px; line-height:1.25; font-weight:700; letter-spacing:-.035em; }
+.dashboard-heading h1 + p { color:#9cacc1; font-size:13px; line-height:1.6; margin-top:7px; }
+.dashboard-metrics > .glass-card { border-radius:12px; padding:20px; gap:14px; align-items:flex-start; }
+.dashboard-metrics > .glass-card > div:first-child { background:#1b2939; border:1px solid #304156; color:#a9bed3; width:40px; height:40px; border-radius:10px; font-size:16px; }
+.dashboard-metrics > .glass-card:nth-child(3) > div:first-child { background:#332b1b; border-color:#51452c; color:#fbbf24; }
+.dashboard-metrics h3 { font-size:25px; line-height:1.3; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.035em; margin-top:5px; }
+.dashboard-metrics span { font-size:11px; color:#a9b7ca; }
+.desk-entry-card { border-radius:14px; padding:24px; border-top:2px solid var(--brand-primary); }
+.desk-entry-card h3 { font-size:15px; font-weight:650; }
+.desk-entry-card h3 i { color:var(--brand-primary); }
+.desk-entry-card p { line-height:1.6; margin-top:5px; }
+.desk-entry-card button { min-height:48px; border-radius:10px; font-size:12px; font-weight:650; box-shadow:none; }
+.desk-entry-card button:first-child { background:var(--brand-primary); color:#07130f; border:1px solid transparent; }
+.desk-entry-card button:not(:first-child) { background:#1b2737; color:#dbe5f1; border:1px solid #3a485d; }
+.desk-entry-card button:hover { filter:brightness(1.12); }
+#pricing-settings-card { border-radius:12px; }
+#pricing-settings-card summary { min-height:44px; }
+#pricing-settings-card summary::before { content:none; }
+#pricing-settings-card summary::-webkit-details-marker { display:none; }
+#pricing-settings-card summary > i { transition:transform .15s; font-size:11px; }
+#pricing-settings-card[open] summary > i { transform:rotate(180deg); }
+#admin-dashboard table { font-variant-numeric:tabular-nums; }
+#admin-dashboard thead { background:#101a28; color:#9fb0c6; font-size:10px; letter-spacing:.055em; }
+#admin-dashboard th { padding:14px 12px; font-weight:650; white-space:nowrap; }
+#admin-dashboard tbody td { padding:15px 12px; border-color:#263244; }
+#admin-dashboard tbody tr:hover { background:#192637; }
+#admin-dashboard tbody button { box-shadow:none; border-radius:7px; }
+#roster-search { border-radius:10px; }
+#filter-btn-logged, #filter-btn-not-entered { border-radius:9px; }
+#live-updates-status { font-size:11px; color:#9cacc1; }
+@media(max-width:639px) {
+ .admin-header-layout { align-items:center; }
+ .admin-header-actions button:not(.hidden) { min-height:44px; }
+ .dashboard-heading { padding:8px 2px 2px; }
+ .dashboard-heading h1 { font-size:23px; }
+ .dashboard-heading h1 + p { font-size:12px; max-width:29ch; }
+ .dashboard-metrics > .glass-card { padding:14px 12px; gap:10px; flex-direction:column; }
+ .dashboard-metrics > .glass-card > div:first-child { width:32px; height:32px; font-size:13px; border-radius:8px; }
+ .dashboard-metrics h3 { font-size:24px; }
+ .dashboard-metrics span { font-size:10px; }
+ .desk-entry-card { padding:18px; }
+ .desk-entry-card h3 { font-size:13px; }
+ #pricing-settings-card summary h3 { line-height:1.5; }
+ #admin-dashboard tbody button { min-height:44px; }
+}
+@media(prefers-reduced-motion:reduce) { button,input,select,summary,#pricing-settings-card summary > i { transition:none; } }
