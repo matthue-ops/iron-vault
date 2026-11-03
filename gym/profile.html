@@ -1050,6 +1050,18 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 <script src="../assets/branch-auth.js"></script>
 <script src="../assets/application-workflows.js"></script>
 <script>IronVaultWorkflows.install(profileApp,supabaseClient,'member');</script>
+<dialog id="member-feedback-dialog" aria-labelledby="member-feedback-title" aria-describedby="member-feedback-message" style="box-sizing:border-box;background:var(--bg-base);color:#e2e8f0;border:1px solid var(--brand-primary);border-radius:20px;padding:28px;width:min(360px,calc(100% - 32px));max-height:85dvh;overflow:auto;text-align:center;box-shadow:0 0 32px var(--brand-primary-glow)">
+ <i id="member-feedback-icon" class="fa-solid fa-circle-exclamation text-4xl" aria-hidden="true"></i>
+ <h2 id="member-feedback-title" class="text-xl font-black mt-4"></h2>
+ <p id="member-feedback-message" class="text-sm text-slate-300 mt-3 leading-relaxed"></p>
+ <div class="flex gap-3 mt-6">
+  <button id="member-feedback-cancel" type="button" class="flex-1 rounded-xl px-4 py-3 bg-slate-800 font-bold">Cancel</button>
+  <button id="member-feedback-confirm" type="button" class="flex-1 rounded-xl px-4 py-3 font-bold" style="background:var(--brand-primary);color:var(--bg-base)">Confirm</button>
+ </div>
+</dialog>
+<style>#member-feedback-dialog::backdrop{background:rgba(2,6,23,.75)}</style>
+<script src="../assets/member-feedback.js"></script>
+<script>IronVaultMemberFeedback.install(profileApp);</script>
 <script src="../assets/member-announcements.js"></script>
 <script>IronVaultMemberAnnouncements.install(profileApp,supabaseClient);</script>
 <div id="qr-accepted-window" hidden style="position:fixed;inset:0;z-index:80;background:rgba(2,6,23,.75);padding:24px;place-content:center;pointer-events:none">

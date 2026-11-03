@@ -252,7 +252,7 @@
      let price;
      if(pending){if(pending.p_operation!=='purchase'||pending.p_member_id!==m.id||pending.p_plan!==plan)throw Error('Retry the unresolved payment first.');price=pending.p_amount;}
      else{const quote=await root.IronVaultData.call(client,'iv_quote_plan',{p_member_id:m.id,p_plan:plan});price=Number(quote.price);}
-     if(!root.confirm('Use '+price+' wallet credits for '+plan+'?'))return;
+     if(!(this.confirmAction?await this.confirmAction('Use '+price+' wallet credits for '+plan+'?'):root.confirm('Use '+price+' wallet credits for '+plan+'?')))return;
      const outcome=await root.IronVaultFinance.execute(client,root.sessionStorage,m.tenantId,{p_operation:'purchase',p_member_id:m.id,p_plan:plan,p_amount:price,p_cash_amount:0});
      m.walletBalance=Number(outcome.wallet_balance);m.plan=plan;m.expirationDate=outcome.expiration_date;
      if(this.authenticatedRole){try{await this.loadData();await this.checkSession();}catch(_){}}
