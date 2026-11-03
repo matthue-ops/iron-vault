@@ -23,7 +23,7 @@
    }
   }
   return {owners:results[0].data.map(o=>({id:o.id,displayCode:o.display_code||o.id,gymName:o.gym_name,ownerName:o.owner_name,email:o.email,
-   token:o.token,portalSlug:o.portal_slug||null,logo:o.logo,status:o.status,pricing:o.pricing,staff:o.staff||[],auditLogs:o.audit_logs||[],dateCreated:o.date_created})),
+   token:o.token,portalSlug:o.portal_slug||null,logo:o.logo,accentColor:o.accent_color,status:o.status,pricing:o.pricing,staff:o.staff||[],auditLogs:o.audit_logs||[],dateCreated:o.date_created})),
    members:results[1].data.map(m=>({id:m.id,displayCode:m.display_code||m.id,tenantId:m.tenant_id,tenantToken:m.tenant_token,name:m.name,email:m.email,phone:m.phone,
     classification:m.classification,discountPercentage:m.discount_percentage,plan:m.plan,cardBarcode:m.card_barcode,
     walletBalance:m.wallet_balance,amount:m.amount,scansUsed:m.scans_used,lastScannedDate:m.last_scanned_date,

@@ -3,7 +3,7 @@
  'use strict';
  function member(m){return {id:m.id,displayCode:m.display_code||m.id,tenantId:m.tenant_id,tenantToken:m.tenant_token,name:m.name,email:m.email,phone:m.phone,
   classification:m.classification,discountPercentage:m.discount_percentage,plan:m.plan,cardBarcode:m.card_barcode,walletBalance:Number(m.wallet_balance||0),amount:m.amount==null?null:Number(m.amount),scansUsed:m.scans_used,lastScannedDate:m.last_scanned_date,expirationDate:m.expiration_date,status:m.status,dateJoined:m.date_joined,avatar:m.avatar};}
- function gym(g){return {id:g.id,displayCode:g.display_code||g.id,gymName:g.gym_name,ownerName:g.owner_name,email:g.email,token:g.token,portalSlug:g.portal_slug||null,logo:g.logo,status:g.status,pricing:g.pricing,staff:g.staff||[],auditLogs:g.audit_logs||[],dateCreated:g.date_created};}
+ function gym(g){return {id:g.id,displayCode:g.display_code||g.id,gymName:g.gym_name,ownerName:g.owner_name,email:g.email,token:g.token,portalSlug:g.portal_slug||null,logo:g.logo,accentColor:g.accent_color,status:g.status,pricing:g.pricing,staff:g.staff||[],auditLogs:g.audit_logs||[],dateCreated:g.date_created};}
  function displayMember(m,kind,today){const value={...m};if(/^\d{4}-\d{2}-\d{2}$/.test(value.expirationDate||'')&&value.expirationDate<today){value.plan='Not Selected';if(kind==='member')value.expirationDate=null;else if(kind==='admin')value.scansUsed=0;}return value;}
  function install(app,client,kind){
   const d=root.document;if(!d?.addEventListener||!root.IronVaultLiveUpdates)return;
@@ -60,6 +60,7 @@
     node('header-gym-name').innerText=owner.gymName;node('page-title').innerText=owner.gymName+' - Member Profile';
     if(owner.pricing)root._facilityPricing={...owner.pricing};
    }else if(kind==='admin'){
+    root.IronVaultGymAccent?.apply(owner.accentColor);
     node('header-gym-title').innerText=owner.gymName;node('page-title').innerText=owner.gymName+' - Admin & Staff Portal';
     // Update read-only price labels; never reset an open pricing editor.
     const p=owner.pricing||{},money=v=>'₱'+Number(v||0).toLocaleString();

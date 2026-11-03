@@ -587,6 +587,23 @@
                     </div>
                 </div>
 
+<section class="rounded-xl border border-slate-700 p-4 space-y-3" aria-labelledby="gym-accent-heading">
+ <h3 id="gym-accent-heading" class="text-sm font-bold text-white">Dashboard accent color</h3>
+ <p class="text-xs text-slate-400">Super Admin only. Preview and save this gym’s dashboard color independently of other settings.</p>
+ <div class="flex items-center gap-3 flex-wrap">
+  <label for="gym-accent-picker" class="text-xs text-slate-300">Accent</label>
+  <input id="gym-accent-picker" type="color" value="#10b981" class="h-11 w-16 rounded cursor-pointer" />
+  <span id="gym-accent-value" class="text-xs font-mono text-slate-300"></span>
+  <button id="gym-accent-reset" type="button" class="rounded-lg border border-slate-600 px-3 py-2 text-xs text-slate-300">Reset to emerald</button>
+ </div>
+ <div class="rounded-xl bg-slate-950 border border-slate-700 p-4 space-y-2" aria-label="Dashboard color preview">
+  <p class="text-xs text-slate-400">Dashboard preview</p>
+  <p id="gym-accent-preview-title" class="font-bold text-sm">Member access</p>
+  <span id="gym-accent-preview" class="inline-block rounded-lg px-4 py-3 text-xs font-bold">Scan Member QR Pass</span>
+ </div>
+ <button id="gym-accent-save" type="button" class="rounded-lg bg-slate-700 px-4 py-3 text-xs font-bold text-white">Save accent color</button>
+ <p id="gym-accent-status" role="status" class="text-xs text-slate-300"></p>
+</section>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="indexApp.closeEditModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
                         Cancel
@@ -1445,6 +1462,8 @@ indexApp.handleInspectAddStaff = async function(event) {
   <div class="flex gap-3"><button type="button" onclick="indexApp.closeTenantPurge()" class="rounded bg-slate-700 text-white p-3">Cancel</button><button id="purge-submit" type="submit" class="rounded bg-rose-700 text-white p-3">Permanently purge</button></div>
  </form>
 </div>
+<script src="../assets/gym-accent.js"></script>
+<script>IronVaultGymAccent.installMaster(indexApp,supabaseClient);</script>
 <script src="../assets/live-updates.js"></script>
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(indexApp,supabaseClient,'master');</script>
