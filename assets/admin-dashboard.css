@@ -25,7 +25,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline:2px solid
 .desk-entry-card h3 i { color:var(--brand-primary); }
 .desk-entry-card p { line-height:1.6; margin-top:5px; }
 .desk-entry-card button { min-height:48px; border-radius:10px; font-size:12px; font-weight:650; box-shadow:none; }
-.desk-entry-card button:first-child { background:var(--brand-primary); color:#07130f; border:1px solid transparent; }
+.desk-entry-card button:first-child { background:var(--brand-primary); color:var(--brand-ink,#07130f); border:1px solid transparent; }
 .desk-entry-card button:not(:first-child) { background:#1b2737; color:#dbe5f1; border:1px solid #3a485d; }
 .desk-entry-card button:hover { filter:brightness(1.12); }
 #pricing-settings-card { border-radius:12px; }
