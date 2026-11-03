@@ -57,3 +57,7 @@ After successful 024, manually run only `supabase/manual/member_announcements.sq
 ### 026: Readable gym portal URLs
 
 After installed 025, manually run only `supabase/manual/gym_portal_urls.sql` (same as `202611030026_gym_portal_urls.sql`). Adds private persistent URL mappings and an insert trigger for new gyms; appends `portal_slug` to the existing safe branding view without changing its role/status projection. Existing tokens, accounts, balances, plans and history are preserved. Apply SQL before reviewing the matching frontend/Vercel routing; no Edge update is needed. Original key-based links and printed entrance QRs remain supported. See `docs/security/gym-portal-urls.md` for assignment rules, optional read-only verification and rollout. No SQL executed by the agent.
+
+### 027: Live member, desk and Super Admin updates
+
+After installed 026, manually run only `supabase/manual/live_dashboard_updates.sql` (same as `202611030027_live_dashboard_updates.sql`). Adds a protected identifier-only signal table, scoped read helpers/checkpoints, deferred source-change triggers and Realtime publication membership for that signal table only. Existing financial/profile/role records are not rewritten. Client signal access is read-only and role/gym/member scoped. Apply SQL before the matching frontend; no Edge update is needed. See `docs/security/live-dashboard-updates.md` for publication requirements, read-only verification and mandatory multi-device/RLS acceptance. No SQL executed by the agent.
