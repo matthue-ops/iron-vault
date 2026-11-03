@@ -62,7 +62,7 @@
     try{await client.rpc('iv_staff_event',{p_tenant:this.currentTenantId,p_event:'logout'});}catch(_){}
     try{await root.IronVaultAuth.signOut(client,root.sessionStorage,root.localStorage);}
     catch(error){root.alert(error.message);return;}
-    this.members=[];this.allMembersSystem=[];root.location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+    this.members=[];this.allMembersSystem=[];root.location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));
    };
    app.saveMembers=async function(){
     const records=this.activeModalMemberId?this.members.filter(m=>m.id===this.activeModalMemberId):this.members;
@@ -220,7 +220,7 @@
     try{await client.rpc('iv_staff_event',{p_tenant:this.currentTenantId,p_event:'logout'});}catch(_){}
     try{await root.IronVaultAuth.signOut(client,root.sessionStorage,root.localStorage);}
     catch(error){root.alert(error.message);return;}
-    this.members=[];this.allMembersSystem=[];root.location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+    this.members=[];this.allMembersSystem=[];root.location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));
    };
    app.saveMembers=async function(){await root.IronVaultData.saveMembers(client,this.members);};
    app.deleteOwner=async function(id){

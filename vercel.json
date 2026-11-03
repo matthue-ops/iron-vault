@@ -1,6 +1,6 @@
 {
   "routes": [
     { "handle": "filesystem" },
-    { "src": "^/([a-z0-9]+(?:-[a-z0-9]+)*)/?$", "dest": "/gym/memberlogin.html" }
+    { "src": "^/([a-z0-9]+(?:-[a-z0-9]+)*)/?$", "dest": "/gym/login.html" }
   ]
 }

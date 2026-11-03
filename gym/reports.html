@@ -634,7 +634,7 @@ reportsApp.ivDeny=function(error){
  IronVaultAuth.clearState(sessionStorage,localStorage);
  alert('Reporting access: '+error.message);
  const token=this.currentTenant?.token||new URLSearchParams(location.search).get('key');
- location.replace('memberlogin.html'+(token?'?key='+encodeURIComponent(token):''));
+ location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));
 };
 reportsApp.ivRequireReport=async function(){
  const role=await IronVaultAuth.requireFinancialReport(supabaseClient,this.currentTenant?.id);

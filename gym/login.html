@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Access Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: 'var(--brand-primary)',
+                            600: 'var(--brand-primary)',
+                            700: 'var(--brand-primary)',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --brand-primary: #10b981;
+            --brand-primary-glow: rgba(16, 185, 129, 0.2);
+            --bg-base: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.75);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px var(--brand-primary-glow);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(1.05); }
+        }
+
+        .bg-glow-orb {
+            animation: pulseGlow 8s infinite ease-in-out;
+        }
+    </style>
+    <script src="/assets/auth-session.js"></script>
+    <script src="/assets/application-data.js"></script>
+    <script src="/assets/gym-portals.js"></script>
+<link rel="stylesheet" href="/assets/mobile-ui.css">
+<script defer src="/assets/mobile-ui.js"></script>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+
+    <!-- BACKGROUND GLOW EFFECTS -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="bg-glow-orb absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-35 bg-emerald-500"></div>
+        <div class="bg-glow-orb absolute top-1/2 -right-32 w-96 h-96 rounded-full blur-3xl opacity-20 bg-blue-500"></div>
+    </div>
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="header-logo-container" class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 overflow-hidden transition-all duration-300">
+                    <i id="header-logo-icon" class="fa-solid fa-dumbbell text-lg"></i>
+                    <img id="header-logo-img" src="" alt="Gym Logo" class="w-full h-full object-cover hidden">
+                </div>
+                <div>
+                    <span id="header-gym-name" class="font-black text-white text-base tracking-wider uppercase block">GYM PORTAL</span>
+                    <span id="header-branch-badge" class="text-[10px] text-slate-400 font-mono">Access & Management Portal</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN ACCESS CONTAINER -->
+    <main class="relative z-10 flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="w-full max-w-md space-y-6">
+
+            <!-- LOGO & HEADING -->
+            <div class="text-center space-y-2">
+                <h1 id="portal-main-heading" class="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
+                    ACCESS PORTAL
+                </h1>
+                <p id="portal-subtitle" class="text-xs sm:text-sm font-medium text-slate-400">
+                    Sign in to your account
+                </p>
+            </div>
+
+            <!-- CARD CONTAINER -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+                
+                <!-- TAB SWITCHER -->
+                <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/90 flex gap-1 mb-6 shadow-inner text-xs font-semibold">
+                    <button id="tab-btn-signin" onclick="app.switchTab('SIGNIN')" class="flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 font-bold shadow-md">
+                        <i class="fa-solid fa-user-check"></i> Member
+                    </button>
+                    <button id="tab-btn-admin" onclick="app.switchTab('ADMIN')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-user-shield"></i> Admin / Staff
+                    </button>
+                    <button id="tab-btn-signup" onclick="app.switchTab('SIGNUP')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-user-plus"></i> Join
+                    </button>
+                </div>
+
+                <!-- Alert Feedback -->
+                <div id="form-alert" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-xl text-xs mb-4 flex items-center gap-2">
+                    <i id="form-alert-icon" class="fa-solid fa-circle-exclamation text-base flex-shrink-0"></i>
+                    <span id="form-alert-msg">Error processing request.</span>
+                </div>
+
+                <!-- 1. MEMBER SIGN IN FORM -->
+                <form id="auth-signin-form" onsubmit="app.handleSignInSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Email or Member ID</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-id-card text-xs"></i>
+                            </span>
+                            <input type="text" id="signin-identifier" required placeholder="e.g. MEM-1001 or alex@gym.com" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-xs font-medium text-slate-300">Password</label>
+                            <a href="#" onclick="app.handleForgotPassword(event)" class="text-[11px] text-emerald-400 hover:text-emerald-300 transition">Forgot password?</a>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="signin-password" required placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <button type="button" onclick="app.togglePasswordVisibility('signin-password', 'pwd-icon-1')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="pwd-icon-1" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-signin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Sign In as Member</span>
+                    </button>
+                </form>
+                <button type="button" onclick="ivResendEmailConfirmation()" class="mt-3 text-[11px] text-slate-400 hover:text-emerald-300 underline">Resend email confirmation</button>
+
+                <!-- 2. OWNER / STAFF ADMIN LOGIN FORM -->
+                <form id="auth-admin-form" onsubmit="app.handleAdminLoginSubmit(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Admin or Staff Email</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-envelope text-xs"></i>
+                            </span>
+                            <input type="email" id="admin-login-email" required placeholder="admin@gym.com or staff@gym.com" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="admin-login-password" required placeholder="Password" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <button type="button" onclick="app.togglePasswordVisibility('admin-login-password', 'pwd-icon-3')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="pwd-icon-3" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-admin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Sign In to Admin Portal</span>
+                    </button>
+                <div class="flex gap-3 text-xs"><button type="button" onclick="ivAdminAccountEmail('recovery')">Forgot password?</button><button type="button" onclick="ivAdminAccountEmail('resend')">Resend verification</button></div>
+</form>
+
+                <!-- 3. SIGN UP FORM -->
+                <form id="auth-signup-form" onsubmit="app.handleSignUpSubmit(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-user text-xs"></i>
+                            </span>
+                            <input type="text" id="signup-name" required placeholder="Juan Dela Cruz" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-envelope text-xs"></i>
+                            </span>
+                            <input type="email" id="signup-email" required placeholder="juan@example.com" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Phone Number</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-phone text-xs"></i>
+                            </span>
+                            <input type="tel" id="signup-phone" required placeholder="+63 912 345 6789" class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-4 py-3 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="signup-password" required minlength="8" placeholder="At least 8 characters." class="w-full glass-input text-white text-xs rounded-xl pl-10 pr-10 py-3 focus:outline-none transition">
+                            <button type="button" onclick="app.togglePasswordVisibility('signup-password', 'pwd-icon-2')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+                                <i id="pwd-icon-2" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-signup" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
+                        <span>Create Account</span>
+                    </button>
+                </form>
+
+            </div>
+
+        </div>
+    </main>
+
+    <div id="iv-recovery-panel" class="hidden fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
+      <form onsubmit="ivCompleteRecovery(event)" class="glass-card rounded-2xl p-6 w-full max-w-md space-y-3">
+        <h2 class="font-bold text-white">Set a new password</h2>
+        <label for="iv-recovery-password" class="block text-xs text-slate-300">New password</label>
+        <input id="iv-recovery-password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters." class="w-full glass-input text-white rounded-xl p-3" />
+        <label for="iv-recovery-confirm" class="block text-xs text-slate-300">Confirm new password</label>
+        <input id="iv-recovery-confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters." class="w-full glass-input text-white rounded-xl p-3" />
+        <p id="iv-recovery-feedback" class="text-xs text-rose-300"></p>
+        <button type="submit" class="w-full bg-emerald-500 text-slate-950 rounded-xl p-3 font-bold">Save new password</button>
+      </form>
+    </div>
+    <!-- FOOTER -->
+    <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900">
+        <p>© 2026 Iron Vault Gym Access System • Multi-Tenant SaaS Engine</p>
+    </footer>
+
+    <!-- LOGIC CONTROLLER -->
+    <script>
+        const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        IronVaultData.install(supabaseClient);
+
+        const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
+        const OWNERS_STORAGE_KEY = 'ironvault_owners_db';
+        const SESSION_KEY = 'ironvault_active_member';
+        const ACTIVE_TENANT_KEY = 'ironvault_active_tenant_id';
+        const ACTIVE_ROLE_KEY = 'ironvault_active_role';
+        const LOGGED_USER_KEY = 'ironvault_logged_user';
+
+        function applyDynamicThemeFromLogo(logoBase64) {
+            if (!logoBase64) return;
+
+            const img = new Image();
+            if (!logoBase64.startsWith('data:')) {
+                img.crossOrigin = "Anonymous";
+            }
+            img.src = logoBase64;
+
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const width = 50;
+                const height = 50;
+                canvas.width = width;
+                canvas.height = height;
+                
+                try {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const imageData = ctx.getImageData(0, 0, width, height).data;
+                    
+                    let rSum = 0, gSum = 0, bSum = 0, count = 0;
+
+                    for (let i = 0; i < imageData.length; i += 16) {
+                        const r = imageData[i];
+                        const g = imageData[i + 1];
+                        const b = imageData[i + 2];
+                        const alpha = imageData[i + 3];
+
+                        if (alpha > 125 && !(r > 230 && g > 230 && b > 230) && !(r < 25 && g < 25 && b < 25)) {
+                            rSum += r;
+                            gSum += g;
+                            bSum += b;
+                            count++;
+                        }
+                    }
+
+                    if (count > 10) {
+                        const avgR = Math.round(rSum / count);
+                        const avgG = Math.round(gSum / count);
+                        const avgB = Math.round(bSum / count);
+                        const hexColor = `#${((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1)}`;
+
+                        document.documentElement.style.setProperty('--brand-primary', hexColor);
+                        document.documentElement.style.setProperty('--brand-primary-glow', `${hexColor}33`);
+
+                        const headerLogoWrap = document.getElementById('header-logo-container');
+                        if (headerLogoWrap) {
+                            headerLogoWrap.style.borderColor = hexColor;
+                            headerLogoWrap.style.boxShadow = `0 0 12px ${hexColor}40`;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Canvas pixel extraction restricted:", e);
+                }
+            };
+        }
+
+        const app = {
+            currentTenantId: null,
+            matchedOwnerRecord: null,
+            currentTab: 'SIGNIN',
+
+            init: async function() {
+                await this.detectTenantFromUrl();
+            },
+
+            detectTenantFromUrl: async function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const keyParam = urlParams.get('key');
+                const gymParam = urlParams.get('gym');
+                const portalSlug = IronVaultGymPortals.slugFromPath(window.location.pathname);
+
+                let loadedOwners = [];
+                try {
+                    const query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing'+(portalSlug?',portal_slug':''));
+                    const {data,error}=(portalSlug||keyParam||gymParam)
+                        ? await (portalSlug?query.eq('portal_slug',portalSlug):keyParam?query.eq('token',keyParam):query.eq('id',gymParam.toUpperCase()))
+                        : {data:[],error:null};
+                    if (!error && data) {
+                        loadedOwners = data.map(o => ({
+                            id: o.id, displayCode: o.display_code || o.id,
+                            gymName: o.gym_name,
+                            portalSlug: o.portal_slug,
+                            token: o.token,
+                            logo: o.logo,
+                            status: o.status,
+                            pricing: o.pricing,
+                        }));
+                    }
+                } catch(e) {}
+
+                let matched = null;
+                if (portalSlug) {
+                    matched = loadedOwners.find(o => o.portalSlug === portalSlug);
+                } else if (keyParam) {
+                    matched = loadedOwners.find(o => o.token === keyParam);
+                } else if (gymParam) {
+                    matched = loadedOwners.find(o => o.id === gymParam.toUpperCase());
+                }
+
+                if (matched) {
+                    this.currentTenantId = matched.id;
+                    this.matchedOwnerRecord = matched;
+                    for(const id of ['signin-identifier','signin-password','btn-submit-signin','admin-login-email','admin-login-password','btn-submit-admin','signup-name','signup-email','signup-phone','signup-password','btn-submit-signup']){
+                        const control=document.getElementById(id);control.disabled=false;control.classList.remove('opacity-50','cursor-not-allowed');
+                    }
+
+                    
+                    document.getElementById('header-gym-name').innerText = matched.gymName;
+                    document.getElementById('header-branch-badge').innerText = `Access & Management Portal`;
+                    document.getElementById('page-title').innerText = `${matched.gymName} - Access Portal`;
+                    document.getElementById('portal-subtitle').innerText = `Sign in to your account at ${matched.gymName}`;
+                    if(matched.status==='PROVISIONING'){
+                        document.getElementById('portal-subtitle').innerText='This gym setup is incomplete. Ask the platform administrator to finish account activation.';
+                        for(const id of ['btn-submit-signin','btn-submit-admin','btn-submit-signup'])document.getElementById(id).disabled=true;
+                    }
+
+                    if (matched.logo) {
+                        const headerImg = document.getElementById('header-logo-img');
+                        const headerIcon = document.getElementById('header-logo-icon');
+                        headerImg.src = matched.logo;
+                        headerImg.classList.remove('hidden');
+                        headerIcon.classList.add('hidden');
+
+                        applyDynamicThemeFromLogo(matched.logo);
+                    }
+                    return;
+                }
+
+                // NO VALID TENANT FOUND STATE
+                this.currentTenantId = null;
+                this.matchedOwnerRecord = null;
+
+                document.getElementById('header-gym-name').innerText = "INVALID LINK";
+                document.getElementById('header-branch-badge').innerText = "Invalid or Missing Link";
+                document.getElementById('page-title').innerText = "Portal - Invalid Link";
+                document.getElementById('portal-subtitle').innerText = "A valid gym portal URL is required to sign in or sign up.";
+
+                this.showAlert("A valid gym portal URL is required to sign in or sign up.");
+                
+                // Disable form inputs & buttons
+                document.getElementById('signin-identifier').disabled = true;
+                document.getElementById('signin-password').disabled = true;
+                document.getElementById('btn-submit-signin').disabled = true;
+                document.getElementById('btn-submit-signin').classList.add('opacity-50', 'cursor-not-allowed');
+
+                document.getElementById('admin-login-email').disabled = true;
+                document.getElementById('admin-login-password').disabled = true;
+                document.getElementById('btn-submit-admin').disabled = true;
+                document.getElementById('btn-submit-admin').classList.add('opacity-50', 'cursor-not-allowed');
+
+                document.getElementById('signup-name').disabled = true;
+                document.getElementById('signup-email').disabled = true;
+                document.getElementById('signup-phone').disabled = true;
+                document.getElementById('signup-password').disabled = true;
+                document.getElementById('btn-submit-signup').disabled = true;
+                document.getElementById('btn-submit-signup').classList.add('opacity-50', 'cursor-not-allowed');
+            },
+
+            switchTab: function(tab) {
+                this.currentTab = tab;
+                const btnSignIn = document.getElementById('tab-btn-signin');
+                const btnAdmin = document.getElementById('tab-btn-admin');
+                const btnSignUp = document.getElementById('tab-btn-signup');
+
+                const formSignIn = document.getElementById('auth-signin-form');
+                const formAdmin = document.getElementById('auth-admin-form');
+                const formSignUp = document.getElementById('auth-signup-form');
+
+                if (!this.currentTenantId) return;
+
+                document.getElementById('form-alert').classList.add('hidden');
+
+                btnSignIn.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+                btnAdmin.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+                btnSignUp.className = "flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+
+                formSignIn.classList.add('hidden');
+                formAdmin.classList.add('hidden');
+                formSignUp.classList.add('hidden');
+
+                if (tab === 'SIGNIN') {
+                    btnSignIn.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
+                    formSignIn.classList.remove('hidden');
+                } else if (tab === 'ADMIN') {
+                    btnAdmin.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 font-bold shadow-md";
+                    formAdmin.classList.remove('hidden');
+                } else {
+                    btnSignUp.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
+                    formSignUp.classList.remove('hidden');
+                }
+            },
+
+            togglePasswordVisibility: function(inputId, iconId) {
+                const pwdInput = document.getElementById(inputId);
+                const icon = document.getElementById(iconId);
+                if (pwdInput.type === 'password') {
+                    pwdInput.type = 'text';
+                    icon.className = "fa-solid fa-eye-slash text-xs";
+                } else {
+                    pwdInput.type = 'password';
+                    icon.className = "fa-solid fa-eye text-xs";
+                }
+            },
+
+            showAlert: function(msg, isSuccess = false) {
+                const alertBox = document.getElementById('form-alert');
+                const alertMsg = document.getElementById('form-alert-msg');
+                const alertIcon = document.getElementById('form-alert-icon');
+
+                alertMsg.innerText = msg;
+                alertBox.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+
+                if (isSuccess) {
+                    alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+                    alertIcon.className = "fa-solid fa-circle-check text-base flex-shrink-0";
+                } else {
+                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+                    alertIcon.className = "fa-solid fa-circle-exclamation text-base flex-shrink-0";
+                }
+            },
+
+
+        };
+
+        window.onload = async function() {
+            await app.init();
+        };
+    </script>
+<script>
+
+const ivDate = (d=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const ivMoney = n => '₱'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const ivEscape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function ivRequireRole(roles, tenant){
+ return IronVaultAuth.requireRole(supabaseClient,{
+  roles, tenantId:tenant, allowGlobalSuperAdmin:roles.includes('super_admin')
+ });
+}
+
+app.handleSignInSubmit=async function(e){e.preventDefault();
+ const email=document.getElementById('signin-identifier').value.trim();
+ if(!email.includes('@')){this.showAlert('Please sign in with your registered email address. Member ID login requires account migration.');return;}
+ const {error}=await supabaseClient.auth.signInWithPassword({email,password:document.getElementById('signin-password').value});
+ if(error){this.showAlert(error.message);return;}
+ try{const role=await ivRequireRole(['member'],this.currentTenantId);
+ if(!role.member_id)throw Error('Your Auth account is not linked to a member record.');
+ sessionStorage.setItem(SESSION_KEY,role.member_id);window.location.href='/gym/profile.html';}
+ catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
+};
+app.handleAdminLoginSubmit=async function(e){e.preventDefault();
+ const email=document.getElementById('admin-login-email').value.trim();
+ const {error}=await supabaseClient.auth.signInWithPassword({email,password:document.getElementById('admin-login-password').value});
+ if(error){this.showAlert(error.message);return;}
+ try{const role=await ivRequireRole(['owner','staff'],this.currentTenantId);
+ sessionStorage.setItem(ACTIVE_TENANT_KEY,role.tenant_id);
+ sessionStorage.setItem(ACTIVE_ROLE_KEY,role.role==='owner'?'admin':'staff');
+ sessionStorage.setItem(LOGGED_USER_KEY,email);
+ await supabaseClient.rpc('iv_staff_event',{p_tenant:role.tenant_id,p_event:'login'});
+ window.location.href='/gym/admin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||'');}
+ catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
+};
+
+</script>
+
+<script>
+// Iron Vault member Auth: self-registration creates an Auth user; SQL trigger links member/role.
+app.handleSignUpSubmit = async function(event) {
+  event.preventDefault();
+  if (!this.currentTenantId || !this.matchedOwnerRecord?.token) return this.showAlert('Invalid gym link.');
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim().toLowerCase();
+  const phone = document.getElementById('signup-phone').value.trim();
+  const password = document.getElementById('signup-password').value;
+  if (password.length < 8) return this.showAlert('At least 8 characters.');
+  const button = document.getElementById('btn-submit-signup'); button.disabled = true;
+  try {
+    const {data,error} = await supabaseClient.auth.signUp({
+      email,password,
+      options:{data:{iv_member_signup:true,iv_tenant_token:this.matchedOwnerRecord.token,iv_member_name:name,iv_member_phone:phone},
+      emailRedirectTo:new URL('/gym/memberlogin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||''),location.href).href}
+    });
+    if (error) throw error;
+    if (!data?.user) throw Error('Account could not be created.');
+    document.getElementById('auth-signup-form').reset();
+    this.switchTab('SIGNIN');
+    this.showAlert('Registration submitted. Check your email to confirm your account, then wait for gym approval.',true);
+  } catch(err) {this.showAlert(err.message || 'Registration failed.');}
+  finally {button.disabled = false;}
+};
+app.handleForgotPassword = async function(event) {
+  event.preventDefault();
+  const email = document.getElementById('signin-identifier').value.trim();
+  if (!email.includes('@')) return this.showAlert('Enter your registered email address first.');
+  const {error} = await supabaseClient.auth.resetPasswordForEmail(email,{
+    redirectTo:new URL('/gym/memberlogin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||''),location.href).href
+  });
+  this.showAlert(error ? error.message : 'If this email is registered, a recovery email will arrive shortly.',!error);
+};
+async function ivResendEmailConfirmation() {
+  const email = document.getElementById('signin-identifier').value.trim();
+  if (!email.includes('@')) return app.showAlert('Enter your registered email address first.');
+  const {error} = await supabaseClient.auth.resend({type:'signup',email});
+  app.showAlert(error ? error.message : 'If this email is awaiting confirmation, a new verification email will arrive shortly.',!error);
+}
+// Only a Supabase PASSWORD_RECOVERY event authorizes changing the password here.
+let ivRecoveryAuthorized = false;
+supabaseClient.auth.onAuthStateChange((event) => {
+  if (event !== 'PASSWORD_RECOVERY') return;
+  ivRecoveryAuthorized = true;
+  document.getElementById('iv-recovery-panel').classList.remove('hidden');
+});
+async function ivCompleteRecovery(event) {
+  event.preventDefault();
+  const feedback = document.getElementById('iv-recovery-feedback');
+  const password = document.getElementById('iv-recovery-password').value;
+  if (!ivRecoveryAuthorized) { feedback.textContent = 'Open a valid recovery link first.'; return; }
+  if (password.length < 8 || password !== document.getElementById('iv-recovery-confirm').value) {
+    feedback.textContent = 'At least 8 characters. Passwords must match.'; return;
+  }
+  const {error} = await supabaseClient.auth.updateUser({password});
+  if (error) { feedback.textContent = error.message; return; }
+  ivRecoveryAuthorized = false;
+  document.getElementById('iv-recovery-panel').classList.add('hidden');
+  document.getElementById('iv-recovery-password').value = '';
+  document.getElementById('iv-recovery-confirm').value = '';
+  await supabaseClient.auth.signOut();
+  app.showAlert('Password changed. Please sign in with your new password.',true);
+}
+</script>
+<script src="/assets/branch-auth.js"></script>
+<script>
+IronVaultBranchAuth.install(app,supabaseClient);
+async function ivAdminAccountEmail(action){
+ try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action,portal:'admin',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById('admin-login-email').value});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
+}
+ivResendEmailConfirmation=async function(){
+ try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'resend',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById('signin-identifier').value,portal:'member'});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
+};
+(async function(){
+ const params=new URLSearchParams(location.hash.slice(1));const verify=params.get('iv_verify'),recovery=params.get('iv_recovery');
+ if(!verify&&!recovery)return;
+ history.replaceState(null,'',location.pathname+location.search);
+ try{
+  if(verify){const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'confirm',token:verify});await app.init();app.showAlert(result.message,true);}
+  else{const {data,error}=await supabaseClient.auth.verifyOtp({token_hash:recovery,type:'recovery'});
+   if(error||!data.session)throw Error('Recovery link is invalid or expired.');
+   const role=await IronVaultAuth.requireRole(supabaseClient,{roles:['member','owner','staff']});
+   const key=new URLSearchParams(location.search).get('key');
+   const recoverySlug=IronVaultGymPortals.slugFromPath(location.pathname);
+   const {data:gyms,error:gymError}=await supabaseClient.from('owners').select('id').eq(recoverySlug?'portal_slug':'token',recoverySlug||key);
+   if(gymError||gyms?.length!==1||role.tenant_id!==gyms[0].id){await supabaseClient.auth.signOut();throw Error('Recovery link does not match this gym.');}
+   ivRecoveryAuthorized=true;document.getElementById('iv-recovery-panel').classList.remove('hidden');
+  }
+ }catch(error){app.showAlert(error.message);}
+})();
+</script>
+</body>
+</html>

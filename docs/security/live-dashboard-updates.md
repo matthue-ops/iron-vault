@@ -1,6 +1,6 @@
 # Live updates for members, gym desks and Super Admin
 
-Owner approved secure change signals and extended the scope to Super Admin. This stage updates `gym/memberprofile.html`, `gym/admin.html` and both Super Admin entry pages. It does not change report calculations, payment processing, admission rules or login authorization.
+Owner approved secure change signals and extended the scope to Super Admin. This stage updates `gym/profile.html`, `gym/admin.html` and both Super Admin entry pages. It does not change report calculations, payment processing, admission rules or login authorization.
 
 ## Behavior
 
