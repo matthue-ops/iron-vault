@@ -74,10 +74,11 @@
             animation: pulseGlow 8s infinite ease-in-out;
         }
     </style>
-    <script src="../assets/auth-session.js"></script>
-    <script src="../assets/application-data.js"></script>
-<link rel="stylesheet" href="../assets/mobile-ui.css">
-<script defer src="../assets/mobile-ui.js"></script>
+    <script src="/assets/auth-session.js"></script>
+    <script src="/assets/application-data.js"></script>
+    <script src="/assets/gym-portals.js"></script>
+<link rel="stylesheet" href="/assets/mobile-ui.css">
+<script defer src="/assets/mobile-ui.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -360,17 +361,19 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const keyParam = urlParams.get('key');
                 const gymParam = urlParams.get('gym');
+                const portalSlug = IronVaultGymPortals.slugFromPath(window.location.pathname);
 
                 let loadedOwners = [];
                 try {
-                    const query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing');
-                    const {data,error}=(keyParam||gymParam)
-                        ? await (keyParam?query.eq('token',keyParam):query.eq('id',gymParam.toUpperCase()))
+                    const query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing'+(portalSlug?',portal_slug':''));
+                    const {data,error}=(portalSlug||keyParam||gymParam)
+                        ? await (portalSlug?query.eq('portal_slug',portalSlug):keyParam?query.eq('token',keyParam):query.eq('id',gymParam.toUpperCase()))
                         : {data:[],error:null};
                     if (!error && data) {
                         loadedOwners = data.map(o => ({
                             id: o.id, displayCode: o.display_code || o.id,
                             gymName: o.gym_name,
+                            portalSlug: o.portal_slug,
                             token: o.token,
                             logo: o.logo,
                             status: o.status,
@@ -380,7 +383,9 @@
                 } catch(e) {}
 
                 let matched = null;
-                if (keyParam) {
+                if (portalSlug) {
+                    matched = loadedOwners.find(o => o.portalSlug === portalSlug);
+                } else if (keyParam) {
                     matched = loadedOwners.find(o => o.token === keyParam);
                 } else if (gymParam) {
                     matched = loadedOwners.find(o => o.id === gymParam.toUpperCase());
@@ -533,7 +538,7 @@ app.handleSignInSubmit=async function(e){e.preventDefault();
  if(error){this.showAlert(error.message);return;}
  try{const role=await ivRequireRole(['member'],this.currentTenantId);
  if(!role.member_id)throw Error('Your Auth account is not linked to a member record.');
- sessionStorage.setItem(SESSION_KEY,role.member_id);window.location.href='memberprofile.html';}
+ sessionStorage.setItem(SESSION_KEY,role.member_id);window.location.href='/gym/memberprofile.html';}
  catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
 };
 app.handleAdminLoginSubmit=async function(e){e.preventDefault();
@@ -545,7 +550,7 @@ app.handleAdminLoginSubmit=async function(e){e.preventDefault();
  sessionStorage.setItem(ACTIVE_ROLE_KEY,role.role==='owner'?'admin':'staff');
  sessionStorage.setItem(LOGGED_USER_KEY,email);
  await supabaseClient.rpc('iv_staff_event',{p_tenant:role.tenant_id,p_event:'login'});
- window.location.href='admin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||'');}
+ window.location.href='/gym/admin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||'');}
  catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
 };
 
@@ -566,7 +571,7 @@ app.handleSignUpSubmit = async function(event) {
     const {data,error} = await supabaseClient.auth.signUp({
       email,password,
       options:{data:{iv_member_signup:true,iv_tenant_token:this.matchedOwnerRecord.token,iv_member_name:name,iv_member_phone:phone},
-      emailRedirectTo:new URL('memberlogin.html'+window.location.search,location.href).href}
+      emailRedirectTo:new URL('/gym/memberlogin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||''),location.href).href}
     });
     if (error) throw error;
     if (!data?.user) throw Error('Account could not be created.');
@@ -581,7 +586,7 @@ app.handleForgotPassword = async function(event) {
   const email = document.getElementById('signin-identifier').value.trim();
   if (!email.includes('@')) return this.showAlert('Enter your registered email address first.');
   const {error} = await supabaseClient.auth.resetPasswordForEmail(email,{
-    redirectTo:new URL('memberlogin.html'+window.location.search,location.href).href
+    redirectTo:new URL('/gym/memberlogin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||''),location.href).href
   });
   this.showAlert(error ? error.message : 'If this email is registered, a recovery email will arrive shortly.',!error);
 };
@@ -616,7 +621,7 @@ async function ivCompleteRecovery(event) {
   app.showAlert('Password changed. Please sign in with your new password.',true);
 }
 </script>
-<script src="../assets/branch-auth.js"></script>
+<script src="/assets/branch-auth.js"></script>
 <script>
 IronVaultBranchAuth.install(app,supabaseClient);
 async function ivAdminAccountEmail(action){
@@ -635,7 +640,8 @@ ivResendEmailConfirmation=async function(){
    if(error||!data.session)throw Error('Recovery link is invalid or expired.');
    const role=await IronVaultAuth.requireRole(supabaseClient,{roles:['member','owner','staff']});
    const key=new URLSearchParams(location.search).get('key');
-   const {data:gyms,error:gymError}=await supabaseClient.from('owners').select('id').eq('token',key);
+   const recoverySlug=IronVaultGymPortals.slugFromPath(location.pathname);
+   const {data:gyms,error:gymError}=await supabaseClient.from('owners').select('id').eq(recoverySlug?'portal_slug':'token',recoverySlug||key);
    if(gymError||gyms?.length!==1||role.tenant_id!==gyms[0].id){await supabaseClient.auth.signOut();throw Error('Recovery link does not match this gym.');}
    ivRecoveryAuthorized=true;document.getElementById('iv-recovery-panel').classList.remove('hidden');
   }

@@ -10,7 +10,7 @@ test('every inline script parses and every local script reference exists',()=>{
         const html=fs.readFileSync(file,'utf8');
         for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
             const src=match[1].match(/src="([^"]+)"/);
-            if(src){if(!src[1].startsWith('http'))assert.ok(fs.existsSync(path.resolve(path.dirname(file),src[1])));}
+            if(src){if(!src[1].startsWith('http'))assert.ok(fs.existsSync(path.resolve(src[1].startsWith('/')?'.':path.dirname(file),src[1].replace(/^\//,''))));}
             else if(match[2].trim()){new vm.Script(match[2],{filename:file});count++;}
         }
     }

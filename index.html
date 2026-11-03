@@ -70,6 +70,7 @@
     </style>
     <script src="assets/auth-session.js"></script>
     <script src="assets/application-data.js"></script>
+    <script src="assets/gym-portals.js"></script>
     <script src="assets/super-admin-session.js"></script>
     <script src="assets/staff-report-permissions.js"></script>
 <link rel="stylesheet" href="assets/mobile-ui.css">
@@ -812,9 +813,7 @@
 
                 tbody.innerHTML = this.owners.map(owner => {
                     
-                    const origin = window.location.origin === 'null' || window.location.origin.startsWith('file://') ? '' : window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                    // Updated member portal link pointing to gym/ subfolder
-                    const memberPortalUrl = `${origin}gym/memberlogin.html?key=${IronVaultData.escape(owner.token)}`;
+                    const memberPortalUrl = IronVaultGymPortals.url(owner, window.location);
 
                     const logoHtml = owner.logo 
                         ? `<img src="${IronVaultData.escape(owner.logo)}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0">`
@@ -829,10 +828,10 @@
                                     <div class="space-y-1">
                                         <div class="font-semibold text-white">${IronVaultData.escape(owner.gymName)}</div>
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <a href="./gym/memberlogin.html?key=${IronVaultData.escape(owner.token)}" target="_blank" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                                                gym/memberlogin.html?key=${owner.token.substring(0, 10)}...
+                                            <a href="${IronVaultData.escape(memberPortalUrl)}" target="_blank" rel="noopener" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                                ${IronVaultData.escape(IronVaultGymPortals.label(owner))}
                                             </a>
-                                            <button onclick="indexApp.copyToClipboard('${IronVaultData.escape(memberPortalUrl)}', this)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition" title="Copy Link">
+                                            <button onclick="indexApp.copyToClipboard(decodeURIComponent('${IronVaultData.argument(memberPortalUrl)}'), this)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition" title="Copy Link">
                                                 <i class="fa-regular fa-copy"></i> Copy
                                             </button>
                                             <button onclick="indexApp.openQrModal(decodeURIComponent('${IronVaultData.argument(memberPortalUrl)}'), decodeURIComponent('${IronVaultData.argument(owner.gymName)}'))" class="px-2 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-semibold transition" title="Generate QR Code">

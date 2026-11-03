@@ -23,7 +23,7 @@
    }
   }
   return {owners:results[0].data.map(o=>({id:o.id,displayCode:o.display_code||o.id,gymName:o.gym_name,ownerName:o.owner_name,email:o.email,
-   token:o.token,logo:o.logo,status:o.status,pricing:o.pricing,staff:o.staff||[],auditLogs:o.audit_logs||[],dateCreated:o.date_created})),
+   token:o.token,portalSlug:o.portal_slug||null,logo:o.logo,status:o.status,pricing:o.pricing,staff:o.staff||[],auditLogs:o.audit_logs||[],dateCreated:o.date_created})),
    members:results[1].data.map(m=>({id:m.id,displayCode:m.display_code||m.id,tenantId:m.tenant_id,tenantToken:m.tenant_token,name:m.name,email:m.email,phone:m.phone,
     classification:m.classification,discountPercentage:m.discount_percentage,plan:m.plan,cardBarcode:m.card_barcode,
     walletBalance:m.wallet_balance,amount:m.amount,scansUsed:m.scans_used,lastScannedDate:m.last_scanned_date,
@@ -40,7 +40,7 @@
    function read(selectArgs){
     const steps=[];let promise;
     const q={then(resolve,reject){promise??=(async()=>{
-     const exact=steps.some(([k,args])=>k==='single'||k==='maybeSingle'||k==='limit'||k==='range'||(k==='eq'&&(args[0]==='id'||(table==='owners'&&args[0]==='token'))));
+     const exact=steps.some(([k,args])=>k==='single'||k==='maybeSingle'||k==='limit'||k==='range'||(k==='eq'&&(args[0]==='id'||(table==='owners'&&['token','portal_slug'].includes(args[0])))));
      const rows=[];let cursor;
      for(let page=0;page<10000;page++){
       let query=original(view).select(...selectArgs);for(const [method,args] of steps)query=query[method](...args);

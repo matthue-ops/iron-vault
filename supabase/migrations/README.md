@@ -53,3 +53,7 @@ After installed 023, manually run only `supabase/manual/admin_announcements.sql`
 ### 025: Member announcement display and read receipts
 
 After successful 024, manually run only `supabase/manual/member_announcements.sql` (same as `202611020025_member_announcements.sql`). Adds announcement content revisions, a private per-member read-receipt table and a member-only active-notice RPC. Text/schedule edits become unread; pin-only edits do not. Existing member/financial data remains intact. Apply SQL before the matching frontend; no Edge update needed. See `docs/security/member-announcements.md`, including claim-delivery limits and live acceptance checks. No SQL executed by the agent.
+
+### 026: Readable gym portal URLs
+
+After installed 025, manually run only `supabase/manual/gym_portal_urls.sql` (same as `202611030026_gym_portal_urls.sql`). Adds private persistent URL mappings and an insert trigger for new gyms; appends `portal_slug` to the existing safe branding view without changing its role/status projection. Existing tokens, accounts, balances, plans and history are preserved. Apply SQL before reviewing the matching frontend/Vercel routing; no Edge update is needed. Original key-based links and printed entrance QRs remain supported. See `docs/security/gym-portal-urls.md` for assignment rules, optional read-only verification and rollout. No SQL executed by the agent.

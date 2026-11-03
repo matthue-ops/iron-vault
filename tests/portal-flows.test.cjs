@@ -17,7 +17,7 @@ function portal(file,{user=null,roles=[],owners=[],members=[],records={},search=
  const html=fs.readFileSync(file,'utf8');
  for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
   const src=match[1].match(/src="([^"]+)"/);
-  if(src){if(!src[1].startsWith('http'))vm.runInContext(fs.readFileSync(path.resolve(path.dirname(file),src[1]),'utf8'),context);}
+  if(src){if(!src[1].startsWith('http'))vm.runInContext(fs.readFileSync(path.resolve(src[1].startsWith('/')?'.':path.dirname(file),src[1].replace(/^\//,'')),'utf8'),context);}
   else if(match[2].trim())vm.runInContext(match[2],context,{filename:file});
  }
  return {context,calls,alerts,redirects,storage,element,events,authEvents,client,get:expression=>vm.runInContext(expression,context)};
@@ -542,4 +542,26 @@ test('repeated Excel clicks cannot start duplicate downloads',async()=>{
  const p=await walletHistoryReport(),captured=captureExcel(p);let release,signal,count=0;const entered=new Promise(resolve=>{signal=resolve});
  p.context.IronVaultReportsExcel={create:async()=>{count++;signal();await new Promise(resolve=>{release=resolve});return new Uint8Array([1])},filename:()=> 'Gym_REPORTS.xlsx'};
  const first=p.app.exportAllReportsXlsx();await entered;await p.app.exportAllReportsXlsx();release();await first;assert.equal(count,1);assert.equal(captured.links.length,1);
+});
+
+test('friendly gym login requests only exact slug branding, including a trailing slash',async()=>{
+ for(const pathname of ['/fitness-gym','/fitness-gym/']){
+  const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:'?key=foreign-token'});p.context.location.pathname=pathname;await p.get('app').init();
+  assert.equal(p.get('app').currentTenantId,'gym-a');assert.equal(p.element('header-gym-name').innerText,'Fitness Gym');assert.deepEqual(p.calls[0].filters,[['portal_slug','fitness-gym']]);assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing,portal_slug');assert.equal(p.calls.length,1);
+ }
+});
+test('unknown friendly URL fails closed without a cached or first-gym fallback',async()=>{
+ const p=portal('gym/memberlogin.html',{owners:[{id:'gym-a',portal_slug:'fitness-gym',token:'token-a',gym_name:'Fitness Gym'}],search:''});p.context.location.pathname='/unknown-gym';await p.get('app').init();assert.equal(p.get('app').currentTenantId,null);assert.equal(p.element('btn-submit-signin').disabled,true);assert.equal(p.element('btn-submit-admin').disabled,true);assert.equal(p.element('btn-submit-signup').disabled,true);assert.equal(p.calls.length,1);
+});
+test('sign-in from a readable URL navigates into gym pages and retains scoped authentication',async()=>{
+ for(const role of ['member','owner']){
+  const p=portal('gym/memberlogin.html',{user:{id:'user-a'},roles:[{user_id:'user-a',role,tenant_id:'gym-a',member_id:role==='member'?'member-a':null}],owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym/';const app=p.get('app');await app.init();let payload;
+  p.client.functions={invoke:async(_,args)=>{payload=args.body;return {data:{session:{access_token:'test-token',refresh_token:'test-refresh'}}}}};p.client.auth.setSession=async()=>({error:null});
+  p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';p.element('admin-login-email').value='owner@example.invalid';p.element('admin-login-password').value='test-password';
+  await (role==='member'?app.handleSignInSubmit({preventDefault(){}}):app.handleAdminLoginSubmit({preventDefault(){}}));
+  assert.equal(payload.gym_token,'token-a');assert.equal(p.context.location.href,role==='member'?'/gym/memberprofile.html':'/gym/admin.html?key=token-a');
+ }
+});
+test('a different gym membership cannot sign in through a friendly URL',async()=>{
+ const p=portal('gym/memberlogin.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-b',member_id:'member-b'}],owners:[{id:'gym-a',token:'token-a',portal_slug:'fitness-gym',gym_name:'Fitness Gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym';const app=p.get('app');await app.init();p.client.auth.setSession=async()=>({error:null});p.client.functions={invoke:async()=>({data:{session:{access_token:'test',refresh_token:'test-refresh'}}})};p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';const original=p.context.location.href;await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.context.location.href,original);assert.match(p.element('form-alert-msg').innerText,/cannot access/i);
 });

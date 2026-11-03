@@ -28,7 +28,7 @@
   app.handleSignInSubmit=async function(event){event.preventDefault();try{
    await signIn(client,{gym_token:this.matchedOwnerRecord?.token,portal:'member',email:root.document.getElementById('signin-identifier').value,password:root.document.getElementById('signin-password').value});
    const role=await root.IronVaultAuth.requireRole(client,{roles:['member'],tenantId:this.currentTenantId});
-   root.sessionStorage.setItem('ironvault_active_member',role.member_id);root.location.href='memberprofile.html';
+   root.sessionStorage.setItem('ironvault_active_member',role.member_id);root.location.href=root.IronVaultGymPortals?root.IronVaultGymPortals.page('memberprofile.html'):'memberprofile.html';
   }catch(error){this.showAlert(error.message);}};
   app.handleAdminLoginSubmit=async function(event){event.preventDefault();try{
    await signIn(client,{gym_token:this.matchedOwnerRecord?.token,portal:'admin',email:root.document.getElementById('admin-login-email').value,password:root.document.getElementById('admin-login-password').value});
@@ -36,7 +36,8 @@
    root.sessionStorage.setItem('ironvault_logged_user',root.document.getElementById('admin-login-email').value.trim().toLowerCase());
    root.sessionStorage.setItem('ironvault_active_tenant_id',role.tenant_id);root.sessionStorage.setItem('ironvault_active_role',role.role==='owner'?'admin':'staff');
    await client.rpc('iv_staff_event',{p_tenant:role.tenant_id,p_event:'login'});
-   root.location.href='admin.html?key='+encodeURIComponent(this.matchedOwnerRecord.token);
+   const destination='admin.html?key='+encodeURIComponent(this.matchedOwnerRecord.token);
+   root.location.href=root.IronVaultGymPortals?root.IronVaultGymPortals.page(destination):destination;
   }catch(error){this.showAlert(error.message);}};
   app.handleSignUpSubmit=async function(event){event.preventDefault();const button=root.document.getElementById('btn-submit-signup');button.disabled=true;try{
    const val=id=>root.document.getElementById(id).value;
