@@ -185,6 +185,11 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                    <button onclick="adminApp.openScannerModal()" class="w-full py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-qrcode text-base"></i>
+                        <span>Scan Member QR Pass</span>
+                    </button>
+
                     <button onclick="adminApp.openManualCheckInModal()" class="w-full py-3 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
                         <i class="fa-solid fa-hand-pointer text-base"></i>
                         <span>Manual Desk Check-In</span>
@@ -194,23 +199,21 @@
                         <i class="fa-solid fa-user-plus text-base"></i>
                         <span>Express Walk-In Reg</span>
                     </button>
-
-                    <button onclick="adminApp.openScannerModal()" class="w-full py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
-                        <i class="fa-solid fa-qrcode text-base"></i>
-                        <span>Scan Member QR Pass</span>
-                    </button>
                 </div>
             </div>
 
             <!-- MEMBERSHIP PRICING SETTINGS CARD -->
-            <div id="pricing-settings-card" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-3 sm:space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <details id="pricing-settings-card" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-3 sm:space-y-4">
+                <summary class="flex items-center justify-between gap-2 cursor-pointer list-none">
                     <div>
                         <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
                             <i class="fa-solid fa-tags text-emerald-400"></i> Membership Pricing & Default Discounts
                         </h3>
                         <p class="text-[11px] sm:text-xs text-slate-400">Configure base rates and default percentage discounts for Student and Senior classifications.</p>
                     </div>
+                    <i class="fa-solid fa-chevron-down text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="flex justify-end border-t border-slate-800 pt-3">
                     <button onclick="adminApp.openPricingModal()" class="px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-[11px] sm:text-xs transition flex items-center gap-1.5 flex-shrink-0">
                         <i class="fa-solid fa-pen-to-square"></i>
                         <span class="hidden sm:inline">Edit Pricing & Discounts</span>
@@ -239,7 +242,7 @@
                         <h4 id="display-discount-senior" class="text-sm sm:text-base font-black text-amber-400">20%</h4>
                     </div>
                 </div>
-            </div>
+            </details>
 
             <!-- SEGREGATED PENDING ONLINE REGISTRATIONS CARD -->
             <div id="pending-section" class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-500/40 space-y-3 bg-amber-500/5 hidden">
