@@ -86,6 +86,7 @@
     <script src="../assets/staff-report-permissions.js"></script>
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
+<link rel="stylesheet" href="../assets/admin-dashboard.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -132,8 +133,11 @@
         <!-- ADMIN DASHBOARD -->
         <div id="admin-dashboard" class="space-y-4 sm:space-y-6">
             
+            <div class="dashboard-heading">
+                <div><p class="dashboard-eyebrow">GYM OPERATIONS</p><h1>Dashboard overview</h1><p>Manage member access and keep your front desk moving.</p></div>
+            </div>
             <!-- QUICK METRICS ROW (2x2 on Mobile, 4x1 on Desktop) -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+            <div class="dashboard-metrics grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
                 <div class="glass-card rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4">
                     <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-base sm:text-xl flex-shrink-0">
                         <i class="fa-solid fa-users"></i>
@@ -176,7 +180,7 @@
             </div>
 
             <!-- ACTION BAR -->
-            <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-3 sm:space-y-4">
+            <div class="desk-entry-card glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-3 sm:space-y-4">
                 <div>
                     <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
                         <i class="fa-solid fa-id-card-clip text-emerald-400"></i> Member Access & Desk Entry Suite
@@ -292,7 +296,7 @@
                             </button>
                             <button id="filter-btn-not-entered" onclick="adminApp.toggleRosterFilter('not_entered')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
                                 <i class="fa-solid fa-user-clock text-amber-400"></i>
-                                <span>Hasnt Entered</span>
+                                <span>Not Entered</span>
                             </button>
                         </div>
                     </div>
