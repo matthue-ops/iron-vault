@@ -8,3 +8,17 @@
 .legal-editor input:not([type=checkbox]),.legal-editor textarea,.legal-editor select { width:100%; box-sizing:border-box; padding:10px; background:#0c111b; color:#f1f5f9; border:1px solid #475569; border-radius:9px; }.legal-editor button { min-height:44px; border:1px solid #475569; border-radius:9px; padding:9px 14px; background:#1e293b; color:#e2e8f0; cursor:pointer; }.legal-editor button:disabled { opacity:.45; cursor:default; }
 .legal-actions { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }#legal-editor-publish { background:#065f46; }.legal-review { display:flex; gap:10px; align-items:center; margin-top:20px; }.legal-editor details { margin:18px 0; }.legal-editor pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }.legal-editor :focus-visible { outline:2px solid #34d399; outline-offset:3px; }
 @media(max-width:639px){#legal-editor-fields { grid-template-columns:1fr; }.legal-editor { padding:18px; }.legal-document { padding:18px; }}
+/* A simple row for each missing document detail. */
+#legal-editor-fields { display:flex; flex-direction:column; gap:0; }
+#legal-editor-fields label { display:grid; grid-template-columns:minmax(160px, .8fr) minmax(0, 1.2fr); align-items:center; gap:20px; padding:13px 0; border-bottom:1px solid #293447; }
+#legal-editor-fields label[hidden],.legal-editor [hidden] { display:none!important; }
+#legal-editor-fields textarea { min-height:76px; }
+.legal-editor h3 { font-size:18px; font-weight:700; }
+#legal-editor-preview-panel { margin-top:24px; border-top:1px solid #334155; padding-top:20px; }
+.legal-advanced { color:#94a3b8; font-size:12px; }
+.legal-body { white-space:normal; }.legal-body p { white-space:pre-line; margin:0 0 18px; }
+.legal-body h2 { font-size:19px; font-weight:700; margin:28px 0 12px; line-height:1.4; }
+.legal-body ul { padding-left:22px; list-style:disc; margin:12px 0 20px; }.legal-body li { margin:6px 0; }
+.legal-body table { width:100%; border-collapse:collapse; font-size:14px; margin:18px 0; }
+.legal-body td { border:1px solid #334155; padding:10px; vertical-align:top; overflow-wrap:anywhere; }.legal-body tr:first-child { font-weight:700; }
+@media(max-width:639px){#legal-editor-fields label { grid-template-columns:1fr; gap:7px; }.legal-body h2 { font-size:17px; }}
