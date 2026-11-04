@@ -14,7 +14,8 @@ export async function provision(req:Request,input:any,kind:'member'|'tenant',pub
  if(publicSignup)await limit('signup-gym:'+tenant,100,3600);
  const accountRole=mode==='create'?'owner':mode==='staff'?'staff':'member';
  const alias=await digest(tenant+'\0'+accountRole+'\0'+email+'\0'+request)+'@accounts.ironvault.invalid';
- const payload={name,phone:String(input.phone||'').slice(0,50),...(mode==='create'?{gym_name:String(input.gymName||''),pricing:input.pricing,logo:String(input.logo||'')}: {})};
+ if(publicSignup&&(!input.legal||input.legal.accepted!==true||!['platform_version','gym_version'].every(k=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(input.legal[k]||'')))))throw Error('Read and accept the published Terms and Privacy Notice.');
+ const payload={...(publicSignup?{legal:{accepted:true,platform_version:String(input.legal.platform_version).toLowerCase(),gym_version:String(input.legal.gym_version).toLowerCase()}}:{}),name,phone:String(input.phone||'').slice(0,50),...(mode==='create'?{gym_name:String(input.gymName||''),pricing:input.pricing,logo:String(input.logo||'')}: {})};
  const prepared=await rpc('iv_prepare_branch_account',{p_request:request,p_actor:user?.id||null,p_tenant:tenant,p_role:accountRole,p_email:email,p_alias:alias,p_payload:payload,p_new_gym:mode==='create'});
  let authId=prepared.completed_user||await rpc('iv_find_created_account',{p_request:request});
  if(authId&&!prepared.completed_user){const {error}=await publicClient().auth.signInWithPassword({email:alias,password});if(error)throw Error('Invalid request.');}

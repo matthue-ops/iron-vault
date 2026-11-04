@@ -79,6 +79,7 @@
     <script src="/assets/gym-portals.js"></script>
 <link rel="stylesheet" href="/assets/mobile-ui.css">
 <script defer src="/assets/mobile-ui.js"></script>
+<link rel="stylesheet" href="../assets/legal-documents.css">
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -171,8 +172,8 @@
                     <button type="submit" id="btn-submit-signin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
                         <span>Sign In as Member</span>
                     </button>
-                </form>
                 <button type="button" onclick="ivResendEmailConfirmation()" class="mt-3 text-[11px] text-slate-400 hover:text-emerald-300 underline">Resend email confirmation</button>
+                </form>
 
                 <!-- 2. OWNER / STAFF ADMIN LOGIN FORM -->
                 <form id="auth-admin-form" onsubmit="app.handleAdminLoginSubmit(event)" class="space-y-4 hidden">
@@ -187,7 +188,10 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="admin-login-password" class="block text-xs font-medium text-slate-300">Password</label>
+                            <button type="button" onclick="ivAdminAccountEmail('recovery')" class="text-[11px] text-emerald-400 hover:text-emerald-300 transition">Forgot password?</button>
+                        </div>
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                                 <i class="fa-solid fa-lock text-xs"></i>
@@ -202,7 +206,7 @@
                     <button type="submit" id="btn-submit-admin" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
                         <span>Sign In to Admin Portal</span>
                     </button>
-                <div class="flex gap-3 text-xs"><button type="button" onclick="ivAdminAccountEmail('recovery')">Forgot password?</button><button type="button" onclick="ivAdminAccountEmail('resend')">Resend verification</button></div>
+                <button type="button" onclick="ivAdminAccountEmail('resend')" class="mt-3 text-[11px] text-slate-400 hover:text-emerald-300 underline">Resend email confirmation</button>
 </form>
 
                 <!-- 3. SIGN UP FORM -->
@@ -250,9 +254,14 @@
                         </div>
                     </div>
 
+                    <div class="space-y-2 text-xs text-slate-300">
+                        <label class="flex items-start gap-3"><input id="signup-legal-accepted" type="checkbox" required class="mt-1 shrink-0"><span>I agree to the <a id="signup-terms-link" href="#" target="_blank" rel="noopener" class="underline text-emerald-300">Terms of Service</a> and acknowledge that I have read the <a id="signup-privacy-link" href="#" target="_blank" rel="noopener" class="underline text-emerald-300">Privacy Notice</a>.</span></label>
+                        <p id="signup-legal-status" role="status" class="text-slate-400">Published legal documents are required for member registration.</p>
+                    </div>
                     <button type="submit" id="btn-submit-signup" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-emerald-500 hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 mt-2">
                         <span>Create Account</span>
                     </button>
+                <button type="button" onclick="ivResendEmailConfirmation()" class="mt-3 text-[11px] text-slate-400 hover:text-emerald-300 underline">Already registered? Resend email confirmation.</button>
                 </form>
 
             </div>
@@ -628,7 +637,7 @@ async function ivAdminAccountEmail(action){
  try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action,portal:'admin',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById('admin-login-email').value});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
 }
 ivResendEmailConfirmation=async function(){
- try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'resend',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById('signin-identifier').value,portal:'member'});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
+ try{const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'resend',gym_token:app.matchedOwnerRecord?.token,email:document.getElementById(app.currentTab==='SIGNUP'?'signup-email':'signin-identifier').value,portal:'member'});app.showAlert(result.message,true);}catch(error){app.showAlert(error.message);}
 };
 (async function(){
  const params=new URLSearchParams(location.hash.slice(1));const verify=params.get('iv_verify'),recovery=params.get('iv_recovery');
@@ -648,5 +657,7 @@ ivResendEmailConfirmation=async function(){
  }catch(error){app.showAlert(error.message);}
 })();
 </script>
+<script src="../assets/legal-documents.js"></script>
+<script>IronVaultLegal.installSignup(app,supabaseClient);</script>
 </body>
 </html>

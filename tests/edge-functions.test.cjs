@@ -110,7 +110,7 @@ test('member signup succeeds without SMTP or confirmation and retains gym approv
  digest:async()=> 'a'.repeat(64),mailReady:()=>false,limit:async()=>{},
  rpc:async name=>name==='iv_prepare_branch_account'?{}:name==='iv_find_created_account'?null:{ok:true},
  sendVerification:async()=>{throw Error('Member signup must not depend on mail')}});
- const result=await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'New Member',email:'test@example.invalid',password:'test-only-password'},'member',true);
+ const result=await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'New Member',email:'test@example.invalid',password:'test-only-password',legal:{accepted:true,platform_version:'12345678-1234-4234-8234-123456789abc',gym_version:'22345678-1234-4234-8234-123456789abc'}},'member',true);
  assert.equal(result.ok,true);assert.match(result.message,/without email confirmation/);assert.match(result.message,/gym approval/);
 });
 
@@ -221,4 +221,17 @@ test('owner password recovery sends proof to the contact inbox and never returns
  const result=await handler(new Request('https://edge.example.invalid'),{action:'recovery',gym_token:'gym-token',portal:'admin',email:'temporary@example.invalid'});
  assert.equal(sent.length,1);assert.equal(sent[0][0],'temporary@example.invalid');assert.match(sent[0][2],/#iv_recovery=inbox-proof/);
  assert.equal(JSON.stringify(result).includes('inbox-proof'),false);assert.equal(result.session,undefined);
+});
+
+test('self-registration rejects missing or false legal acceptance before creating or preparing an account',async()=>{
+ let calls=0;const c=load('supabase/functions/_shared/provision.ts',{admin:{auth:{admin:{createUser:()=>{calls++;throw Error('Must not create');}}}},digest:async()=> 'a'.repeat(64),limit:async()=>{},rpc:async()=>{calls++;throw Error('Must not prepare');}});
+ const input={request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'test@example.invalid',password:'test-only-password'};
+ for(const legal of [undefined,{accepted:false},{accepted:true,platform_version:'invalid',gym_version:'invalid'}])await assert.rejects(c.provision(new Request('https://edge.example.invalid'),{...input,legal},'member',true),/Read and accept/);
+ assert.equal(calls,0);
+});
+test('self-registration carries only the exact accepted version pair into the protected provisioning payload',async()=>{
+ const calls=[];const c=load('supabase/functions/_shared/provision.ts',{admin:{auth:{admin:{createUser:async()=>({data:{user:{id:'member-auth'}}})}}},digest:async()=> 'a'.repeat(64),limit:async()=>{},rpc:async(name,args)=>{calls.push({name,args});return name==='iv_prepare_branch_account'?{}:name==='iv_find_created_account'?null:{ok:true};}});
+ const legal={accepted:true,platform_version:'12345678-1234-4234-8234-123456789ABC',gym_version:'22345678-1234-4234-8234-123456789ABC',extra:'must not persist'};
+ await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'test@example.invalid',password:'test-only-password',legal},'member',true);
+ const saved=calls.find(x=>x.name==='iv_prepare_branch_account').args.p_payload.legal;assert.equal(saved.accepted,true);assert.equal(saved.platform_version,legal.platform_version.toLowerCase());assert.equal(saved.gym_version,legal.gym_version.toLowerCase());assert.equal('extra' in saved,false);
 });

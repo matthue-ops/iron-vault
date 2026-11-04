@@ -87,6 +87,7 @@
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
 <link rel="stylesheet" href="../assets/admin-dashboard.css">
+<link rel="stylesheet" href="../assets/legal-documents.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -118,6 +119,7 @@
                     <span class="hidden md:inline">Staff Management</span>
                 </button>
 
+                <button id="btn-gym-legal" aria-label="Terms and privacy details" title="Terms &amp; Privacy Details" type="button" onclick="adminApp.openLegalSettings(adminApp.currentTenantId)" class="hidden px-2.5 py-1.5 rounded-xl border border-slate-700 text-[11px] font-semibold text-slate-300"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span> Terms &amp; Privacy</span></button>
                 <!-- LOGOUT BUTTON -->
                 <button id="btn-admin-logout" aria-label="Sign out" onclick="adminApp.logoutAdmin()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
@@ -2553,6 +2555,8 @@ adminApp.logoutAdmin=async function(){
 <script>IronVaultGymAccent.installAdmin(adminApp);</script>
 <script src="../assets/mobile-roster.js"></script>
 <script>IronVaultMobileRoster.install(adminApp);</script>
+<script src="../assets/legal-documents.js"></script>
+<script>IronVaultLegal.installEditor(adminApp,supabaseClient,'admin');</script>
 <script src="../assets/live-updates.js"></script>
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(adminApp,supabaseClient,'admin');</script>
