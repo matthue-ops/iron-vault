@@ -219,9 +219,9 @@ test('denied or missing financial backend cannot fall back to client balance mut
 
 test('member plan selection uses wallet-only RPC and cannot submit a cash payment or local entitlement',async()=>{
  const p=portal('gym/profile.html',{user:{id:'member'},roles:[{user_id:'member',role:'member',tenant_id:'gym-a',member_id:'member-a'}]});
- const app=p.get('profileApp');app.currentMember={id:'member-a',tenantId:'gym-a',name:'Member',plan:'Not Selected',walletBalance:200};app.confirmAction=async()=>true;
+ const app=p.get('profileApp');app.currentMember={id:'member-a',tenantId:'gym-a',name:'Member',plan:'Not Selected',walletBalance:200};app.authenticatedRole={user_id:'member',member_id:'member-a',tenant_id:'gym-a'};app.confirmAction=async()=>true;
  app.renderProfile=()=>{};app.showAlert=()=>{};app.saveData=async()=>{throw Error('No raw entitlement writes')};
- const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return name==='iv_quote_plan'?{data:{price:150,wallet_balance:200}}:{data:{request_id:args.p_request_id,wallet_balance:50,expiration_date:'2026-11-01'}}};
+ const calls=[];p.client.rpc=async(name,args)=>{if(name==='iv_member_legal_status')return{data:{user_id:'member',member_id:'member-a',tenant_id:'gym-a',accepted:true,platform_version:'11111111-1111-4111-8111-111111111111',gym_version:'22222222-2222-4222-8222-222222222222',acceptance:{platform_version:'11111111-1111-4111-8111-111111111111',gym_version:'22222222-2222-4222-8222-222222222222',accepted_at:'2026-11-05T00:00:00Z'}}};calls.push({name,args});return name==='iv_quote_plan'?{data:{price:150,wallet_balance:200}}:{data:{request_id:args.p_request_id,wallet_balance:50,expiration_date:'2026-11-01'}}};
  await app.selectPlan('1-Day Pass');assert.equal(calls[1].args.p_cash_amount,0);assert.equal(app.currentMember.walletBalance,50);assert.equal(app.currentMember.plan,'1-Day Pass');
 });
 test('self profile save submits only name phone and avatar, never wallet status email or discounts',async()=>{

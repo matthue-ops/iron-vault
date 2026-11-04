@@ -12,6 +12,7 @@
    for(const row of rows){const card=text('article','','rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-2');card.appendChild(text('h3',row.title,'font-bold text-white break-words'));card.appendChild(text('p',row.body,'whitespace-pre-wrap break-words text-slate-200 text-sm'));card.appendChild(text('p',(row.pinned?'Pinned · ':'')+'Until '+new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(row.ends_at))+' · Manila time','text-xs text-slate-400'));target.appendChild(card);}
   }
   function render(){items=items.filter(active);const unread=items.filter(r=>r.unread).length;el('member-notices-count').textContent=unread?String(unread):'';bell.setAttribute('data-unread',String(unread>0));bell.setAttribute('aria-label','Announcements'+(unread?', '+unread+' unread':''));
+   app.renderLegalNotice?.(unread);
    if(visible)cards(el('member-notices-list'),items);
    if(timer)root.clearTimeout(timer);const next=items.length?Math.min(...items.map(r=>Date.parse(r.ends_at)))-now():60000;timer=root.setTimeout(()=>{render();refresh();},Math.min(Math.max(next+30,100),60000));
   }
@@ -26,10 +27,10 @@
   }
   function show(rows){lastFocus=root.document.activeElement;visible=true;panel.hidden=false;cards(el('member-notices-list'),rows);el('member-notices-close').focus();}
   async function refresh(){if(busy)return;busy=true;const stamp=epoch;try{await fetchFeed('list');
-   }catch(error){if(stamp===epoch){clear();bell.hidden=false;bell.setAttribute('aria-label','Announcements unavailable');el('member-notices-status').textContent='Announcements are unavailable. Please try again.';}}
+   }catch(error){if(stamp===epoch){clear();bell.hidden=false;bell.setAttribute('aria-label','Announcements unavailable');el('member-notices-status').textContent='Announcements are unavailable. Please try again.';app.renderLegalNotice?.(0);}}
    finally{if(stamp===epoch)busy=false;}
   }
-  app.openMemberAnnouncements=async function(){if(busy)return;busy=true;const stamp=epoch;el('member-notices-status').textContent='';try{const rows=await fetchFeed('list');if(!rows||stamp!==epoch)return;show(rows);const read=rows.map(r=>({id:r.id,revision:r.revision}));await fetchFeed('read',read);}catch(error){if(stamp===epoch){clear();bell.hidden=false;el('member-notices-status').textContent='Announcements are unavailable. Please try again.';}}finally{if(stamp===epoch)busy=false;}};
+  app.openMemberAnnouncements=async function(){if(busy)return;busy=true;const stamp=epoch;el('member-notices-status').textContent='';try{const rows=await fetchFeed('list');if(!rows||stamp!==epoch)return;show(rows);const read=rows.map(r=>({id:r.id,revision:r.revision}));await fetchFeed('read',read);}catch(error){if(stamp===epoch){clear();bell.hidden=false;el('member-notices-status').textContent='Announcements are unavailable. Please try again.';if(app.hasLegalNotice?.()){show([]);app.renderLegalNotice?.(0);}}}finally{if(stamp===epoch)busy=false;}};
   app.closeMemberAnnouncements=function(){visible=false;panel.hidden=true;lastFocus?.focus?.();};
   const init=app.init;app.init=async function(...args){clear();await init.apply(this,args);if(this.currentMember)await refresh();};
   client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(identity&&session?.user?.id&&identity.split('|')[0]!==session.user.id))clear();});

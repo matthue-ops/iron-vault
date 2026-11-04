@@ -107,6 +107,7 @@
     <script src="../assets/financial-requests.js"></script>
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
+<link rel="stylesheet" href="../assets/member-account-menu.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -132,11 +133,17 @@
 
             <div class="member-header-actions flex flex-wrap items-center gap-2">
             <button id="member-notices-bell" hidden type="button" onclick="profileApp.openMemberAnnouncements()" aria-label="Announcements" title="Announcements" class="min-h-11 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm"><i class="fa-solid fa-bell" aria-hidden="true"></i> <span class="member-header-action-label">Notices</span> <span id="member-notices-count" class="rounded-full bg-rose-600 px-1 text-white text-xs" aria-live="polite"></span></button>
-            <!-- LOGOUT BUTTON -->
-            <button id="member-sign-out" type="button" aria-label="Sign out" title="Sign out" onclick="profileApp.logout()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+            <details id="member-account-menu" class="member-account-menu">
+                <summary aria-label="Member menu" title="Member menu"><i class="fa-solid fa-bars" aria-hidden="true"></i></summary>
+                <div class="member-menu-panel">
+                    <button type="button" onclick="profileApp.openMemberSettings()"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Personal Information &amp; Security</button>
+                    <button type="button" onclick="profileApp.openMemberTerms()"><i class="fa-solid fa-file-contract" aria-hidden="true"></i> Terms &amp; Privacy</button>
+<button id="member-sign-out" type="button" aria-label="Sign out" title="Sign out" onclick="profileApp.logout()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
                 <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
-                <span class="member-header-action-label">Sign Out</span>
+                <span>Sign Out</span>
             </button>
+                </div>
+            </details>
         </div>
             </div>
     </header>
@@ -212,6 +219,7 @@
                         </div>
 
                         <!-- GENERATE BUTTON -->
+                        <p id="member-qr-legal-help" class="member-legal-help">Review Terms &amp; Privacy from the bell or menu to unlock QR passes.</p>
                         <button id="btn-generate-qr" onclick="profileApp.generateDailyQR()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:opacity-90 text-slate-950 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-md">
                             <i class="fa-solid fa-qrcode"></i>
                             <span>Generate Today's QR</span>
@@ -276,6 +284,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                         <!-- DAY PASS CARD -->
+                        <p id="member-plan-legal-help" class="member-legal-help sm:col-span-3">Review Terms &amp; Privacy from the bell or menu to unlock pass purchases.</p>
                         <div id="plan-card-daypass" onclick="profileApp.selectPlan('1-Day Pass')" class="border border-slate-700/80 bg-slate-900/80 p-4 rounded-2xl cursor-pointer hover:border-emerald-500 transition flex flex-col justify-between relative overflow-hidden">
                             <div id="badge-daypass" class="hidden absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full">
                                 Current Plan
@@ -323,8 +332,17 @@
                 </div>
 
                 <!-- 3. EDIT PROFILE & CREDENTIALS FORM -->
-                <details id="member-security" class="glass-card rounded-3xl p-6 shadow-2xl space-y-4">
-                    <summary class="font-bold text-white text-sm"><span><i class="fa-solid fa-user-gear text-purple-400" aria-hidden="true"></i> Personal Information &amp; Security</span><i class="member-security-chevron fa-solid fa-chevron-down text-slate-400 transition-transform" aria-hidden="true"></i></summary>
+
+
+            </div>
+
+        </div>
+
+    </main>
+
+<dialog id="member-settings-dialog" class="member-account-dialog" aria-labelledby="member-settings-title"><form method="dialog" class="flex justify-end"><button type="submit" class="rounded-xl bg-slate-800 px-4 py-3">Close</button></form>
+                <section id="member-security" class="glass-card rounded-3xl p-6 shadow-2xl space-y-4">
+                    <h2 id="member-settings-title" class="text-lg font-bold">Personal Information &amp; Security</h2>
 
                     <form onsubmit="profileApp.handleProfileUpdate(event)" class="space-y-4 pt-1">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -363,14 +381,17 @@
                             </button>
                         </div>
                     </form>
-                </details>
-
-            </div>
-
-        </div>
-
-    </main>
-
+                </section></dialog>
+<dialog id="member-terms-dialog" class="member-account-dialog" aria-labelledby="member-terms-title">
+ <form method="dialog" class="flex justify-end"><button type="submit" class="rounded-xl bg-slate-800 px-4 py-3">Close</button></form>
+ <h2 id="member-terms-title" class="text-lg font-bold mb-4">Terms &amp; Privacy</h2>
+ <p id="member-legal-state" role="status" class="text-sm text-slate-300 mb-4"></p>
+ <section id="member-accepted-record" hidden class="mb-5"><h3 class="font-bold text-sm mb-2">Your accepted documents</h3><p id="member-accepted-date" class="text-xs text-slate-400 mb-3"></p><div class="flex flex-wrap gap-4"><a id="member-accepted-terms" target="_blank" rel="noopener" class="text-emerald-300 underline">View accepted Terms</a><a id="member-accepted-privacy" target="_blank" rel="noopener" class="text-emerald-300 underline">View accepted Privacy Notice</a></div></section>
+ <section id="member-current-documents"><p class="text-sm text-slate-300 mb-3">Open and read both documents before agreeing.</p><div class="flex flex-wrap gap-4 mb-4"><a id="member-terms-link" target="_blank" rel="noopener" class="text-emerald-300 underline">Terms of Service</a><a id="member-privacy-link" target="_blank" rel="noopener" class="text-emerald-300 underline">Privacy Notice</a></div>
+ <label class="flex items-start gap-3 text-sm mb-4"><input id="member-legal-checkbox" type="checkbox" class="mt-1"><span>I agree to the Terms of Service and acknowledge that I have read the Privacy Notice.</span></label>
+ <button id="member-legal-agree" type="button" class="rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white">Agree and unlock member features</button></section>
+ <button id="member-legal-retry" type="button" class="mt-4 rounded-xl border border-slate-600 px-4 py-3">Check again</button>
+</dialog>
     <!-- FOOTER -->
     <footer class="relative z-10 py-4 text-center text-xs text-slate-500 border-t border-slate-900">
         <p>© 2026 Iron Vault Gym Access System • Member Portal</p>
@@ -1044,6 +1065,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 <div id="member-notices-dialog" hidden style="position:fixed;inset:0;z-index:70;overflow-y:auto;background:rgba(2,6,23,.94);padding:16px">
  <section role="dialog" aria-modal="true" aria-labelledby="member-notices-title" class="glass-card rounded-2xl p-4 sm:p-6 max-w-4xl mx-auto my-4 space-y-4">
   <div class="flex items-center justify-between gap-3"><h2 id="member-notices-title" class="text-xl font-bold">Gym announcements</h2><button id="member-notices-close" type="button" onclick="profileApp.closeMemberAnnouncements()" class="min-h-11 shrink-0 whitespace-nowrap rounded-xl bg-slate-700 px-4 py-3">Close</button></div>
+  <section id="member-legal-notice" class="rounded-xl border border-amber-500/40 bg-slate-900 p-4 space-y-3"><h3 class="font-bold text-white">Review Terms &amp; Privacy</h3><p id="member-legal-notice-text" class="text-sm text-slate-300">Review and agree to unlock QR passes and membership purchases. Staff can still assist with gym entry.</p><button type="button" onclick="profileApp.openMemberTerms()" class="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold">Review documents</button></section>
   <div id="member-notices-list" class="space-y-4"></div>
  </section>
 </div>
@@ -1073,6 +1095,10 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 </div>
 <script src="../assets/member-qr-feedback.js"></script>
 <script>IronVaultMemberQrFeedback.install(profileApp);</script>
+<script src="../assets/member-account-menu.js"></script>
+<script>IronVaultMemberAccountMenu.install(profileApp);</script>
+<script src="../assets/member-portal-agreement.js"></script>
+<script>IronVaultMemberPortalAgreement.install(profileApp,supabaseClient);</script>
 <script src="../assets/live-updates.js"></script>
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(profileApp,supabaseClient,'member');</script>

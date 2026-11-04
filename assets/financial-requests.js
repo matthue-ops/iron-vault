@@ -21,7 +21,7 @@
    if(error){
     // PostgreSQL validation/constraint exceptions roll back the entire RPC.
     // Transport/unknown errors retain the key: the server may have committed.
-    if(/^(P0001|22\w{3}|23\w{3})$/.test(error.code||''))storage.removeItem(key);
+    if(/^(P0001|22\w{3}|23\w{3}|IV002)$/.test(error.code||''))storage.removeItem(key);
     throw new Error(error.message||'Payment not confirmed. Retry the same payment.');
    }
    if(!data||data.request_id!==pending.requestId)throw new Error('Payment response not confirmed. Retry the same payment.');

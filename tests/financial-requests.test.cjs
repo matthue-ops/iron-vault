@@ -57,3 +57,8 @@ test('financial SQL retains original signatures, binds receipts before mutation 
  assert.match(sql,/p_expiration::text IS DISTINCT FROM outcome->>'expiration_date'/);
  assert.match(sql,/REVOKE ALL ON FUNCTION public\.iv_financial_transaction.*FROM PUBLIC,anon,authenticated,service_role/);
 });
+test('rolled-back agreement rejection permits a fresh purchase after reviewing terms',async()=>{
+ const f=fixture(),ok=f.client.rpc;f.client.rpc=async()=>({error:{code:'IV002',message:'Review the current Terms'}});
+ await assert.rejects(finance.execute(f.client,f.storage,'gym',{...f.input,p_operation:'purchase',p_plan:'1-Day Pass'}),/Terms/);assert.equal(await finance.pending(f.client,f.storage,'gym'),null);
+ f.client.rpc=ok;await finance.execute(f.client,f.storage,'gym',{...f.input,p_operation:'purchase',p_plan:'1-Week Pass'});assert.equal(await finance.pending(f.client,f.storage,'gym'),null);
+});
