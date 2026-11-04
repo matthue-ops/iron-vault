@@ -15,6 +15,19 @@
   const days=Math.round((new Date(expiry+'T00:00:00Z')-new Date(today+'T00:00:00Z'))/86400000);
   return days<0?'Expired '+label:days===0?'Expires today ('+label+')':'Expires '+label+' · '+days+' day'+(days===1?'':'s')+' left';
  }
+ // Historical attendance must never borrow entitlement fields from the current roster.
+ function attendanceDetails(row){
+  const snapshot=row?.membership_snapshot;
+  if(!snapshot||snapshot.version!==1)return {plan:'History unavailable',expiry:'History unavailable',status:'History unavailable'};
+  const day=snapshot.business_day,expiry=snapshot.expiration_date;
+  const base={plan:snapshot.plan||'History unavailable',status:snapshot.status||'History unavailable'};
+  if(!validDate(day)||!validDate(expiry)||day!==date(row.created_at))return {...base,expiry:'History unavailable'};
+  const label=value=>new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'}).format(new Date(value+'T00:00:00Z'));
+  if(snapshot.plan==='1-Day Pass')return {...base,expiry:'Valid on '+label(day)};
+  const days=Math.round((new Date(expiry+'T00:00:00Z')-new Date(day+'T00:00:00Z'))/86400000);
+  if(days<0||!Number.isInteger(snapshot.days_remaining)||snapshot.days_remaining!==days)return {...base,expiry:'History unavailable'};
+  return {...base,expiry:'Valid through '+label(expiry)+' · '+days+' day'+(days===1?'':'s')+' left'};
+ }
  function analyze(snapshot,start,end,today=date(new Date())){
   if(!validDate(start)||!validDate(end)||end<start)throw Error('Choose a valid start and end date.');
   const within=row=>{const day=date(row.created_at);return day&&day>=start&&day<=end;};
@@ -40,5 +53,5 @@
    otherAdmissions:attendance.length-qr-manual,peakHours:peak?hours.flatMap((n,h)=>n===peak?[h]:[]):[],peakVisits:peak,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day))};
  }
  function csv(rows){return '\uFEFF'+rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[\t\r\n]|^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');}
- const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,attendanceDetails,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(globalThis);
