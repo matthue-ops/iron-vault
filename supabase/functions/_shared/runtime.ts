@@ -5,7 +5,7 @@ const url=Deno.env.get('SUPABASE_URL')!;
 const key=Deno.env.get('SUPABASE_ANON_KEY')!;
 export const admin=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{autoRefreshToken:false,persistSession:false}});
 export function publicClient(){return createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});}
-export async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await admin.rpc(name,args);if(error){console.error('Iron Vault RPC failed',name,/^[A-Za-z0-9_]{1,64}$/.test(error.code||'')?error.code:'unknown');throw Error('Operation could not be completed.');}return data;}
+export async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await admin.rpc(name,args);if(error){if(name==='iv_prepare_branch_account'&&error.code==='IV001')throw Error('LEGAL_REVIEW_REQUIRED: Documents changed or are unavailable. Reload the page, review the documents and accept again.');console.error('Iron Vault RPC failed',name,/^[A-Za-z0-9_]{1,64}$/.test(error.code||'')?error.code:'unknown');throw Error('Operation could not be completed.');}return data;}
 export async function actor(req:Request){
  const match=/^Bearer\s+(.+)$/i.exec(req.headers.get('authorization')||'');
  if(!match)throw Error('Sign in required.');

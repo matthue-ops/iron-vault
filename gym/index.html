@@ -75,6 +75,7 @@
     <script src="../assets/staff-report-permissions.js"></script>
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
+<link rel="stylesheet" href="../assets/legal-documents.css">
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -133,6 +134,7 @@
 
         <!-- SUPER ADMIN DASHBOARD (VISIBLE WHEN LOGGED IN) -->
         <div id="super-dashboard" class="space-y-6 hidden">
+<div class="flex justify-end"><button type="button" onclick="indexApp.openLegalSettings()" class="rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-slate-200"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Platform Legal Details</button></div>
             
             <!-- METRICS ROW -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -587,6 +589,7 @@
                     </div>
                 </div>
 
+<button type="button" onclick="indexApp.openLegalSettings(document.getElementById('edit-owner-id').value)" class="rounded-xl border border-slate-600 px-4 py-3 text-sm text-slate-200">Gym Terms &amp; Privacy Details</button>
 <section class="rounded-xl border border-slate-700 p-4 space-y-3" aria-labelledby="gym-accent-heading">
  <h3 id="gym-accent-heading" class="text-sm font-bold text-white">Dashboard accent color</h3>
  <p class="text-xs text-slate-400">Super Admin only. Preview and save this gym’s dashboard color independently of other settings.</p>
@@ -1464,6 +1467,8 @@ indexApp.handleInspectAddStaff = async function(event) {
 </div>
 <script src="../assets/gym-accent.js"></script>
 <script>IronVaultGymAccent.installMaster(indexApp,supabaseClient);</script>
+<script src="../assets/legal-documents.js"></script>
+<script>IronVaultLegal.installEditor(indexApp,supabaseClient,'master');</script>
 <script src="../assets/live-updates.js"></script>
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(indexApp,supabaseClient,'master');</script>

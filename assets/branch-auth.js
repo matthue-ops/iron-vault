@@ -16,7 +16,7 @@
   const payload=JSON.stringify(safe);let pending=JSON.parse(storage.getItem(key)||'null');
   if(pending&&pending.payload!==payload)throw Error('Retry the original account request before changing its details.');
   if(!pending){pending={id:root.crypto.randomUUID(),payload};storage.setItem(key,JSON.stringify(pending));}
-  const result=await invoke(client,name,{...body,request_id:pending.id});
+  let result;try{result=await invoke(client,name,{...body,request_id:pending.id});}catch(error){if(String(error.message).includes('LEGAL_REVIEW_REQUIRED'))storage.removeItem(key);throw error;}
   storage.removeItem(key);return result;
  }
  async function signIn(client,body){
@@ -42,7 +42,7 @@
   app.handleSignUpSubmit=async function(event){event.preventDefault();const button=root.document.getElementById('btn-submit-signup');button.disabled=true;try{
    const val=id=>root.document.getElementById(id).value;
    const result=await provision(client,root.sessionStorage,'iv-branch-auth',{action:'signup',gym_token:this.matchedOwnerRecord?.token,
-    name:val('signup-name').trim(),email:val('signup-email').trim(),phone:val('signup-phone').trim(),password:val('signup-password')});
+    name:val('signup-name').trim(),email:val('signup-email').trim(),phone:val('signup-phone').trim(),password:val('signup-password'),legal:this.requireLegalAcceptance()});
    event.target.reset();this.switchTab('SIGNIN');this.showAlert(result.message,true);
   }catch(error){this.showAlert(error.message);}finally{button.disabled=false;}};
   app.handleForgotPassword=async function(event){event.preventDefault();try{
