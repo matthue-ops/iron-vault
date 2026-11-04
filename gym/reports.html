@@ -196,7 +196,7 @@
  <button onclick="reportsApp.printReport()" class="rounded-xl px-3 py-2 bg-purple-700 text-white text-xs">Print table</button>
  <button id="report-prev" type="button" class="rounded-xl px-3 py-2 bg-slate-800 text-white text-xs">Previous</button><button id="report-next" type="button" class="rounded-xl px-3 py-2 bg-slate-800 text-white text-xs">Next</button>
  <span id="report-page" class="text-xs text-slate-400"></span>
- <details class="w-full"><summary>Table details</summary><p class="text-xs text-slate-400">Detail logs show 100 rows per page. CSV includes all matching rows; Print shows the current view. Wallet after is the balance immediately after that transaction. Unavailable means the historical balance cannot be verified; it does not show today’s balance. Current outstanding credit remains in Overview. Member names, plans and statuses reflect the current snapshot. Attendance expiry shows the current pass, not the pass held at a historical check-in.</p></details>
+ <details class="w-full"><summary>Table details</summary><p class="text-xs text-slate-400">Detail logs show 100 rows per page. CSV includes all matching rows; Print shows the current view. Wallet after is the balance immediately after that transaction. Unavailable means the historical balance cannot be verified; it does not show today’s balance. Current outstanding credit remains in Overview. Member names reflect current profiles. Attendance plan, expiry, days left and status reflect saved check-in history. Days left exclude the check-in day. Older membership history may be unavailable.</p></details>
 </div>
         <!-- REPORT HEADER METADATA -->
         <div id="report-metadata" class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
@@ -293,6 +293,7 @@
         <!-- TABLE SECTION 2: ATTENDANCE & UTILIZATION LOG -->
         <div id="section-attendance-table" class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 hidden">
 <div id="report-attendance-summary" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+<p class="text-xs text-slate-400">Membership details are saved at check-in. Days left exclude the check-in day and count calendar days, including missed visits. Older history may be unavailable.</p>
 
             <h3 class="font-bold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
                 <i class="fa-solid fa-door-open text-purple-400"></i> Attendance & Utilization Log (Door Entry & Scan History)
@@ -304,11 +305,11 @@
                         <tr>
                             <th class="p-3">Member ID</th>
                             <th class="p-3">Full Name</th>
-                            <th class="p-3">Current plan</th>
+                            <th class="p-3">Plan at check-in</th>
                             <th class="p-3">Check-in (Manila)</th>
                             <th class="p-3">Entry method</th>
-                            <th class="p-3">Current expiry / days left</th>
-                            <th class="p-3">Status</th>
+                            <th class="p-3">Expiry / days left at check-in</th>
+                            <th class="p-3">Status at check-in</th>
                         </tr>
                     </thead>
                     <tbody id="attendance-tbody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
@@ -665,7 +666,7 @@ reportsApp.ivRender=async function(start,end){
  const formatTime=s=>new Date(s).toLocaleString('en-PH',{timeZone:'Asia/Manila'});
  const row=(cells)=>'<tr class="hover:bg-slate-900/50">'+cells.map(v=>'<td class="p-3">'+ivEscape(v)+'</td>').join('')+'</tr>';
  document.getElementById('financial-tbody').innerHTML=tx.map(t=>row([t.member_id||'—',members[t.member_id]?.name||'—',members[t.member_id]?.classification||'—',t.kind,ivMoney(t.amount),IronVaultReports.walletAfter(t),formatTime(t.created_at),t.description||'—'])).join('')||'<tr><td colspan="8" class="p-6 text-center">No transactions in range.</td></tr>';
- document.getElementById('attendance-tbody').innerHTML=att.map(a=>row([a.member_id,members[a.member_id]?.name||'—',members[a.member_id]?.plan||'—',formatTime(a.created_at),a.method,IronVaultReports.expiryLabel(members[a.member_id]),members[a.member_id]?.status||'—'])).join('')||'<tr><td colspan="7" class="p-6 text-center">No check-ins in range.</td></tr>';
+ document.getElementById('attendance-tbody').innerHTML=att.map(a=>{const history=IronVaultReports.attendanceDetails(a);return row([a.member_id,members[a.member_id]?.name||'—',history.plan,formatTime(a.created_at),a.method,history.expiry,history.status]);}).join('')||'<tr><td colspan="7" class="p-6 text-center">No check-ins in range.</td></tr>';
  let auditRows=this.ivMode==='sessions'?sessions.map(s=>({created_at:s.created_at,actor_id:s.actor_id,event:'Staff '+s.event,details:s.event}))
  :activity;
  document.getElementById('metric-audit-count').textContent=auditRows.length+' Logs';

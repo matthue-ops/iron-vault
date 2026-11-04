@@ -33,7 +33,7 @@
   }
   function tableRows(tab=app.currentTab,mode=app.ivMode){
    if(!model)return[];const members=new Map(model.members.map(m=>[m.id,m]));
-   if(tab==='attendance')return model.attendance.map(a=>[code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',members.get(a.member_id)?.plan||'—',stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,R.expiryLabel(members.get(a.member_id)),members.get(a.member_id)?.status||'—']);
+   if(tab==='attendance')return model.attendance.map(a=>{const history=R.attendanceDetails(a);return [code(members.get(a.member_id),a.member_id),members.get(a.member_id)?.name||'—',history.plan,stamp(a.created_at),a.method==='qr'?'QR scan':a.method==='manual'?'Manual desk entry':a.method,history.expiry,history.status];});
    if(tab==='audit'){
     const within=row=>{const d=R.date(row.created_at);return d>=period.start&&d<=period.end;};
     const sessions=(app.ivSessions||[]).map(s=>{const actor=(app.ivActors||[]).find(a=>a.user_id===s.actor_id);return {...s,event:(roleNames[actor?.role]||'Account')+' '+s.event,details:s.event};});
@@ -48,7 +48,7 @@
   function renderDetails(){if(!model||app.currentTab==='overview')return;const rows=matches();page=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));const kind=app.currentTab==='attendance'?'attendance':app.currentTab==='audit'?'audit':'financial';
    if(kind==='audit')node('metric-audit-count').textContent=rows.length+' records';
    rowsInto(kind+'-tbody',rows.slice(page*100,(page+1)*100));node('report-page').textContent=rows.length?'Showing '+(page*100+1)+'–'+Math.min((page+1)*100,rows.length)+' of '+rows.length+' matching rows':'No matching records';
-   node('report-prev').disabled=page===0;node('report-next').disabled=(page+1)*100>=rows.length;node('report-print-context').textContent=(app.currentTab==='financial'?'Money':app.currentTab==='audit'?'Activity':'Attendance')+' · '+node('report-page').textContent+(node('report-search').value?' · Search: '+node('report-search').value:'');
+   node('report-prev').disabled=page===0;node('report-next').disabled=(page+1)*100>=rows.length;node('report-print-context').textContent=(app.currentTab==='financial'?'Money':app.currentTab==='audit'?'Activity':'Attendance')+' · '+node('report-page').textContent+(node('report-search').value?' · Search: '+node('report-search').value:'')+(kind==='attendance'?' · Membership details are saved at check-in; days left exclude that day. Older history may be unavailable.':'');
   }
   function card(label,value,note){const box=root.document.createElement('div');box.className='bg-slate-900/70 rounded-xl p-4 border border-slate-700';const heading=root.document.createElement('p');heading.className='text-xs text-slate-300';heading.textContent=label;
    const number=root.document.createElement('p');number.className='text-xl font-bold text-emerald-300 mt-2';number.textContent=value;const detail=root.document.createElement('p');detail.className='text-xs text-slate-400 mt-2';detail.textContent=note;box.appendChild(heading);box.appendChild(number);box.appendChild(detail);return box;}
@@ -121,7 +121,7 @@
      ['Net cash received',excelMoney(loaded.cashIn),'Top-ups + cash pass payments − cash refunds. Do not add to membership sales.'],[],
      ['Attendance summary','Count','Scope'],['Unique visitors',loaded.uniqueVisitors,'Selected period'],['QR entries',loaded.qr,'Selected period'],['Manual entries',loaded.manual,'Selected period'],['Other entries',loaded.otherAdmissions,'Selected period'],[],
      ['Other report counts','Count','Scope'],['Recorded pass purchases',loaded.purchaseCount,'Selected-period receipts; split payment counts as one purchase.'],['Repeat purchases',loaded.renewals,'Selected-period receipts with an earlier recorded purchase.'],['New registrations',loaded.newMembers,'Selected period'],['Pending approvals',loaded.pending,'Current snapshot'],[],
-     ['Data notes','', 'Wallet after comes from a matching saved receipt. Unavailable history is not inferred. Member names, roles, classifications, plans and statuses use current available profiles. Older sales without receipts do not contribute to purchase counts.'],
+     ['Data notes','', 'Wallet after comes from a matching saved receipt. Unavailable history is not inferred. Attendance plan, expiry, remaining days and status use saved check-in history; unavailable history is not inferred. Remaining days exclude the check-in day. Names, roles and classifications use current available profiles. Older sales without receipts do not contribute to purchase counts.'],
      ['Excluded invalid money values',loaded.invalid,'Excluded from summary totals; original detail records remain included.'],['Unclassified financial entries',loaded.other,'Excluded from summary totals; original detail records remain included.'],[],
      ['Daily totals (Manila)','Net cash (PHP)','Membership sales (PHP)','Visits'],...loaded.daily.map(day=>[day.day,excelMoney(day.cash),excelMoney(day.sales),day.visits]),[],
      ['Passes expiring within 7 days','Member name','Current plan','Current expiry'],...loaded.expiring.map(member=>[code(member),member.name,member.plan,member.expiration_date??member.expirationDate])];
@@ -129,7 +129,7 @@
     const sheets=[
      {name:'Overview',rows:[...metadata,...summary],headerRow:7,widths:[36,32,90,24]},
      {name:'Money',rows:[...metadata,['Member code','Name','Classification','Entry type','Transaction amount (PHP)','Wallet after (PHP)','Recorded at (Manila)','Description'],...money],headerRow:7,widths:[18,28,18,28,25,23,27,65],filter:true},
-     {name:'Attendance',rows:[...metadata,['Member code','Name','Current plan','Check-in (Manila)','Entry method','Current expiry / days left','Current status'],...tableRows('attendance')],headerRow:7,widths:[18,28,25,27,25,40,20],filter:true},
+     {name:'Attendance',rows:[...metadata,['Member code','Name','Plan at check-in','Check-in (Manila)','Entry method','Expiry / days left at check-in','Status at check-in'],...tableRows('attendance')],headerRow:7,widths:[18,28,25,27,25,40,20],filter:true},
      {name:'Activity',rows:[...metadata,['Recorded at (Manila)','Name / role','Action','Details'],...tableRows('audit','all')],headerRow:7,widths:[27,36,40,85],filter:true}
     ];
     const bytes=await root.IronVaultReportsExcel.create(sheets,root.JSZip||await root.IronVaultReportsExcel.loadZip());
@@ -144,8 +144,8 @@
   app.exportReportCsv=async function(){try{
    await this.ivRequireReport();if(this.currentTab==='overview')return;if(!model||!period)throw Error('Load a report first.');
    const kind=this.currentTab==='attendance'?'attendance':this.currentTab==='audit'?'audit':'financial';
-   const headings=kind==='attendance'?['Member code','Name','Current plan','Check-in (Asia/Manila)','Method','Current pass expiry / days left','Current status']:kind==='audit'?['Time (Asia/Manila)','Name / role','Action','Details']:['Member code','Name','Classification','Entry type','Transaction amount','Wallet after','Time (Asia/Manila)','Description'];
-   const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note',kind==='financial'?'Wallet after is the saved balance immediately after that transaction; Unavailable means the historical balance cannot be verified. Names and classifications reflect current profiles. CSV includes all matching rows.':'Plans, classifications and statuses reflect the current snapshot. CSV includes all matching detail rows.'],headings,...matches()]);
+   const headings=kind==='attendance'?['Member code','Name','Plan at check-in','Check-in (Asia/Manila)','Method','Expiry / days left at check-in','Status at check-in']:kind==='audit'?['Time (Asia/Manila)','Name / role','Action','Details']:['Member code','Name','Classification','Entry type','Transaction amount','Wallet after','Time (Asia/Manila)','Description'];
+   const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note',kind==='financial'?'Wallet after is the saved balance immediately after that transaction; Unavailable means the historical balance cannot be verified. Names and classifications reflect current profiles. CSV includes all matching rows.':'Attendance membership details reflect saved check-in history; unavailable history is not inferred. Days left exclude the check-in day. Names and classifications reflect current profiles. CSV includes all matching detail rows.'],headings,...matches()]);
    const url=root.URL.createObjectURL(new root.Blob([text],{type:'text/csv;charset=utf-8'}));const link=root.document.createElement('a');link.href=url;link.download='IronVault_'+kind+'_'+period.start+'_'+period.end+'.csv';link.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);
   }catch(error){this.ivDeny(error);}};
   node('report-search').addEventListener('input',()=>{page=0;renderDetails();});node('report-prev').addEventListener('click',()=>{page--;renderDetails();});node('report-next').addEventListener('click',()=>{page++;renderDetails();});

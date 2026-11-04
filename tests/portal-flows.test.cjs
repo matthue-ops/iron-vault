@@ -321,13 +321,13 @@ test('member profile renders the short code while its database query keeps the i
  const app=p.get('profileApp');app.authenticatedRole={member_id:'long-internal-id',tenant_id:'gym-a'};await app.loadData();app.currentMember=app.allMembersSystem[0];app.renderProfile();
  assert.equal(p.element('profile-card-id').innerText,'MEM-0042');assert.equal(app.currentMember.id,'long-internal-id');
 });
-test('attendance shows current expiry and activity never falls back to the money log',async()=>{
+test('attendance uses saved entitlement despite renewal and activity never falls back to the money log',async()=>{
  const p=reportFixture();await p.app.init();p.app.branchMembers=[{id:'member-a',name:'Member',displayCode:'MEM-0001',plan:'1-Week Pass',expiration_date:'2026-11-08',status:'ACTIVE'}];
- p.app.ivAttendance=[{member_id:'member-a',method:'manual',created_at:'2026-11-01T01:00:00+08:00'}];
+ p.app.ivAttendance=[{member_id:'member-a',method:'manual',created_at:'2026-11-01T01:00:00+08:00',membership_snapshot:{version:1,business_day:'2026-11-01',plan:'1-Week Pass',expiration_date:'2026-11-07',days_remaining:6,status:'ACTIVE'}}];
  p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',event:'Pricing updated',details:'New rates'}];
  p.app.ivActors=[{user_id:'staff',name:'Staff Person',role:'staff'}];p.app.ivSessions=[{created_at:'2026-11-01T02:00:00+08:00',event:'login',actor_id:'staff'}];
  await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('attendance');
- const attendance=p.element('attendance-tbody').children.at(-1).children.map(c=>c.textContent);assert.match(attendance[5],/8 Nov 2026.*7 days left/);
+ const attendance=p.element('attendance-tbody').children.at(-1).children.map(c=>c.textContent);assert.match(attendance[5],/7 Nov 2026.*6 days left/);
  p.app.switchTab('audit');assert.equal(p.app.ivMode,'all');p.app.ivChoose('activity');let row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Pricing updated');
  p.app.ivChoose('sessions');row=p.element('audit-tbody').children.at(-1).children.map(c=>c.textContent);assert.equal(row[2],'Staff login');
  p.app.switchTab('audit');assert.equal(p.app.ivMode,'sessions');
@@ -564,4 +564,19 @@ test('sign-in from a readable URL navigates into gym pages and retains scoped au
 });
 test('a different gym membership cannot sign in through a friendly URL',async()=>{
  const p=portal('gym/login.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-b',member_id:'member-b'}],owners:[{id:'gym-a',token:'token-a',portal_slug:'fitness-gym',gym_name:'Fitness Gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym';const app=p.get('app');await app.init();p.client.auth.setSession=async()=>({error:null});p.client.functions={invoke:async()=>({data:{session:{access_token:'test',refresh_token:'test-refresh'}}})};p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';const original=p.context.location.href;await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.context.location.href,original);assert.match(p.element('form-alert-msg').innerText,/cannot access/i);
+});
+
+test('attendance table CSV Print and Excel share frozen history after renewal and mark legacy rows unavailable',async()=>{
+ const p=await walletHistoryReport(),captured=captureExcel(p);let printed=0;p.context.print=()=>{printed++};
+ p.app.branchMembers=[{id:'ian',displayCode:'MEM-0001',name:'Ian',plan:'1-Month Unlimited',expiration_date:'2027-01-01',status:'INACTIVE'}];
+ p.app.ivAttendance=[
+ {member_id:'ian',method:'qr',created_at:'2026-11-01T02:00:00+08:00',membership_snapshot:{version:1,business_day:'2026-11-01',plan:'1-Week Pass',expiration_date:'2026-11-07',days_remaining:6,status:'ACTIVE'}},
+ {member_id:'ian',method:'manual',created_at:'2026-11-01T03:00:00+08:00'}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.switchTab('attendance');
+ const rows=()=>p.element('attendance-tbody').children.slice(-2).map(row=>row.children.map(cell=>cell.textContent));
+ assert.equal(rows()[0][2],'1-Week Pass');assert.match(rows()[0][5],/7 Nov 2026.*6 days left/);assert.equal(rows()[0][6],'ACTIVE');assert.equal(rows()[1][5],'History unavailable');
+ await p.app.exportReportCsv();const csv=await captured.blob().text();assert.match(csv,/Plan at check-in/);assert.match(csv,/7 Nov 2026.*6 days left/);assert.match(csv,/History unavailable/);assert.doesNotMatch(csv,/2027/);
+ await p.app.printReport();assert.equal(printed,1);assert.match(rows()[0][5],/6 days left/);assert.match(p.element('report-print-context').textContent,/days left exclude that day/);
+ await p.app.exportAllReportsXlsx();const zip=await captured.zip(),sheet=await zip.file('xl/worksheets/sheet3.xml').async('string');
+ assert.match(sheet,/Plan at check-in/);assert.match(sheet,/7 Nov 2026.*6 days left/);assert.match(sheet,/History unavailable/);assert.doesNotMatch(sheet,/1-Month Unlimited|2027-01-01/);
 });
