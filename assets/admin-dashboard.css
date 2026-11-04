@@ -59,3 +59,30 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline:2px solid
  #admin-dashboard tbody button { min-height:44px; }
 }
 @media(prefers-reduced-motion:reduce) { button,input,select,summary,#pricing-settings-card summary > i { transition:none; } }
+
+/* The desktop roster stays a table; phones use short, accessible member buttons. */
+.mobile-roster { display:none; }
+@media(max-width:639px) {
+ .desktop-roster { display:none; }
+ .mobile-roster { display:block; }
+ .mobile-member-row { display:block; width:100%; text-align:left; padding:14px 4px; border-bottom:1px solid #2b384a; background:transparent; color:#e2e8f0; white-space:normal; }
+ .mobile-member-row:hover { background:#192637; }
+ .mobile-member-heading { display:flex; align-items:start; justify-content:space-between; gap:12px; }
+ .mobile-member-heading strong { font-size:14px; font-weight:650; overflow-wrap:anywhere; }
+ .mobile-member-active { flex-shrink:0; color:#6ee7b7; background:#10382e; border:1px solid #1b5947; padding:2px 6px; border-radius:6px; font-size:9px; font-weight:700; }
+ .mobile-member-meta { display:block; color:#a2b2c7; font-size:11px; margin-top:5px; overflow-wrap:anywhere; }
+ .mobile-member-bottom { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; color:#cbd5e1; font-size:11px; line-height:1.5; }
+ .mobile-member-bottom > span:last-child { font-size:22px; color:#94a3b8; }
+ .mobile-member-entered { color:#6ee7b7; }
+ .mobile-member-waiting { color:#c0cad8; }
+ .mobile-roster-pagination { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:14px; }
+ .mobile-roster-pagination button { min-height:44px; padding:8px 12px; border:1px solid #344156; border-radius:9px; font-size:11px; font-weight:600; color:#e2e8f0; background:#1b2737; }
+ .mobile-roster-pagination button:disabled { opacity:.4; cursor:default; }
+ #mobile-roster-page { font-size:11px; color:#a2b2c7; }
+ .mobile-roster-empty { color:#94a3b8; text-align:center; padding:24px 0; font-size:12px; }
+}
+
+.mobile-roster-remove { display:none; }
+@media(max-width:639px) {
+ .mobile-roster-remove:not([hidden]) { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 12px; color:#fda4af; background:#3b1c2a; border:1px solid #713044; border-radius:10px; font-size:12px; }
+}
