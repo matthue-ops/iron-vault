@@ -11,6 +11,6 @@
   if(!bundle?.platform||!bundle?.gym)throw Error('Published documents are unavailable for this gym or version. Contact the gym before registering.');
   document.getElementById('legal-back').href='/gym/login.html?key='+encodeURIComponent(token);
   document.getElementById('legal-other').href=IronVaultLegal.url(kind==='terms'?'privacy':'terms',token,bundle);
-  IronVaultLegal.display(document.getElementById('legal-page-content'),[bundle.platform,bundle.gym],kind);status.textContent='Platform and gym documents below apply together. These are the published versions linked by your gym.';
+  IronVaultLegal.display(document.getElementById('legal-page-content'),bundle.documents?[bundle.documents]:[bundle.platform,bundle.gym],kind);status.textContent='Platform and gym documents below apply together. These are the published versions linked by your gym.';
  }catch(error){status.textContent=error.message;}})();
 })();
