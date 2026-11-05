@@ -58,3 +58,7 @@ On test gyms after manual installation, verify:
 - Draft saves do not change published versions. Publishing price changes early is rejected. Previously accepted versions/approved future prices stay intact.
 
 Do not move the production clock or rewrite existing business records to simulate dates. Use controlled test periods in a separate staging project and review outcomes before real billing.
+
+## Correction after an existing 035 installation
+
+If Service Agreement Settings reports `column reference "id" is ambiguous`, run **`supabase/manual/fix_subscription_sql_names.sql` (036)** in the same project's SQL Editor. Do not rerun 035. This replaces only the two affected function bodies, renaming local variables and disambiguating the period-history alias. Existing tables, drafts, publications, acceptances, subscriptions, records, RLS and grants remain intact. Refresh the page afterward. No Edge or Cloudflare deployment is needed for this database correction. Fresh installations use the corrected 035 definitions; 036 is also safe to apply afterward.

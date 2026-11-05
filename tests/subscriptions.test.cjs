@@ -58,3 +58,11 @@ test('internal state and billing remain private and super inspection is preserve
  assert.match(section('ironvault_private.subscription_require'),/p_actor IS NOT NULL AND NOT EXISTS/);
  assert.match(sql,/iv_subscription_payment_reference_unique/);assert.match(sql,/gym_snapshot jsonb NOT NULL,owner_snapshot jsonb NOT NULL/);
 });
+
+test('036 fixes SQL variable/column collisions without reinstalling subscription tables or touching records',()=>{
+ const patch=fs.readFileSync('supabase/manual/fix_subscription_sql_names.sql','utf8');assert.equal(patch,fs.readFileSync('supabase/migrations/202611050036_fix_subscription_sql_names.sql','utf8'));
+ assert.doesNotMatch(patch,/CREATE TABLE|ALTER TABLE|DROP |DELETE FROM|TRUNCATE|GRANT |REVOKE /);
+ assert.doesNotMatch(patch,/;id uuid;/);assert.match(patch,/published_version_id uuid/);assert.match(patch,/request_id_value uuid/);
+ assert.match(patch,/FROM ironvault_private.subscription_periods period_row/);assert.doesNotMatch(patch,/to_jsonb\(p\) ORDER BY start_date/);
+ for(const name of ['public.iv_service_documents','public.iv_subscription_portal']){const start=patch.indexOf('FUNCTION '+name+'(');assert.ok(start>=0);assert.equal(patch.slice(start,patch.indexOf('$fn$;',start)+6),section(name));}
+});
