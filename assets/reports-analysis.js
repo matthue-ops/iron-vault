@@ -28,6 +28,12 @@
   if(days<0||!Number.isInteger(snapshot.days_remaining)||snapshot.days_remaining!==days)return {...base,expiry:'History unavailable'};
   return {...base,expiry:'Valid through '+label(expiry)+' · '+days+' day'+(days===1?'':'s')+' left'};
  }
+ function auditSnapshot(row,tenant){const data=row?.audit_data;return data?.version===1&&data.tenant_id===tenant?data:null;}
+ function auditActor(row,tenant){
+  const actor=auditSnapshot(row,tenant)?.actor;if(!actor||typeof actor.name!=='string'||!actor.name.trim())return null;
+  const roles={owner:'Gym Admin',staff:'Staff',member:'Member',super_admin:'Super Admin',unknown:'Unknown role'};
+  return actor.name+' — '+(roles[actor.role]||'Unknown role');
+ }
  function analyze(snapshot,start,end,today=date(new Date())){
   if(!validDate(start)||!validDate(end)||end<start)throw Error('Choose a valid start and end date.');
   const within=row=>{const day=date(row.created_at);return day&&day>=start&&day<=end;};
@@ -53,5 +59,5 @@
    otherAdmissions:attendance.length-qr-manual,peakHours:peak?hours.flatMap((n,h)=>n===peak?[h]:[]):[],peakVisits:peak,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day))};
  }
  function csv(rows){return '\uFEFF'+rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[\t\r\n]|^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');}
- const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,attendanceDetails,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,attendanceDetails,auditSnapshot,auditActor,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(globalThis);

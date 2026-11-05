@@ -115,7 +115,7 @@ function qrFixture(){
 test('QR admission redeems a server-issued ticket in the selected gym',async()=>{
  const p=qrFixture();const rpc=[];p.client.rpc=async(name,args)=>{rpc.push({name,args});return {data:'timestamp',error:null}};
  await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
- assert.equal(rpc.length,2);assert.equal(rpc[0].name,'iv_redeem_member_pass');assert.equal(rpc[1].name,'iv_log_event');
+ assert.equal(rpc.length,1);assert.equal(rpc[0].name,'iv_redeem_member_pass');
  assert.equal(rpc[0].args.p_token,'01234567-89ab-4cde-8fab-0123456789ab');assert.equal(rpc[0].args.p_tenant,'gym-a');
  assert.equal(p.results.at(-1).ok,true);
 });
@@ -137,11 +137,11 @@ test('confirmed QR check-in is not reported as failed if roster refresh subseque
  await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
  assert.equal(p.results.at(-1).ok,true);assert.equal(p.results.at(-1).title,'ENTRY RECORDED');
 });
-test('an activity-note failure cannot undo or misreport a confirmed QR admission',async()=>{
+test('confirmed QR admission relies on the server audit and never sends a duplicate client note',async()=>{
  const p=qrFixture();p.client.rpc=async name=>name==='iv_redeem_member_pass'
   ?{data:'timestamp',error:null}:{data:null,error:{message:'note unavailable'}};
  await p.app.processScannedCode('IV1|01234567-89ab-4cde-8fab-0123456789ab');
- assert.equal(p.results.at(-1).ok,true);assert.match(p.results.at(-1).description,/Activity note unavailable/);
+ assert.equal(p.results.at(-1).ok,true);assert.equal(p.results.at(-1).description,'Entry recorded.');
 });
 function reportFixture(role='owner',enabled=true){
  const p=portal('gym/reports.html',{user:{id:'report-user'},roles:[{user_id:'report-user',role,tenant_id:role==='super_admin'?null:'gym-a'}],
@@ -191,7 +191,7 @@ test('denied report navigation keeps ordinary staff in the desk portal',async()=
 
 test('desk sale uses a server quote and payment RPC without saving client financial fields',async()=>{
  const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}]});
- const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeCheckInMemberId='member';p.context.confirm=()=>true;
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.confirmAdmin=async()=>true;app.notifyAdmin=message=>p.alerts.push(message);app.activeCheckInMemberId='member';p.context.confirm=()=>true;
  let admitted=0;app.finalizeDeskCheckIn=async()=>{admitted++};app.saveMembers=async()=>{throw Error('Client write forbidden')};
  const calls=[];p.client.rpc=async(name,args)=>{calls.push({name,args});return name==='iv_quote_plan'?{data:{price:150,wallet_balance:100}}:{data:{request_id:args.p_request_id,wallet_balance:0}}};
  await app.confirmPlanSelection('1-Day Pass');
@@ -201,7 +201,7 @@ test('desk sale uses a server quote and payment RPC without saving client financ
 });
 test('desk retries an unknown purchase outcome with the original key and split without quoting again',async()=>{
  const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}]});
- const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeCheckInMemberId='member';p.context.confirm=()=>true;
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.confirmAdmin=async()=>true;app.notifyAdmin=message=>p.alerts.push(message);app.activeCheckInMemberId='member';p.context.confirm=()=>true;
  let admitted=0,quotes=0;const requests=[];app.finalizeDeskCheckIn=async()=>{admitted++};
  p.client.rpc=async(name,args)=>{if(name==='iv_quote_plan'){quotes++;return{data:{price:150,wallet_balance:100}}}
   requests.push(args);if(requests.length===1)throw Error('Lost response');return{data:{request_id:args.p_request_id,wallet_balance:0}}};
@@ -211,7 +211,7 @@ test('desk retries an unknown purchase outcome with the original key and split w
 });
 test('denied or missing financial backend cannot fall back to client balance mutations or admission',async()=>{
  const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}]});
- const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeCheckInMemberId='member';p.context.confirm=()=>true;
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.confirmAdmin=async()=>true;app.notifyAdmin=message=>p.alerts.push(message);app.activeCheckInMemberId='member';p.context.confirm=()=>true;
  let writes=0;app.saveMembers=async()=>{writes++};app.finalizeDeskCheckIn=async()=>{writes++};
  p.client.rpc=async()=>({error:{code:'PGRST202',message:'Missing RPC'}});
  await app.confirmPlanSelection('1-Day Pass');assert.equal(writes,0);assert.equal(app.activeCheckInMemberId,'member');
@@ -237,7 +237,7 @@ test('admin logout still attempts local signout after an audit network failure',
 
 test('top-up uses verified active member state and stable transaction RPC after the data cutover',async()=>{
  const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}],members:[{id:'member',tenant_id:'gym-a',status:'ACTIVE'}]});
- const app=p.get('adminApp');app.currentTenantId='gym-a';app.activeModalMemberId='member';app.members=[{id:'member',name:'Member'}];p.context.confirm=()=>true;
+ const app=p.get('adminApp');app.currentTenantId='gym-a';app.confirmAdmin=async()=>true;app.notifyAdmin=message=>p.alerts.push(message);app.activeModalMemberId='member';app.members=[{id:'member',name:'Member'}];p.context.confirm=()=>true;
  app.loadMembers=async()=>{};app.openProfileModal=()=>{};const calls=[];
  p.client.rpc=async(name,args)=>{calls.push({name,args});return{data:{request_id:args.p_request_id,wallet_balance:100}}};
  await app.addModalCredits(100);assert.equal(calls[0].name,'iv_financial_transaction');assert.equal(calls[0].args.p_operation,'topup');assert.equal(app.members[0].walletBalance,100);
@@ -579,4 +579,25 @@ test('attendance table CSV Print and Excel share frozen history after renewal an
  await p.app.printReport();assert.equal(printed,1);assert.match(rows()[0][5],/6 days left/);assert.match(p.element('report-print-context').textContent,/days left exclude that day/);
  await p.app.exportAllReportsXlsx();const zip=await captured.zip(),sheet=await zip.file('xl/worksheets/sheet3.xml').async('string');
  assert.match(sheet,/Plan at check-in/);assert.match(sheet,/7 Nov 2026.*6 days left/);assert.match(sheet,/History unavailable/);assert.doesNotMatch(sheet,/1-Month Unlimited|2027-01-01/);
+});
+
+test('precise Activity preserves original operator and money details after profile renames in table, CSV and print',async()=>{
+ const p=await namedActivity();p.app.ivSessions=[];p.app.ivActors=[{user_id:activityStaff,name:'Renamed Staff',role:'staff'}];
+ const details='Original Member (MEM-0001) · Added ₱500.00 · Wallet ₱100.00 → ₱600.00';
+ p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',actor_id:activityStaff,event:'Wallet top-up',details,
+ audit_data:{version:1,tenant_id:'gym-a',actor:{id:activityStaff,name:'Original Staff',role:'staff'}}}];
+ await p.app.ivRender('2026-11-01','2026-11-01');p.app.ivChoose('activity');
+ const row=p.element('audit-tbody').children.at(-1);assert.equal(row.children[1].textContent,'Original Staff — Staff');assert.equal(row.children[3].textContent,details);
+ let blob,printed=0;p.context.Blob=Blob;p.context.URL={createObjectURL:value=>{blob=value;return 'blob:audit'},revokeObjectURL(){}};p.context.print=()=>{printed++};
+ await p.app.exportReportCsv();const csv=await blob.text();assert.match(csv,/Original Staff — Staff/);assert.match(csv,/Added ₱500.00/);assert.doesNotMatch(csv,/Renamed Staff/);
+ await p.app.printReport();assert.equal(printed,1);
+});
+
+test('Activity spreadsheet preserves at-event operator and details when the current account is absent',async()=>{
+ const p=await namedActivity(),captured=captureExcel(p);p.app.ivActors=[];p.app.ivSessions=[];
+ p.app.ivActivity=[{created_at:'2026-11-01T02:00:00+08:00',event:'Manual check-in',details:'Original Member (MEM-0001) · Entry recorded manually',actor_id:activityStaff,
+ audit_data:{version:1,tenant_id:'gym-a',actor:{id:activityStaff,name:'Original Operator',role:'staff'}}}];
+ await p.app.ivRender('2026-11-01','2026-11-01');await p.app.exportAllReportsXlsx();
+ const zip=await captured.zip(),xml=await zip.file('xl/worksheets/sheet4.xml').async('string');
+ assert.match(xml,/Original Operator — Staff/);assert.match(xml,/Original Member \(MEM-0001\)/);assert.match(xml,/Entry recorded manually/);
 });
