@@ -5,7 +5,7 @@ function fixture(agreed=false){
  const events={},auth=[],calls=[];let user='user',reply={user_id:user,member_id:'member',tenant_id:'gym',accepted:agreed,platform_version:p,gym_version:g,acceptance:agreed?{platform_version:p,gym_version:g,accepted_at:'2026-11-05T00:00:00Z'}:null};
  const root={Intl,Date,URLSearchParams,navigator:{onLine:true},document:{body:node('body'),getElementById:node,addEventListener(){}},setTimeout:()=>1,clearTimeout(){},addEventListener:(n,f)=>{events[n]=f;}};
  const client={auth:{getUser:async()=>({data:{user:{id:user}}}),onAuthStateChange:f=>auth.push(f)},rpc:async(name,args)=>{calls.push({name,args});if(name==='iv_member_legal_accept')reply={...reply,accepted:true,acceptance:{platform_version:p,gym_version:g,accepted_at:'2026-11-05T00:00:00Z'}};return{data:reply};}};
- let purchases=0,qr=0;const app={authenticatedRole:{user_id:'user',member_id:'member',tenant_id:'gym'},currentMember:{id:'member',tenantId:'gym',tenantToken:'token',status:'ACTIVE'},init:async()=>{},renderProfile(){},openMemberAnnouncements:async()=>{},selectPlan:async()=>{purchases++;},generateDailyQR:async()=>{qr++;}};
+ let purchases=0,qr=0;const app={authenticatedRole:{user_id:'user',member_id:'member',tenant_id:'gym'},currentMember:{id:'member',tenantId:'gym',tenantToken:'token',status:'ACTIVE'},init:async()=>{},showAlert(){},renderProfile(){},openMemberAnnouncements:async()=>{},selectPlan:async()=>{purchases++;},generateDailyQR:async()=>{qr++;}};
  vm.runInNewContext(fs.readFileSync('assets/member-portal-agreement.js','utf8'),root);root.IronVaultMemberPortalAgreement.install(app,client);
  return{root,node,client,app,auth,calls,setReply:value=>{reply=value;},reply:()=>reply,setUser:value=>{user=value;},purchases:()=>purchases,qr:()=>qr};
 }
@@ -48,7 +48,7 @@ test('financial writer changes only the new member agreement gate and preserves 
 
 test('pending member stays on profile with accepted Terms but cannot purchase or generate QR until approved',async()=>{
  const f=fixture(true);f.app.currentMember.status='PENDING';await f.app.init();
- assert.match(f.node('member-legal-state').textContent,/Awaiting gym approval/);assert.equal(f.app.currentMember.id,'member');
+ assert.equal(f.node('member-approval-notice').hidden,false);assert.match(f.node('member-legal-state').textContent,/You have agreed/);assert.equal(f.app.currentMember.id,'member');
  await f.app.selectPlan('1-Day Pass');await f.app.generateDailyQR();assert.equal(f.purchases(),0);assert.equal(f.qr(),0);
  assert.equal(f.node('member-accepted-record').hidden,false);
  f.app.currentMember.status='ACTIVE';await f.app.refreshMemberLegal(true);await f.app.selectPlan('1-Day Pass');assert.equal(f.purchases(),1);
@@ -56,4 +56,25 @@ test('pending member stays on profile with accepted Terms but cannot purchase or
 test('pending member can explicitly accept Terms without approving their membership',async()=>{
  const f=fixture();f.app.currentMember.status='PENDING';await f.app.init();f.node('member-legal-checkbox').checked=true;await f.node('member-legal-agree').onclick();
  assert.equal(f.app.currentMember.status,'PENDING');assert.equal(f.node('btn-generate-qr').attrs['aria-disabled'],'true');assert.equal(f.node('member-accepted-record').hidden,false);
+});
+
+test('pending portal signup with accepted Terms has only approval restrictions, no legal reminder or extra notification',async()=>{
+ const f=fixture(true);f.app.currentMember.status='PENDING';let alert='';f.app.showAlert=text=>{alert=text;};await f.app.init();
+ assert.equal(f.app.hasLegalNotice(),false);assert.equal(f.node('member-legal-notice').hidden,true);assert.equal(f.node('member-current-documents').hidden,true);
+ assert.equal(f.node('member-notices-count').textContent,'');assert.equal(f.node('member-accepted-record').hidden,false);
+ f.app.renderLegalNotice(2);assert.equal(f.node('member-notices-count').textContent,'2');
+ await f.app.generateDailyQR();assert.equal(f.qr(),0);assert.match(alert,/Awaiting gym approval/);assert.equal(f.node('member-terms-dialog').open,false);
+ f.app.currentMember.status='ACTIVE';await f.app.refreshMemberLegal(true);await f.app.generateDailyQR();assert.equal(f.qr(),1);assert.equal(f.app.hasLegalNotice(),false);
+});
+test('pre-approved walk-in without acceptance is restricted by Terms, and acceptance enables its features',async()=>{
+ const f=fixture(false);await f.app.init();assert.equal(f.node('member-approval-notice').hidden,true);assert.equal(f.app.hasLegalNotice(),true);
+ await f.app.generateDailyQR();assert.equal(f.qr(),0);assert.equal(f.node('member-terms-dialog').open,true);
+ f.node('member-legal-checkbox').checked=true;await f.node('member-legal-agree').onclick();assert.equal(f.app.currentMember.status,'ACTIVE');assert.equal(f.app.hasLegalNotice(),false);
+ await f.app.generateDailyQR();assert.equal(f.qr(),1);
+});
+test('new Terms version creates a legal reminder even for an already accepted pending member',async()=>{
+ const f=fixture(true);f.app.currentMember.status='PENDING';await f.app.init();assert.equal(f.app.hasLegalNotice(),false);
+ f.setReply({...f.reply(),accepted:false,gym_version:'33333333-3333-4333-8333-333333333333'});await f.app.refreshMemberLegal(true);
+ assert.equal(f.app.hasLegalNotice(),true);assert.equal(f.node('member-notices-count').textContent,'1');assert.equal(f.node('member-approval-notice').hidden,false);
+ assert.match(f.node('member-accepted-terms').href,/gym=22222222/);
 });
