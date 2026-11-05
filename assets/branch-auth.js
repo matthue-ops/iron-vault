@@ -10,10 +10,16 @@
  async function provision(client,storage,name,body){
   if(typeof body.password==='string'&&body.password.length<8)throw Error('At least 8 characters.');
   const {data}=await client.auth.getUser();const actor=data?.user?.id||'public';
-  const key='ironvault_provision:'+actor+':'+name+':'+(body.tenant_id||body.tenantId||body.gym_token||'new')+':'+String(body.email).trim().toLowerCase();
+  const legacyKey='ironvault_provision:'+actor+':'+name+':'+(body.tenant_id||body.tenantId||body.gym_token||'new')+':'+String(body.email).trim().toLowerCase();
   body={...body,email:String(body.email||'').trim().toLowerCase()};
   const safe={...body};delete safe.password;delete safe.request_id;
-  const payload=JSON.stringify(safe);let pending=JSON.parse(storage.getItem(key)||'null');
+  const payload=JSON.stringify(safe);
+  // Blank email is not an account identity. Keep each walk-in's retries separate.
+  const walkin=name==='iv-create-member'&&!body.email;
+  let key=walkin?legacyKey+':walkin:'+JSON.stringify([String(body.name||''),String(body.phone||'')]):legacyKey;
+  // Preserve the request ID of an exact pre-fix attempt; never discard an unknown result.
+  if(walkin){const legacy=JSON.parse(storage.getItem(legacyKey)||'null');if(legacy?.payload===payload)key=legacyKey;}
+  let pending=JSON.parse(storage.getItem(key)||'null');
   if(pending&&pending.payload!==payload)throw Error('Retry the original account request before changing its details.');
   if(!pending){pending={id:root.crypto.randomUUID(),payload};storage.setItem(key,JSON.stringify(pending));}
   let result;try{result=await invoke(client,name,{...body,request_id:pending.id});}catch(error){if(String(error.message).includes('LEGAL_REVIEW_REQUIRED'))storage.removeItem(key);throw error;}
