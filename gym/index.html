@@ -76,6 +76,7 @@
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
 <link rel="stylesheet" href="../assets/legal-documents.css">
+<link rel="stylesheet" href="../assets/subscriptions.css">
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -1472,5 +1473,8 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script src="../assets/live-updates.js"></script>
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(indexApp,supabaseClient,'master');</script>
+<script src="../assets/service-policy.js"></script>
+<script src="../assets/subscriptions.js"></script>
+<script>IronVaultSubscriptions.install(indexApp,supabaseClient,'master');</script>
 </body>
 </html>

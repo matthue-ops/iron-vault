@@ -262,3 +262,8 @@ test('member with no contact can add a real email using only proof of that new i
  await f.c.changeContact(new Request('https://edge.example.invalid'),{new_email:'real@example.invalid'});
  assert.equal(f.mail.length,1);assert.equal(f.mail[0].to,'real@example.invalid');assert.equal(f.queues[0].p_kind,'correct_unverified');assert.equal(f.queues[0].p_base_email,null);assert.equal(f.queues[0].p_actor,'member');
 });
+
+test('Edge subscription denial is explicit without exposing SQL or private arguments',async()=>{
+ const f=runtime();f.client.rpc=async()=>({error:{code:'IV003',message:'private backend detail'}});
+ await assert.rejects(f.c.rpc('iv_prepare_branch_account',{p_email:'private@example.invalid'}),/^Error: Gym subscription access is unavailable\. Contact the registered gym owner\.$/);
+});
