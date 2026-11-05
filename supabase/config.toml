@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.iv-purge-tenant]
 verify_jwt = true
+
+[functions.iv-service-pdf]
+verify_jwt = true
