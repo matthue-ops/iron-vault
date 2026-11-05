@@ -135,7 +135,7 @@
 
         <!-- SUPER ADMIN DASHBOARD (VISIBLE WHEN LOGGED IN) -->
         <div id="super-dashboard" class="space-y-6 hidden">
-<div class="flex justify-end"><button type="button" onclick="indexApp.openLegalSettings()" class="rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-slate-200"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Platform Legal Details</button></div>
+
             
             <!-- METRICS ROW -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -144,7 +144,7 @@
                         <i class="fa-solid fa-dumbbell"></i>
                     </div>
                     <div>
-                        <span class="text-xs text-slate-400">Registered Gym Tenants</span>
+                        <span class="text-xs text-slate-400">Live Gym Tenants</span>
                         <h3 id="stat-gyms" class="text-xl font-black text-white">0</h3>
                     </div>
                 </div>
@@ -154,7 +154,7 @@
                         <i class="fa-solid fa-users"></i>
                     </div>
                     <div>
-                        <span class="text-xs text-slate-400">Total System Members</span>
+                        <span class="text-xs text-slate-400">Live Gym Members</span>
                         <h3 id="stat-members" class="text-xl font-black text-white">0</h3>
                     </div>
                 </div>
@@ -752,7 +752,7 @@
                                 <div class="flex items-center gap-2.5">
                                     ${logoHtml}
                                     <div class="space-y-1">
-                                        <div class="font-semibold text-white">${IronVaultData.escape(owner.gymName)}</div>
+                                        <div class="font-semibold text-white">${IronVaultData.escape(owner.gymName)} ${this.providerTenants?.[owner.id]?.is_test ? '<span class="tenant-test-badge">TEST</span>' : '<span class="tenant-live-badge">LIVE</span>'}</div>
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <a href="${IronVaultData.escape(memberPortalUrl)}" target="_blank" rel="noopener" class="text-[11px] font-mono text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                                                 ${IronVaultData.escape(IronVaultGymPortals.label(owner))}
@@ -781,6 +781,8 @@
                                 <button onclick="indexApp.openInspectModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Inspect Branch & Staff">
                                     <i class="fa-solid fa-eye"></i> View Branch
                                 </button>
+                                <button type="button" onclick="indexApp.openSubscriptionBilling(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="tenant-manage-button">Manage Subscription</button>
+                                <button type="button" onclick="indexApp.setTenantTag(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="tenant-manage-button">${this.providerTenants?.[owner.id]?.is_test ? 'Mark Live' : 'Mark Test'}</button>
                                 <button onclick="indexApp.openEditModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px]" title="Edit Tenant Details">
                                     <i class="fa-solid fa-pen-to-square"></i> Edit
                                 </button>
@@ -1457,7 +1459,7 @@ indexApp.handleInspectAddStaff = async function(event) {
   <h2 class="text-xl font-bold text-rose-300">Permanently purge tenant</h2>
   <p class="text-sm text-slate-300">This permanently removes this gym, its members, financial records, attendance, staff records, and dedicated login accounts. There is no app undo. Outstanding credits will not be refunded by this action. Super Admin and accounts linked elsewhere are preserved.</p>
   <pre id="purge-summary" class="text-sm text-white whitespace-pre-wrap"></pre>
-  <p class="text-xs text-slate-400">Exports, external mail logs and infrastructure backups are outside this purge. Cancel to export records first.</p>
+  <p class="text-xs text-slate-400">Before purging, export or back up needed records and review any lawful retention requirements. No automatic backup is created. Purge removes this gym’s database records, subscription/document acceptances and dedicated login accounts; shared login accounts are retained. Shared Provider document templates and announcement metadata remain. External exports, email logs, infrastructure backups and any separately stored files are outside this purge and require separate review. You may still proceed after confirming.</p>
   <label id="purge-confirm-label" for="purge-confirmation" class="block text-sm text-white"></label>
   <input id="purge-confirmation" required autocomplete="off" class="w-full bg-slate-800 text-white rounded p-3" />
   <label for="purge-password" class="block text-sm text-white">Your Master password</label>
@@ -1475,7 +1477,7 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script>IronVaultDashboardLive.install(indexApp,supabaseClient,'master');</script>
 <script src="../assets/service-policy.js"></script>
 <script src="../assets/service-review.js"></script>
-<script src="../assets/service-pdfs.js"></script>
+<script src="../assets/provider-console.js"></script>
 <script src="../assets/subscriptions.js"></script>
 <script>IronVaultSubscriptions.install(indexApp,supabaseClient,'master');</script>
 </body>

@@ -40,10 +40,11 @@ test('service publication keeps immutable versions, validates fields and enforce
  const f=section('public.iv_service_documents');assert.match(f,/Super Admin required/);assert.match(f,/Complete field before publication/);assert.match(f,/price_notice_days/);assert.match(f,/effective<ironvault_private.subscription_today\(\)\+greatest\(30/);
  assert.match(f,/Existing approved paid periods are preserved|Approved paid periods are preserved/);assert.doesNotMatch(f,/UPDATE ironvault_private.service_versions|UPDATE ironvault_private.service_acceptances/);
  const config=JSON.parse(fs.readFileSync('config/service-agreement.json','utf8'));const defaults=Object.fromEntries(config.fields.map(f=>[f.key,f.default]));
- const embedded=JSON.parse(sql.match(/\$defaults\$([\s\S]*?)\$defaults\$/)[1]);assert.deepEqual(embedded,defaults);
+ const embedded=JSON.parse(sql.match(/\$defaults\$([\s\S]*?)\$defaults\$/)[1]);assert.equal(embedded.pilot_days,14);assert.equal(embedded.dashboard_price,999); // 035 remains frozen; 038 seeds the revised page templates.
+ const pages=fs.readFileSync('supabase/manual/tenant_service_pages.sql','utf8');const pageDefaults=JSON.parse(pages.match(/\$defaults\$([\s\S]*?)\$defaults\$/)[1]);assert.deepEqual(pageDefaults,defaults);
  assert.equal(defaults.provider_name,'Matt Hue');assert.equal(defaults.pilot_days,14);assert.equal(defaults.paid_days,30);assert.equal(defaults.grace_days,7);assert.equal(defaults.dashboard_price,999);assert.equal(defaults.portal_price,1800);
- assert.equal(defaults.address,'');assert.equal(defaults.refund_policy,'');assert.equal(defaults.providers,'');
- for(const field of config.fields)assert.ok(field.help.length>20);assert.match(defaults._terms_template,/26\. LAW/);assert.match(defaults._privacy_template,/12\. VERSIONS/);assert.match(defaults._dpa_template,/12\. CONFLICTS/);
+ assert.equal(defaults.address,'Poblacion 2, Tagbilaran City, Bohol, Philippines');assert.match(defaults.refund_policy,/Cancellation/);assert.equal(defaults.providers,'');
+ for(const field of config.fields)assert.ok(field.help.length>20);assert.match(defaults._terms_template,/10\. CHANGES/);assert.match(defaults._privacy_template,/7\. UPDATES/);assert.match(defaults._dpa_template,/8\. LAW/);
 });
 test('owner notifications persist due dates with unique keys and exclude staff/private data from public status',()=>{
  assert.match(sql,/PRIMARY KEY\(tenant_id,notice_key\)/);assert.match(section('ironvault_private.subscription_notice'),/ON CONFLICT DO NOTHING/);

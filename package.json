@@ -9,7 +9,6 @@
     "build:pages": "node scripts/build-cloudflare.cjs"
   },
   "devDependencies": {
-    "jszip": "3.10.1",
-    "pdf-lib": "1.17.1"
+    "jszip": "3.10.1"
   }
 }

@@ -129,7 +129,7 @@
     main.prepend(panel);
     let bell;
     if(kind==='admin'){
-      bell=button('',()=>openBilling(app.currentTenantId,'notifications'));
+      bell=button('',()=>run(openOwnerNotifications));
       const icon=element('i');icon.className='fa-solid fa-bell';icon.setAttribute('aria-hidden','true');
       const label=element('span','Notifications','owner-notification-label'),badge=element('span','','owner-notification-count');badge.id='owner-notification-count';badge.hidden=true;
       bell.append(icon,label,badge);bell.title='Notifications';
@@ -147,13 +147,18 @@
       const stamp=epoch,who=scope(),auth=await client.auth.getUser();
       if(!auth.data?.user||auth.error||(who&&auth.data.user.id!==who))throw Error('Account changed. Sign in again.');
       actor=auth.data.user.id;
-      const {
-        data,error
+      if(name==='iv_service_documents'&&['save','publish'].includes(args.p_action)){
+        args={...args,p_data:{...args.p_data,__revision:documentsState?.revision,__reviewed:args.p_action==='publish'}};
+        if(args.p_action==='publish'){
+          const key='iv_service_publish:'+actor+':'+documentsState?.revision+':'+args.p_effective;
+          let id=root.sessionStorage.getItem(key);if(!id){id=root.crypto.randomUUID();root.sessionStorage.setItem(key,id);}args.p_data.__request_id=id;
+        }
       }
-      =await client.rpc(name,args);
+      const {data,error}=await client.rpc(name,args);
       if(stamp!==epoch)throw Error('Account changed.');
       if(error)throw Error(error.message||'Subscription request failed.');
       if(data==null)throw Error('Subscription service unavailable. Ask the owner to complete deployment.');
+      if(name==='iv_service_documents'&&data.revision&&documentsState)documentsState.revision=data.revision;
       return data;
     }
     async function run(fn){
@@ -205,10 +210,11 @@
     function summary(target,data){
       const state=data.state||data;
       target.appendChild(element('p',statusText(state.status),'iv-sub-banner'));
-      target.appendChild(element('p',[state.plan?planName(state.plan):'Complete setup before pilot activation',state.start_date?'Counted period: '+state.start_date+' through '+state.end_date+' · Philippine time':'',state.status==='pilot'?pilotRemaining(state):'',state.status==='grace'?'Grace ends '+state.grace_end:'',state.retention_review_date?'Retention review date: '+state.retention_review_date:''].filter(Boolean).join('\n'),'iv-sub-summary'));
+      target.appendChild(element('p',[state.plan?planName(state.plan):'Complete setup before pilot activation',state.start_date?'Counted period: '+state.start_date+' through '+state.end_date+' · Philippine time':'',state.status==='pilot'?pilotRemaining(state):'',state.status==='grace'?'Grace ends '+state.grace_end:'',['suspended','inactive'].includes(state.status)&&state.retention_review_date?'Retention review date: '+state.retention_review_date:''].filter(Boolean).join('\n'),'iv-sub-summary'));
     }
     function gate(value){
       access=value;
+      let testBadge=d.getElementById('gym-test-badge');if(!testBadge){testBadge=element('span','TEST','tenant-test-badge');testBadge.id='gym-test-badge';d.getElementById('header-gym-title')?.parentElement.appendChild(testBadge);}testBadge.hidden=!value.is_test;
       d.body.dataset.subscriptionOperations=String(!!value.operations);
       d.body.dataset.subscriptionPortal=String(!!value.portal);
       panel.hidden=!!value.operations;
@@ -236,30 +242,14 @@
         gate(value);
         if(value.is_owner){
           const data=await call('iv_subscription_portal',{
-            p_tenant:app.currentTenantId,p_action:'get'
+            p_tenant:app.currentTenantId,p_action:'badge'
           }
           );
           record=data;
           if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,data,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
-          const count=data.notifications.filter(n=>!n.read_at).length;
+          const count=data.unread_count??data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at).length;
           const badge=d.getElementById('owner-notification-count');badge.textContent=String(count);badge.hidden=!count;bell.dataset.unread=String(count>0);
           bell.setAttribute('aria-label','Notifications'+(count?', '+count+' unread':''));
-          const welcome=data.notifications.find(n=>!n.read_at&&n.notice_key.endsWith(':welcome')&&!shownWelcome.has(n.notice_key));
-          if(welcome&&!dialog?.open){
-            shownWelcome.add(welcome.notice_key);
-            const window=modal(welcome.title);
-            window.append(element('p',welcome.message,'iv-sub-summary'),button('Continue to dashboard',()=>run(async()=>{
-              await call('iv_subscription_portal',{
-                p_tenant:data.tenant_id,p_action:'read_notice',p_data:{
-                  key:welcome.notice_key
-                }
-              }
-              );
-              window.close();
-              await refresh();
-            }
-            ),'primary'));
-          }
           if(value.operations&&value.status==='grace'){
             panel.hidden=false;
             panel.textContent='';
@@ -296,15 +286,15 @@
         select.appendChild(option);
       }
       if(data.current_version)select.value=data.current_version;
-      section.appendChild(select);
+      select.setAttribute('aria-label','Document version');section.appendChild(select);
       const tabs=element('div',null,'iv-sub-actions'),body=element('article','','iv-sub-document');
       let type='terms_text';
       const render=()=>{
         const v=data.documents.find(v=>v.id===select.value);
-        if(v?.document_format==='pdf'){body.textContent='';body.classList.remove('iv-sub-document');void root.IronVaultServicePDF.renderFiles(body,v,client,{terms_text:'terms',privacy_text:'privacy',dpa_text:'dpa'}[type]);}else{body.classList.add('iv-sub-document');documentPreview(body,v?.[type]);}
+        documentPreview(body,v?.[type]);
       }
       ;
-      for(const [key,label] of [['terms_text','Service Agreement'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])tabs.appendChild(button(label,()=>{
+      for(const [key,label] of [['terms_text','Terms of Use'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])tabs.appendChild(button(label,()=>{
         type=key;
         render();
       }
@@ -313,12 +303,12 @@
       section.append(tabs,body);
       render();
       if(data.is_owner){
-        const agree=check('I am authorised to represent this gym. I agree to the selected Service Agreement and Data Processing Agreement and acknowledge its Privacy Notice.');
+        const agree=check('I am authorised to represent this gym. I agree to the selected Terms of Use and Data Processing Agreement and acknowledge its Privacy Notice.');
         const acceptButton=button('Accept selected version',()=>run(async()=>{
           if(!agree.input.checked)throw Error('Tick the agreement after reviewing all three documents.');
           await call('iv_subscription_portal',{
             p_tenant:selected,p_action:'accept',p_data:{
-              version_id:select.value,accepted:true
+              version_id:select.value,accepted:true,review_hash:data.documents.find(v=>v.id===select.value)?.review_hash
             }
           }
           );
@@ -336,67 +326,43 @@
       ).format(new Date(a.accepted_at))+' · Gym '+(a.gym_snapshot?.name||data.tenant_id)+' · Owner '+(a.owner_snapshot?.name||a.owner_id)).join('\n')||'No acceptance recorded.','iv-sub-summary'));
       target.appendChild(section);
     }
-    function planControls(target,data){
-      if(!data.is_owner)return;
-      const section=element('section');
-      section.appendChild(element('h3','Choose a paid plan / request a change','iv-sub-heading'));
-      section.appendChild(element('p','Payment is manual. No automatic charge. Review the exact dates and amount before confirming. Contact the billing details in the published agreement for payment instructions.'));
-      const current=data.documents.find(v=>v.id===data.current_version);
-      section.appendChild(element('p',current?(current.document_format==='pdf'?'See the Terms of Use PDF for payment instructions, or contact the Service Provider.':'Billing contact: '+current.data.billing_contact+' — '+(current.data.billing_instructions||'Contact the provider for payment instructions.')):'Payment instructions are available after service documents are published.'));
-      const actions=element('select',null,'iv-sub-select'),plans=element('select',null,'iv-sub-select');
-      for(const [value,label] of [['payment','New period / renewal'],['upgrade','Upgrade current period'],['downgrade','Schedule downgrade']]){
-        const o=element('option',label);
-        o.value=value;
-        actions.appendChild(o);
+    function planControls(target,data,reviewAgreement){
+      const current=data.documents.find(v=>v.id===data.current_version),pending=data.requests.find(r=>!r.approved_at&&!r.cancelled_at);
+      const section=element('section');target.appendChild(section);
+      const contacts=()=>{
+        section.append(element('h3','Payment instructions','iv-sub-heading'),element('p',current?.data.billing_instructions||'Contact the Service Provider for verified payment instructions.','iv-sub-summary'));
+        const email=current?.data.support_email;if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){const a=element('a','Contact Provider','iv-sub-contact');a.href='mailto:'+email;section.appendChild(a);}
+        if(current?.data.billing_contact)section.appendChild(element('p','Billing contact: '+current.data.billing_contact));
+      };
+      if(pending){
+        section.append(element('h3',pending.reference_submitted_at?'Awaiting Provider payment approval':'Request confirmed — arrange payment','iv-sub-heading'),element('p',planName(pending.quote.plan)+' · '+money(pending.quote.amount)+' · '+pending.quote.start_date+' – '+pending.quote.end_date,'iv-sub-summary'));
+        if(pending.kind==='downgrade'){section.appendChild(element('p','The plan change awaits approval. Renewal payment will still be required.'));return;}
+        contacts();
+        if(pending.payment_reference)section.appendChild(element('p','Submitted reference: '+pending.payment_reference));
+        else {const wrap=element('label',null,'iv-sub-field'),input=element('input');input.maxLength=180;wrap.append(element('span','Payment reference / cash receipt'),input);section.append(wrap,button('Submit payment reference',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:selected,p_action:'submit_reference',p_data:{request_id:pending.id,reference:input.value.trim()}});await openBilling(selected);}), 'primary'),button('Cancel unpaid request',()=>run(async()=>{if(!root.confirm('Cancel this unpaid request? Do not cancel if payment has already been made.'))return;await call('iv_subscription_portal',{p_tenant:selected,p_action:'cancel_request',p_data:{request_id:pending.id}});await openBilling(selected);})) );}
+        return;
       }
-      for(const [value,label] of [['dashboard','Dashboard Only'],['portal','Dashboard + Member Portal']]){
-        const o=element('option',label);
-        o.value=value;
-        plans.appendChild(o);
+      if(!current){section.appendChild(element('p','The Provider must publish service documents first.'));return;}
+      section.append(element('h3',data.state.status==='pilot'?'Choose your paid plan':'Renew or change your plan','iv-sub-heading'),element('p','Manual payment only. Prices below are current; the review step confirms the price and dates for your subscription start. No automatic charges.','iv-sub-muted'));
+      const cards=element('div',null,'iv-plan-cards'),quoteView=element('p','','iv-sub-summary');
+      const confirmation=check('I confirm the quoted plan, amount, dates and applicable policies.');confirmation.wrap.hidden=true;
+      let quote=null;
+      const reviewQuoted=button('Review quoted agreement',()=>reviewAgreement(quote?.version_id));reviewQuoted.hidden=true;
+      const confirm=button('Confirm request',()=>run(async()=>{
+        if(!quote||!confirmation.input.checked)throw Error('Review the quote and tick confirmation.');
+        const key='ironvault_subscription_plan:'+scope()+':'+selected+':'+JSON.stringify(quote);let id=root.sessionStorage.getItem(key);if(!id){id=root.crypto.randomUUID();root.sessionStorage.setItem(key,id);}
+        await call('iv_subscription_portal',{p_tenant:selected,p_action:'confirm_plan',p_data:{request_id:id,confirmed:true,quote}});root.sessionStorage.removeItem(key);await openBilling(selected);
+      }),'primary');confirm.hidden=true;confirm.disabled=true;confirmation.input.addEventListener('change',()=>{confirm.disabled=!confirmation.input.checked;});
+      for(const [plan,label,key,description] of [['dashboard','Dashboard Only','dashboard_price','Staff-assisted registration, check-in, member records, transactions and reports.'],['portal','Dashboard + Member Portal','portal_price','Dashboard features plus member login, QR passes and supported self-service.']]){
+        const card=element('article',null,'iv-sub-step');card.append(element('h3',label),element('p','Current price: '+money(current.data[key])+' total / '+current.data.paid_days+' counted days'),element('p',description));
+        const actions=element('div',null,'iv-sub-actions');
+        const options=[['payment',data.state.status==='pilot'||data.state.status==='setup'?'Choose plan':'Review renewal']];
+        if(data.state.status==='paid'&&data.state.plan==='dashboard'&&plan==='portal')options.push(['upgrade','Upgrade remaining days']);
+        if(data.state.status==='paid'&&data.state.plan==='portal'&&plan==='dashboard')options.push(['downgrade','Change at next renewal']);
+        for(const [kind,label] of options)actions.appendChild(button(label,()=>run(async()=>{quote=null;reviewQuoted.hidden=true;confirmation.wrap.hidden=true;confirm.hidden=true;quote=await call('iv_subscription_portal',{p_tenant:selected,p_action:'quote',p_data:{kind,plan}});quoteView.textContent=planName(quote.plan)+' · '+money(quote.amount)+'\nCounted dates: '+quote.start_date+' – '+quote.end_date+'\nAccess begins: '+quote.access_from+(kind==='downgrade'?'\nThis schedules a plan change; renewal payment is still required.':'');confirmation.input.checked=false;const accepted=data.acceptances.some(a=>a.version_id===quote.version_id);confirmation.wrap.hidden=!accepted;confirm.hidden=!accepted;reviewQuoted.hidden=accepted;confirm.disabled=true;if(!accepted)quoteView.textContent+='\nReview and accept the quoted agreement before confirming.';})));
+        card.appendChild(actions);cards.appendChild(card);
       }
-      if(data.next_plan)plans.value=data.next_plan;
-      const quoteView=element('p','','iv-sub-summary'),confirm=check('I confirm this exact plan, amount, period, and the applicable renewal/cancellation policies.');
-      const approve=button('Confirm quoted plan',()=>run(async()=>{
-        if(!lastQuote||!confirm.input.checked)throw Error('Review a quote and tick confirmation first.');
-        const key='ironvault_subscription_plan:'+scope()+':'+selected+':'+JSON.stringify(lastQuote);
-        let request_id=root.sessionStorage.getItem(key);
-        if(!request_id){
-          request_id=root.crypto.randomUUID();
-          root.sessionStorage.setItem(key,request_id);
-        }
-        await call('iv_subscription_portal',{
-          p_tenant:selected,p_action:'confirm_plan',p_data:{
-            request_id,confirmed:true,quote:lastQuote
-          }
-        }
-        );
-        await openBilling(selected);
-        root.sessionStorage.removeItem(key);
-      }
-      ),'primary');
-      approve.disabled=true;approve.hidden=true;confirm.wrap.hidden=true;confirm.input.addEventListener('change',()=>{approve.disabled=!lastQuote||!confirm.input.checked;});
-      const invalidate=()=>{
-        lastQuote=null;
-        confirm.input.checked=false;
-        approve.disabled=true;
-        approve.hidden=true;confirm.wrap.hidden=true;quoteView.textContent='Selection changed. Get a new quote.';
-      }
-      ;
-      actions.addEventListener('change',invalidate);
-      plans.addEventListener('change',invalidate);
-      section.append(actions,plans,button('Get exact quote',()=>run(async()=>{
-        lastQuote=await call('iv_subscription_portal',{
-          p_tenant:selected,p_action:'quote',p_data:{
-            kind:actions.value,plan:plans.value
-          }
-        }
-        );
-        confirm.input.checked=false;
-        approve.disabled=true;approve.hidden=false;confirm.wrap.hidden=false;
-        quoteView.textContent=planName(lastQuote.plan)+' · '+money(lastQuote.amount)+'\nCounted dates: '+lastQuote.start_date+' – '+lastQuote.end_date+'\nAccess begins: '+lastQuote.access_from+'\nReview any required agreement acceptance in the Documents tab before confirming.';
-      }
-      )),quoteView,confirm.wrap,approve);
-      target.appendChild(section);
+      section.append(cards,quoteView,reviewQuoted,confirmation.wrap,confirm);
     }
     async function adminAction(action,payload){
       const key='ironvault_subscription_request:'+scope()+':'+selected+':'+action+':'+JSON.stringify(payload);
@@ -415,6 +381,7 @@
         p_tenant:selected,p_action:action,p_data:payload
       }
       );
+      if(kind==='master')await app.refreshProviderConsole?.();
       await openBilling(selected);
       root.sessionStorage.removeItem(key);
       return result;
@@ -422,7 +389,7 @@
     function masterControls(target,data){
       if(kind!=='master')return;
       const section=element('section');
-      section.appendChild(element('h3','Super Admin approvals','iv-sub-heading'));
+      section.appendChild(element('h3','Provider approvals','iv-sub-heading'));
       const activation=check('I verified this gym business is eligible for its first pilot and reviewed the setup requirements.');
       const activate=button('Activate free pilot',()=>run(async()=>{
         if(!activation.input.checked)throw Error('Review pilot eligibility first.');
@@ -437,10 +404,10 @@
       section.append(activation.wrap,activate);
       for(const r of data.requests){
         const card=element('article',null,'iv-sub-notice');
-        card.appendChild(element('p',r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date+'\nOwner confirmation: '+dateTime(r.confirmed_at)+'\n'+(r.approved_at?'Approved '+dateTime(r.approved_at):'Awaiting approval'),'iv-sub-summary'));
-        if(!r.approved_at){
+        card.appendChild(element('p',r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date+'\nOwner confirmation: '+dateTime(r.confirmed_at)+'\n'+(r.cancelled_at?'Cancelled':r.approved_at?'Approved '+dateTime(r.approved_at):'Awaiting approval'),'iv-sub-summary'));
+        if(!r.approved_at&&!r.cancelled_at){
           const label=element('label',null,'iv-sub-field'),input=element('input');
-          label.append(element('span','Payment reference / receipt'),input);
+          label.append(element('span','Verified payment reference / receipt'),input);input.value=r.payment_reference||'';
           card.append(label,button(r.kind==='downgrade'?'Approve scheduled downgrade':'Approve verified payment',()=>run(async()=>{
             if(!root.confirm('Approve this exact request? Confirm that the payment is verified before proceeding.'))return;
             await adminAction(r.kind==='downgrade'?'approve_downgrade':'approve_payment',{
@@ -450,6 +417,7 @@
           }
           ),'primary'));
         }
+        if(!r.approved_at&&!r.cancelled_at){const reason=element('input');reason.placeholder='Reason for returning request';reason.setAttribute('aria-label','Reason for returning request');card.append(reason,button('Return for review',()=>run(async()=>{if(!root.confirm('Return this request for a fresh owner quote? Payment records remain; resolve any money received separately.'))return;await adminAction('cancel_request',{request_id:r.id,reason:reason.value.trim()});})));}
         section.appendChild(card);
       }
       const days=element('input'),reason=element('textarea');
@@ -469,55 +437,50 @@
       target.appendChild(section);
     }
     function history(target,data){
-      if(data.is_owner)for(const r of data.requests)target.appendChild(element('p',(r.approved_at?'Approved request':'Awaiting Service Provider approval')+' · '+r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date,'iv-sub-notice'));
+      for(const r of data.requests)target.appendChild(element('p',(r.cancelled_at?'Cancelled request':r.approved_at?'Approved request':'Awaiting Service Provider approval')+' · '+r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date,'iv-sub-notice'));
+      if(data.is_owner)for(const n of data.notifications.filter(n=>n.destination!=='announcement'&&(n.read_at||n.resolved_at||n.superseded_at)))target.appendChild(element('p',n.title+' · '+(n.resolved_at?'Resolved / renewed':n.read_at?'Read':'Superseded')+' · '+dateTime(n.available_at)+'\n'+n.message,'iv-sub-notice'));
       target.appendChild(element('h3','Periods and approvals','iv-sub-heading'));
       for(const p of data.periods)target.appendChild(element('p',p.kind+' · '+planName(p.plan)+' · '+p.start_date+' – '+p.end_date+' · '+money(p.amount)+'\nReference: '+(p.reference||'Not applicable')+' · Approved '+dateTime(p.approved_at),'iv-sub-notice'));
       for(const e of data.events)target.appendChild(element('p',({activate_pilot:'Pilot activated',approve_payment:'Payment approved',approve_downgrade:'Downgrade scheduled',extend:'Extension approved'}[e.action]||'Subscription updated')+' · '+dateTime(e.created_at)+' · '+(e.data.reason||e.data.reference||'Recorded by platform administrator'),'iv-sub-summary'));
     }
+    async function openOwnerNotifications(){
+      const data=await call('iv_subscription_portal',{p_tenant:app.currentTenantId,p_action:'notifications'});
+      if(!data.is_owner)throw Error('Registered owner required.');
+      const target=modal('Notifications'),active=data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at);
+      if(!active.length)target.appendChild(element('p','You’re all caught up.'));
+      for(const n of active){
+        const row=element('article',null,'iv-sub-notice'),open=button(n.title,()=>run(async()=>{
+          await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});
+          documentPreview(body,n.message);body.hidden=false;row.dataset.read='true';open.disabled=true;await refresh();
+        }));const body=element('p',n.message,'iv-sub-summary');body.hidden=true;
+        row.append(open,element('small',dateTime(n.available_at)),body);
+        if(n.destination!=='announcement')row.appendChild(button(n.notice_key.startsWith('documents')?'Review agreements':'View subscription',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();await openBilling(data.tenant_id,n.notice_key.startsWith('documents')?'documents':'overview');})));
+        target.appendChild(row);
+      }
+      const readAnnouncements=data.notifications.filter(n=>n.destination==='announcement'&&n.read_at);if(readAnnouncements.length){const archive=element('details');archive.appendChild(element('summary','Read announcements'));for(const n of readAnnouncements){const row=element('article',null,'iv-sub-notice');row.append(element('h3',n.title),element('p',n.message),element('small',dateTime(n.available_at)));archive.appendChild(row);}target.appendChild(archive);}
+    }
     async function openBilling(tenant,initial='overview'){
       const serial=++viewSerial;
       const data=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'get'});if(serial!==viewSerial)return;
-      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':'Your gym subscription');
-      const view=tabs(target,[['overview','Overview'],['documents','Documents'],...(data.is_owner?[['notifications','Notifications']]:[]),['history','History']],initial);
-      const overview=view.sections.get('overview');summary(overview,data);
+      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':'My Plan & Subscription');
+      const view=tabs(target,[['overview','My Plan'],['documents','Agreements'],['history','History']],initial);
+      target.querySelector('[role=tablist]').classList.add('iv-plan-tabs');
+      const overview=view.sections.get('overview'),current=element('section',null,'iv-sub-current-plan');overview.appendChild(current);summary(current,data);
       if(data.state.status==='setup')setupChecklist(overview,data,()=>view.show('documents'));
       else if(data.is_owner){
         if(data.next_plan)overview.appendChild(element('p','Next plan: '+planName(data.next_plan)+' — payment approval is required.'));
         if(!data.accepted)overview.appendChild(button('Review service documents',()=>view.show('documents'),'primary'));
-        else if(data.current_version){const choose=button(data.state.status==='pilot'?'Choose your plan':'Renew or change plan',()=>{choose.hidden=true;planControls(overview,data);},'primary');overview.appendChild(choose);}
+        else if(data.current_version)planControls(overview,data,version=>{view.show('documents');const select=view.sections.get('documents').querySelector('select');if(select){select.value=version;select.dispatchEvent(new Event('change'));}});
       }
       masterControls(overview,data);
       renderDocs(view.sections.get('documents'),data);
-      const feed=view.sections.get('notifications');
-      if(feed){if(!data.notifications.length)feed.appendChild(element('p','No notifications yet.'));for(const n of data.notifications){const card=element('article',null,'iv-sub-notice');card.dataset.unread=String(!n.read_at);card.append(element('h3',n.title),element('p',n.message),element('small',dateTime(n.available_at)));if(!n.read_at)card.appendChild(button('Mark read',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:tenant,p_action:'read_notice',p_data:{key:n.notice_key}});card.dataset.unread='false';await refresh();})));feed.appendChild(card);}}
+      for(const period of data.periods.filter(p=>p.start_date>data.today))overview.appendChild(element('p','Scheduled: '+planName(period.plan)+' · '+period.start_date+' – '+period.end_date+' · '+money(period.amount),'iv-sub-notice'));
+      if(kind==='master')overview.appendChild(button('Change Test / Live tag',()=>app.setTenantTag(tenant)));
       const archive=view.sections.get('history');history(archive,data);
       if(!data.periods.length&&!data.requests.length&&!data.events.length)archive.appendChild(element('p','Your subscription history will appear after activation.'));
       if(data.is_owner)archive.appendChild(button('Download records',()=>{const url=root.URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download='IronVault-subscription-'+data.tenant_id+'.json';a.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);}));
     }
-    async function directory(){
-      const rows=await call('iv_subscription_directory',{
-      }
-      );
-      const target=modal('Gym subscriptions');
-      target.appendChild(element('p','Existing gyms remain setup-only until owner requirements and Super Admin activation are complete.'));
-      const table=element('table',null,'iv-sub-directory'),head=element('tr');
-      for(const title of ['Gym','Status','Requirements','Action'])head.appendChild(element('th',title));
-      const thead=element('thead');
-      thead.appendChild(head);
-      table.appendChild(thead);
-      const tbody=element('tbody');
-      for(const row of rows){
-        const tr=element('tr');
-        tr.append(element('td',row.gym_name+'\n'+row.owner_name),element('td',statusText(row.state.status)),element('td',(row.accepted?'Owner agreed':'Owner agreement missing')+' · '+(row.gym_documents_ready?'Gym docs published':'Gym docs missing')));
-        const action=element('td');
-        action.appendChild(button('Review / manage',()=>run(()=>openBilling(row.tenant_id))));
-        tr.appendChild(action);
-        tbody.appendChild(tr);
-      }
-      table.appendChild(tbody);
-      target.appendChild(table);
-    }
-    async function serviceEditor(pdfMode=false){
+    async function serviceEditor(){
       const state=await call('iv_service_documents',{
         p_action:'get'
       }
@@ -525,13 +488,15 @@
       documentsState=state;
       const target=modal('Service Agreement Settings'),values=new Map();const wizard=tabs(target,[['provider','1. Provider details'],['plans','2. Plans & pilot'],['policies','3. Policies'],['publish','4. Preview & publish']],'provider');const groups=new Map();for(const key of ['provider','plans','policies']){const grid=element('div',null,'iv-sub-grid');wizard.sections.get(key).appendChild(grid);groups.set(key,grid);}const publication=wizard.sections.get('publish');target.appendChild(element('p','Changes remain drafts until you preview and publish.','iv-sub-muted'));
       const advanced=element('details'),advancedHead=element('summary','Advanced document templates');
+      const policies=element('details');policies.appendChild(element('summary','Advanced policies — prefilled from the reviewed drafts'));wizard.sections.get('policies').appendChild(policies);
       advanced.appendChild(advancedHead);
       publication.appendChild(advanced);
       let previewed=null;
       const reviewed=check('I reviewed all three documents, provider identity, actual infrastructure and policies; the publication matches current practices.');
       const preview=element('article','','iv-sub-document'),publishDate=element('input');
-      publishDate.type='date';
-      publishDate.value=new Intl.DateTimeFormat('en-CA',{
+      publishDate.type='date';publishDate.addEventListener('input',()=>{reviewed.input.checked=false;publish.disabled=true;});
+      publishDate.min=state.minimum_effective_date||'';
+      publishDate.value=state.minimum_effective_date||new Intl.DateTimeFormat('en-CA',{
         timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'
       }
       ).format(new Date());
@@ -546,7 +511,7 @@
         input.dataset.policyField=field.key;
         help(label,field.help+(field.required?' Required before publication.':' Optional.'));
         wrap.append(label,input);
-        const provider=['provider_name','brand','address','support_email','billing_contact','privacy_contact','privacy_email','support_hours','support_days','tax_policy','billing_instructions'];const plans=['dashboard_price','portal_price','pilot_days','paid_days','grace_days','price_notice_days','late_payment_policy','upgrade_policy'];(field.key.startsWith('_')?advanced:groups.get(provider.includes(field.key)?'provider':plans.includes(field.key)?'plans':'policies')).appendChild(wrap);
+        const provider=['provider_name','brand','address','support_email','billing_contact','privacy_contact','privacy_email','support_hours','support_days','tax_policy','billing_instructions'];const plans=['dashboard_price','portal_price','pilot_days','paid_days','grace_days','price_notice_days','export_days','retention_days'];(field.key.startsWith('_')?advanced:(provider.includes(field.key)?groups.get('provider'):plans.includes(field.key)?groups.get('plans'):['providers','database_region','email_provider','overseas_processing','backup_policy','deletion_process','document_version'].includes(field.key)?groups.get('policies'):policies)).appendChild(wrap);
         values.set(field.key,input);
         input.addEventListener('input',()=>{
           previewed=null;
@@ -561,12 +526,12 @@
       const editedPlain=new Set();
       const defaults=Object.fromEntries(root.IronVaultServicePolicy.fields.filter(f=>f.key.startsWith('_')).map(f=>[f.key,f.default]));
       const custom=()=>Object.keys(defaults).some(k=>values.get(k).value.trim()!==defaults[k].trim());
-      const status=element('p','','iv-sub-muted');status.setAttribute('role','status');
+      const status=element('p','','iv-sub-muted');status.setAttribute('role','status');target.insertBefore(status,target.children[1]);
       const settingsSummary=element('p','','iv-sub-summary iv-sub-key-settings');
       const changed=element('section',null,'iv-sub-notice');changed.hidden=true;
       changed.append(element('p','Your settings changed. Keep your edited documents for comparison, or regenerate all three documents from the standard templates? Regenerating replaces edited wording.'));
       const editor=element('textarea',null,'iv-sub-draft-editor');editor.hidden=true;editor.maxLength=50000;editor.setAttribute('aria-label','Edit full document draft');
-      const currentLabel=element('h3','Service Agreement','iv-sub-heading');
+      const currentLabel=element('h3','Terms of Use','iv-sub-heading');
       function invalidate(clear=true){previewed=null;reviewed.input.checked=false;reviewed.input.disabled=true;publish.disabled=true;if(clear){previewData=null;editor.hidden=true;preview.hidden=false;}copy.disabled=!previewData;edit.disabled=!previewData;settingsSummary.textContent=review.keySettings(collect());}
       function validateEdits(){if(pendingChoice)throw Error('Choose Keep edited documents or Regenerate before saving or publishing.');for(const key of editedPlain)if(values.get(key).value.includes('{{'))throw Error('Resolve template placeholders in your edited document before saving.');}
       function showDocument(){editor.hidden=true;preview.hidden=false;currentLabel.textContent=review.documents.find(d=>d[0]===activeDocument)[2];documentPreview(preview,previewData?.[activeDocument]);copy.disabled=!previewData;edit.disabled=!previewData;}
@@ -578,7 +543,7 @@
       changed.append(button('Keep edited documents',()=>{pendingChoice=false;changed.hidden=true;status.textContent='Edited wording kept. Compare it with your updated settings before publishing.';}),button('Regenerate documents',()=>{for(const [key,value] of Object.entries(defaults))values.get(key).value=value;editedPlain.clear();pendingChoice=false;changed.hidden=true;invalidate();documentPreview(preview,'Generate a preview to review the regenerated documents.');status.textContent='Standard templates restored. Your form details are unchanged.';}));
       for(const [key,input] of values)input.addEventListener('input',()=>{if(!key.startsWith('_')&&custom()){pendingChoice=true;changed.hidden=false;}invalidate();status.textContent='Settings changed. Generate a fresh preview before copying or publishing.';});
       const reviewActions=element('div',null,'iv-sub-actions');reviewActions.append(copy,edit);
-      const copySettings=button('Copy settings for review',()=>run(async()=>{const copied=await review.copyText(review.settingsCopy(root.IronVaultServicePolicy.fields,collect()));status.textContent=copied?'All settings from steps 1–3 copied for comparison.':'Select and copy the settings in the manual-copy window.';}));
+      const copySettings=button('Copy settings for review',()=>run(async()=>{const copied=await review.copyText(review.settingsCopy(root.IronVaultServicePolicy.fields,collect())+'\nPlanned effective date: '+publishDate.value);status.textContent=copied?'All settings from steps 1–3 copied for comparison.':'Select and copy the settings in the manual-copy window.';}));
       settingsSummary.textContent=review.keySettings(collect());
       const actions=element('div',null,'iv-sub-actions');
       actions.append(button('Save draft',()=>run(async()=>{
@@ -609,8 +574,8 @@
         await serviceEditor();
       }
       ),'primary'));
-      const publish=actions.lastElementChild;publish.hidden=pdfMode;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
-      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(copySettings,element('h3','Compare with your settings','iv-sub-heading'),settingsSummary,changed,status,dateWrap,viewButtons,currentLabel,reviewActions,preview,editor,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
+      const publish=actions.lastElementChild;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
+      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(copySettings,element('h3','Compare with your settings','iv-sub-heading'),settingsSummary,changed,dateWrap,viewButtons,currentLabel,reviewActions,preview,editor,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
       for(const v of state.versions)publication.appendChild(button('Published version effective '+v.effective_date,()=>{
         previewData=null;editor.hidden=true;preview.hidden=false;copy.disabled=true;edit.disabled=true;documentPreview(preview,v.terms_text);status.textContent='Viewing a published version. Generate a current draft preview to edit or copy.';
       }
@@ -618,11 +583,7 @@
       publication.appendChild(advanced);
     }
     if(kind==='master'){
-      const old=app.showDashboard;
-       // Buttons are visible only inside the authenticated dashboard.
-      const group=element('div',null,'iv-sub-actions');
-      group.append(button('Gym subscriptions',()=>run(directory)),button('Service Agreement Settings',()=>run(()=>root.IronVaultServicePDF.openSettings(client,pdfMode=>run(()=>serviceEditor(pdfMode))))));
-      d.getElementById('super-dashboard')?.prepend(group);
+      root.IronVaultProviderConsole.install(app,client,{call,run,modal,element,button,openBilling,serviceEditor});
     }
     else{
       const original=app.init;

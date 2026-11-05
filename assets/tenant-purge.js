@@ -20,8 +20,9 @@
     if(stamp!==generation||after.user_id!==actor.user_id)return;
     current={id,request:resume?.request_id||root.crypto.randomUUID(),review,resume:!!resume};
     node('purge-summary').textContent=resume?'Tenant '+id+' — application records already removed. Remaining Auth accounts: '+resume.remaining:
-     review.gym_name+' ('+id+')\nMembers: '+review.members+'; accounts: '+review.accounts+
+     review.gym_name+' ('+id+') · '+((review.is_test??app.providerTenants?.[id]?.is_test)?'TEST':'LIVE')+'\nMembers: '+review.members+'; accounts: '+review.accounts+
      '\nTransactions: '+review.transactions+'; attendance: '+review.attendance+'; activity: '+review.activity+'; sessions: '+review.sessions+
+     '\nSubscription periods: '+(review.subscription_periods??'review required')+'; requests: '+(review.subscription_requests??'review required')+'; service acceptances: '+(review.service_acceptances??'review required')+'; notices: '+(review.notifications??'review required')+
      '\nOutstanding wallet credit: ₱'+review.wallet_credit+' across '+review.wallet_accounts+' accounts.';
     node('purge-confirm-label').textContent='Type PURGE '+id;
     node('purge-confirmation').value='';node('purge-password').value='';node('purge-error').textContent='';

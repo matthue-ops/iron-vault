@@ -1,3 +1,5 @@
+> Superseded by [SERVICE_PAGES_ROLLOUT.md](SERVICE_PAGES_ROLLOUT.md). The PDF workflow is retired by 038; do not use these historical publication steps for the current UI.
+
 # Private PDF service documents
 
 This replaces the normal policy-writing wizard with six editable subscription settings and three PDF uploads: Terms of Use, Privacy Notice and Data Processing Agreement. Earlier text versions, owner acceptance receipts and approved subscription periods remain intact. Installation publishes nothing and activates no subscription.

@@ -15,3 +15,6 @@ verify_jwt = true
 
 [functions.iv-service-pdf]
 verify_jwt = true
+
+[functions.iv-cleanup-test-pdfs]
+verify_jwt = true
