@@ -122,6 +122,7 @@
                 </button>
 
                 <button id="btn-gym-legal" aria-label="Terms and privacy details" title="Terms &amp; Privacy Details" type="button" onclick="adminApp.openLegalSettings(adminApp.currentTenantId)" class="hidden px-2.5 py-1.5 rounded-xl border border-slate-700 text-[11px] font-semibold text-slate-300"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span> Terms &amp; Privacy</span></button>
+                <button id="btn-membership-pricing" type="button" class="hidden" onclick="adminApp.openPricingModal()"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>Membership Pricing &amp; Default Discounts</span></button>
                 <!-- LOGOUT BUTTON -->
                 <button id="btn-admin-logout" aria-label="Sign out" onclick="adminApp.logoutAdmin()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
@@ -253,6 +254,7 @@
             </details>
 
             <!-- SEGREGATED PENDING ONLINE REGISTRATIONS CARD -->
+            <dialog id="pending-approvals-dialog" aria-labelledby="pending-approvals-title" class="admin-compact-dialog"><header><h2 id="pending-approvals-title">Pending Approvals</h2><button type="button" onclick="document.getElementById('pending-approvals-dialog').close()">Close</button></header>
             <div id="pending-section" class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-500/40 space-y-3 bg-amber-500/5 hidden">
                 <div class="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
                     <h3 class="font-bold text-amber-300 text-xs flex items-center gap-2">
@@ -282,6 +284,8 @@
                 </div>
             </div>
 
+            </dialog>
+
             <!-- MEMBER ROSTER TABLE CONTAINER -->
             <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
@@ -293,7 +297,7 @@
                             <input type="text" id="roster-search" oninput="adminApp.filterRoster()" placeholder="Search active member name, ID, email..." class="w-full glass-input text-white text-xs rounded-xl pl-9 pr-3 py-2.5 focus:outline-none">
                         </div>
 
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <div class="roster-filter-actions flex items-center gap-1.5 flex-shrink-0">
                             <button id="filter-btn-logged" onclick="adminApp.toggleRosterFilter('logged')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
                                 <i class="fa-solid fa-user-check text-emerald-400"></i>
                                 <span>Logged Entry</span>
@@ -302,6 +306,7 @@
                                 <i class="fa-solid fa-user-clock text-amber-400"></i>
                                 <span>Not Entered</span>
                             </button>
+                            <button id="pending-approvals-button" type="button" hidden onclick="document.getElementById('pending-approvals-dialog').showModal()"><i class="fa-solid fa-user-clock" aria-hidden="true"></i><span class="pending-label-desktop">Pending Approvals</span><span class="pending-label-mobile" aria-hidden="true">Pending</span><span id="pending-approvals-count"></span></button>
                         </div>
                     </div>
 
@@ -312,11 +317,7 @@
 
                 <section id="mobile-roster" aria-label="Members" class="mobile-roster">
                     <div id="mobile-roster-list"></div>
-                    <nav class="mobile-roster-pagination" aria-label="Member list pages">
-                        <button id="mobile-roster-prev" type="button">Previous</button>
-                        <span id="mobile-roster-page" role="status" aria-live="polite"></span>
-                        <button id="mobile-roster-next" type="button">Next</button>
-                    </nav>
+
                 </section>
                 <div class="desktop-roster overflow-x-auto touch-scroll">
                     <table class="w-full text-left text-xs min-w-[850px]">
@@ -337,6 +338,7 @@
                         </tbody>
                     </table>
                 </div>
+                <button id="roster-expansion" type="button" aria-expanded="false" aria-controls="mobile-roster-list roster-tbody" hidden>Show all members</button>
             </div>
 
         </div>
@@ -736,12 +738,12 @@
             </div>
 
             <!-- ACCOUNT RECOVERY: no password viewing or direct password editing -->
-            <div class="bg-slate-900/70 border border-purple-500/20 rounded-2xl p-3.5 space-y-2">
-                <h4 class="font-bold text-purple-300 text-xs"><i class="fa-solid fa-shield-halved"></i> Account Recovery</h4>
+            <details id="account-recovery" class="bg-slate-900/70 border border-purple-500/20 rounded-2xl p-3.5 space-y-2">
+                <summary class="font-bold text-purple-300 text-xs"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Account Recovery</summary>
                 <p class="text-[11px] text-slate-400">Members manage passwords privately. A reset link is sent to their verified email.</p>
                 <button type="button" onclick="adminApp.sendMemberPasswordReset()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px]">Send Password Reset Email</button>
                 <p class="text-[11px] text-slate-400">To correct an unconfirmed or incorrect email, enter the new address under Edit Member Information. This requires the secure email-correction Edge Function.</p>
-            </div>
+            </details>
 
             <div class="flex justify-end gap-2 pt-1">
                 <button id="mobile-roster-remove" type="button" hidden class="mobile-roster-remove">Remove member</button>
@@ -1153,6 +1155,7 @@
                 const staffManagementBtn = document.getElementById('btn-staff-management');
                 const revenueCard = document.getElementById('revenue-metric-card');
                 const pricingCard = document.getElementById('pricing-settings-card');
+                document.getElementById('btn-membership-pricing').classList.toggle('hidden',role !== 'admin');
 
                 if (logoutBtn) logoutBtn.classList.remove('hidden');
 
@@ -1681,9 +1684,14 @@
 
                 const pendingList = this.members.filter(m => m.status === 'PENDING');
                 badgeCount.innerText = `${pendingList.length} Pending`;
+                document.getElementById('pending-approvals-button').hidden = pendingList.length === 0;
+                document.getElementById('pending-approvals-count').textContent = pendingList.length;
+                document.getElementById('pending-approvals-button').setAttribute('aria-label',`Pending Approvals, ${pendingList.length} pending`);
 
                 if (pendingList.length === 0) {
                     pendingSection.classList.add('hidden');
+                    document.getElementById('pending-approvals-dialog').close();
+                    pendingTbody.textContent = '';
                     return;
                 }
 
@@ -1694,7 +1702,7 @@
                     const badgeText = classification === 'Regular' ? 'Regular' : `${classification} (${discountPercentage}%)`;
 
                     return `
-                        <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(m.id)}'))">
+                        <tr class="hover:bg-amber-500/10 transition cursor-pointer" onclick="document.getElementById('pending-approvals-dialog').close();adminApp.openProfileModal(decodeURIComponent('${IronVaultData.argument(m.id)}'))">
                             <td class="p-2.5 font-mono font-bold text-amber-400">${IronVaultData.escape(m.displayCode || m.id)}</td>
                             <td class="p-2.5 font-semibold text-white">${IronVaultData.escape(m.name)}</td>
                             <td class="p-2.5">
@@ -1717,8 +1725,9 @@
 
             renderRoster: function(list) {
                 const tbody = document.getElementById('roster-tbody');
-                const activeList = list.filter(m => m.status === 'ACTIVE');
-                document.getElementById('showing-count').innerText = activeList.length;
+                const allActive = list.filter(m => m.status === 'ACTIVE');
+                const activeList = this.rosterExpanded ? allActive : allActive.slice(0,3);
+                document.getElementById('showing-count').innerText = allActive.length;
 
                 if (activeList.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-500 italic">No active registered members found.</td></tr>`;

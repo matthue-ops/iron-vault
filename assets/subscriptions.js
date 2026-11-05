@@ -109,6 +109,14 @@
       help(row.firstElementChild,helpText[key]||(key.startsWith('retention_')?'State the actual retention period, reasons for keeping records, and deletion/backup handling. Do not promise a cycle the service cannot perform.':'Explain the actual practice and give enough detail for the published document. Required fields must be complete before publication.'));
     }
   }
+  function pilotRemaining(state){
+    // Display only: the server supplies the remaining access days; approval day is uncounted.
+    const start=Date.parse(state.start_date+'T00:00:00Z'),end=Date.parse(state.end_date+'T00:00:00Z');
+    const accessDays=Number(state.days_remaining);
+    if(![start,end,accessDays].every(Number.isFinite)||end<start)return '';
+    const total=Math.round((end-start)/86400000)+1,remaining=Math.min(total,Math.max(0,accessDays));
+    return (accessDays>total?'Approval-day access is available now. Counted days start '+state.start_date+'. ':'')+remaining+' counted '+(remaining===1?'day':'days')+' remaining';
+  }
   function install(app,client,kind){
     const d=root.document;
     if(!d?.addEventListener||!d.querySelectorAll)return;
@@ -121,11 +129,16 @@
     main.prepend(panel);
     let bell;
     if(kind==='admin'){
-      bell=button('🔔 Billing',()=>openBilling(app.currentTenantId));
+      bell=button('',()=>openBilling(app.currentTenantId,'notifications'));
+      const icon=element('i');icon.className='fa-solid fa-bell';icon.setAttribute('aria-hidden','true');
+      const label=element('span','Notifications','owner-notification-label'),badge=element('span','','owner-notification-count');badge.id='owner-notification-count';badge.hidden=true;
+      bell.append(icon,label,badge);bell.title='Notifications';
       bell.id='owner-billing-bell';
       bell.hidden=true;
       bell.className='iv-sub-select';
       d.querySelector('.admin-header-actions')?.prepend(bell);
+      const plan=button('My Plan & Subscription',()=>openBilling(app.currentTenantId));plan.id='owner-subscription-menu';plan.hidden=true;
+      d.querySelector('.admin-menu-panel')?.prepend(plan);
     }
     function scope(){
       return app.authenticatedRole?.user_id||actor;
@@ -192,7 +205,7 @@
     function summary(target,data){
       const state=data.state||data;
       target.appendChild(element('p',statusText(state.status),'iv-sub-banner'));
-      target.appendChild(element('p',[state.plan?planName(state.plan):'Complete setup before pilot activation',state.start_date?'Counted period: '+state.start_date+' through '+state.end_date+' · Philippine time':'',state.status==='pilot'?state.days_remaining+' counted days remaining':'',state.status==='grace'?'Grace ends '+state.grace_end:'',state.retention_review_date?'Retention review date: '+state.retention_review_date:''].filter(Boolean).join('\n'),'iv-sub-summary'));
+      target.appendChild(element('p',[state.plan?planName(state.plan):'Complete setup before pilot activation',state.start_date?'Counted period: '+state.start_date+' through '+state.end_date+' · Philippine time':'',state.status==='pilot'?pilotRemaining(state):'',state.status==='grace'?'Grace ends '+state.grace_end:'',state.retention_review_date?'Retention review date: '+state.retention_review_date:''].filter(Boolean).join('\n'),'iv-sub-summary'));
     }
     function gate(value){
       access=value;
@@ -211,6 +224,7 @@
       else panel.appendChild(element('p','Please contact your gym owner about subscription access.'));
       panel.appendChild(element('p','','iv-sub-error'));
       if(bell)bell.hidden=!value.is_owner;
+      const plan=d.getElementById('owner-subscription-menu');if(plan)plan.hidden=!value.is_owner;
     }
     async function refresh(){
       if(kind!=='admin'||!app.currentTenantId||!app.authenticatedRole)return;
@@ -228,8 +242,8 @@
           record=data;
           if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,data,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
           const count=data.notifications.filter(n=>!n.read_at).length;
-          bell.textContent='🔔 Billing'+(count?' ('+count+')':'');
-          bell.setAttribute('aria-label','Billing notifications'+(count?', '+count+' unread':''));
+          const badge=d.getElementById('owner-notification-count');badge.textContent=String(count);badge.hidden=!count;bell.dataset.unread=String(count>0);
+          bell.setAttribute('aria-label','Notifications'+(count?', '+count+' unread':''));
           const welcome=data.notifications.find(n=>!n.read_at&&n.notice_key.endsWith(':welcome')&&!shownWelcome.has(n.notice_key));
           if(welcome&&!dialog?.open){
             shownWelcome.add(welcome.notice_key);
@@ -246,7 +260,7 @@
             }
             ),'primary'));
           }
-          if(value.operations){
+          if(value.operations&&value.status==='grace'){
             panel.hidden=false;
             panel.textContent='';
             summary(panel,data);
@@ -676,7 +690,7 @@
     app.openSubscriptionBilling=tenant=>run(()=>openBilling(tenant||app.currentTenantId));
   }
   root.IronVaultSubscriptions={
-    install,help,money,planName,statusText,documentPreview
+    install,help,money,planName,statusText,documentPreview,pilotRemaining
   }
   ;
   if(typeof module==='object'&&module.exports)module.exports=root.IronVaultSubscriptions;
