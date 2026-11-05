@@ -62,3 +62,9 @@ Do not move the production clock or rewrite existing business records to simulat
 ## Correction after an existing 035 installation
 
 If Service Agreement Settings reports `column reference "id" is ambiguous`, run **`supabase/manual/fix_subscription_sql_names.sql` (036)** in the same project's SQL Editor. Do not rerun 035. This replaces only the two affected function bodies, renaming local variables and disambiguating the period-history alias. Existing tables, drafts, publications, acceptances, subscriptions, records, RLS and grants remain intact. Refresh the page afterward. No Edge or Cloudflare deployment is needed for this database correction. Fresh installations use the corrected 035 definitions; 036 is also safe to apply afterward.
+
+## Guided screen layout
+
+Owner Subscription & Billing is separated into Overview, Documents, Notifications and History. Setup shows the three ordered onboarding requirements and does not display payment controls. Unpublished documents display a waiting message without acceptance controls. During/after an activated pilot, the owner can open plan selection explicitly; quote confirmation appears only after a quote is available.
+
+Super Admin Service Agreement Settings has four steps: Provider details, Plans & pilot, Policies, Preview & publish. Draft values survive tab changes; Save draft remains available, with Back/Next navigation. Publication stays disabled until the exact current draft has been previewed and review acknowledged. Advanced templates remain collapsed. Document headings are formatted with text-only rendering. This layout change requires only a frontend deployment, no SQL or Edge update.
