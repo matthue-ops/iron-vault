@@ -266,7 +266,7 @@
       const steps=[
         ['1. Gym Terms & Privacy',data.gym_documents_ready,'Complete and publish your gym details.',()=>{dialog?.close();app.openLegalSettings(data.tenant_id);}],
         ['2. Iron Vault service documents',data.accepted,!data.current_version?'Awaiting Iron Vault publication.':!data.gym_documents_ready?'Complete step 1 first.':'Review and accept the service documents.',data.current_version&&data.gym_documents_ready?review:null],
-        ['3. Pilot approval',data.state.status!=='setup',!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready?'Complete the requirements above.':'Awaiting Super Admin approval. Your pilot has not started.',null]
+        ['3. Pilot approval',data.state.status!=='setup',!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready?'Complete the requirements above.':'Awaiting Service Provider approval. Your pilot has not started.',null]
       ];
       const list=element('div',null,'iv-sub-steps');for(const [title,done,description,action] of steps){const card=element('article',null,'iv-sub-step');card.dataset.complete=String(!!done);card.append(element('h3',(done?'✓ ':'')+title),element('p',done?'Complete':description));if(!done&&action&&data.is_owner)card.appendChild(button(title.startsWith('1.')?'Complete gym details':'Review service documents',action,'primary'));list.appendChild(card);}target.appendChild(list);
       if(!data.platform_documents_ready)target.appendChild(element('p','Iron Vault must also publish its platform member documents before activation.','iv-sub-muted'));
@@ -287,7 +287,7 @@
       let type='terms_text';
       const render=()=>{
         const v=data.documents.find(v=>v.id===select.value);
-        documentPreview(body,v?.[type]);
+        if(v?.document_format==='pdf'){body.textContent='';body.classList.remove('iv-sub-document');void root.IronVaultServicePDF.renderFiles(body,v,client,{terms_text:'terms',privacy_text:'privacy',dpa_text:'dpa'}[type]);}else{body.classList.add('iv-sub-document');documentPreview(body,v?.[type]);}
       }
       ;
       for(const [key,label] of [['terms_text','Service Agreement'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])tabs.appendChild(button(label,()=>{
@@ -328,7 +328,7 @@
       section.appendChild(element('h3','Choose a paid plan / request a change','iv-sub-heading'));
       section.appendChild(element('p','Payment is manual. No automatic charge. Review the exact dates and amount before confirming. Contact the billing details in the published agreement for payment instructions.'));
       const current=data.documents.find(v=>v.id===data.current_version);
-      section.appendChild(element('p',current?'Billing contact: '+current.data.billing_contact+' — '+(current.data.billing_instructions||'Contact the provider for payment instructions.'):'Payment instructions are available after service documents are published.'));
+      section.appendChild(element('p',current?(current.document_format==='pdf'?'See the Terms of Use PDF for payment instructions, or contact the Service Provider.':'Billing contact: '+current.data.billing_contact+' — '+(current.data.billing_instructions||'Contact the provider for payment instructions.')):'Payment instructions are available after service documents are published.'));
       const actions=element('select',null,'iv-sub-select'),plans=element('select',null,'iv-sub-select');
       for(const [value,label] of [['payment','New period / renewal'],['upgrade','Upgrade current period'],['downgrade','Schedule downgrade']]){
         const o=element('option',label);
@@ -455,7 +455,7 @@
       target.appendChild(section);
     }
     function history(target,data){
-      if(data.is_owner)for(const r of data.requests)target.appendChild(element('p',(r.approved_at?'Approved request':'Awaiting Super Admin approval')+' · '+r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date,'iv-sub-notice'));
+      if(data.is_owner)for(const r of data.requests)target.appendChild(element('p',(r.approved_at?'Approved request':'Awaiting Service Provider approval')+' · '+r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date,'iv-sub-notice'));
       target.appendChild(element('h3','Periods and approvals','iv-sub-heading'));
       for(const p of data.periods)target.appendChild(element('p',p.kind+' · '+planName(p.plan)+' · '+p.start_date+' – '+p.end_date+' · '+money(p.amount)+'\nReference: '+(p.reference||'Not applicable')+' · Approved '+dateTime(p.approved_at),'iv-sub-notice'));
       for(const e of data.events)target.appendChild(element('p',({activate_pilot:'Pilot activated',approve_payment:'Payment approved',approve_downgrade:'Downgrade scheduled',extend:'Extension approved'}[e.action]||'Subscription updated')+' · '+dateTime(e.created_at)+' · '+(e.data.reason||e.data.reference||'Recorded by platform administrator'),'iv-sub-summary'));
@@ -503,7 +503,7 @@
       table.appendChild(tbody);
       target.appendChild(table);
     }
-    async function serviceEditor(){
+    async function serviceEditor(pdfMode=false){
       const state=await call('iv_service_documents',{
         p_action:'get'
       }
@@ -595,7 +595,7 @@
         await serviceEditor();
       }
       ),'primary'));
-      const publish=actions.lastElementChild;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
+      const publish=actions.lastElementChild;publish.hidden=pdfMode;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
       const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(copySettings,element('h3','Compare with your settings','iv-sub-heading'),settingsSummary,changed,status,dateWrap,viewButtons,currentLabel,reviewActions,preview,editor,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
       for(const v of state.versions)publication.appendChild(button('Published version effective '+v.effective_date,()=>{
         previewData=null;editor.hidden=true;preview.hidden=false;copy.disabled=true;edit.disabled=true;documentPreview(preview,v.terms_text);status.textContent='Viewing a published version. Generate a current draft preview to edit or copy.';
@@ -607,7 +607,7 @@
       const old=app.showDashboard;
        // Buttons are visible only inside the authenticated dashboard.
       const group=element('div',null,'iv-sub-actions');
-      group.append(button('Gym subscriptions',()=>run(directory)),button('Service Agreement Settings',()=>run(serviceEditor)));
+      group.append(button('Gym subscriptions',()=>run(directory)),button('Service Agreement Settings',()=>run(()=>root.IronVaultServicePDF.openSettings(client,pdfMode=>run(()=>serviceEditor(pdfMode))))));
       d.getElementById('super-dashboard')?.prepend(group);
     }
     else{
