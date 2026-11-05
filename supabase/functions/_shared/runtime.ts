@@ -5,7 +5,7 @@ const url=Deno.env.get('SUPABASE_URL')!;
 const key=Deno.env.get('SUPABASE_ANON_KEY')!;
 export const admin=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{autoRefreshToken:false,persistSession:false}});
 export function publicClient(){return createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});}
-export async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await admin.rpc(name,args);if(error){if(name==='iv_prepare_branch_account'&&error.code==='IV001')throw Error('LEGAL_REVIEW_REQUIRED: Documents changed or are unavailable. Reload the page, review the documents and accept again.');console.error('Iron Vault RPC failed',name,/^[A-Za-z0-9_]{1,64}$/.test(error.code||'')?error.code:'unknown');throw Error('Operation could not be completed.');}return data;}
+export async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await admin.rpc(name,args);if(error){if(error.code==='IV003')throw Error('Gym subscription access is unavailable. Contact the registered gym owner.');if(name==='iv_prepare_branch_account'&&error.code==='IV001')throw Error('LEGAL_REVIEW_REQUIRED: Documents changed or are unavailable. Reload the page, review the documents and accept again.');console.error('Iron Vault RPC failed',name,/^[A-Za-z0-9_]{1,64}$/.test(error.code||'')?error.code:'unknown');throw Error('Operation could not be completed.');}return data;}
 export async function actor(req:Request){
  const match=/^Bearer\s+(.+)$/i.exec(req.headers.get('authorization')||'');
  if(!match)throw Error('Sign in required.');
@@ -55,7 +55,7 @@ export function serve(handler:(req:Request,input:any)=>Promise<unknown>){
   }catch(error){
    // Never echo Supabase provider errors, account aliases, tokens or credentials.
    const message=error instanceof Error?error.message:'Request failed.';
-   const safe=/^(Sign in required\.|Not authorized\.|Too many attempts\. Please try later\.|Email delivery is not configured\.|Sender is not configured\.|Email delivery failed\.|Invalid request\.|Request too large\.)$/.test(message)?message:'Request could not be completed. Check your details or contact the gym.';
+   const safe=/^(Sign in required\.|Gym subscription access is unavailable\. Contact the registered gym owner\.|Not authorized\.|Too many attempts\. Please try later\.|Email delivery is not configured\.|Sender is not configured\.|Email delivery failed\.|Invalid request\.|Request too large\.)$/.test(message)?message:'Request could not be completed. Check your details or contact the gym.';
    const status=message==='Sign in required.'?401:message==='Not authorized.'?403:message.startsWith('Too many')?429:message.includes('delivery')||message.includes('configured')?503:400;
    return new Response(JSON.stringify({error:safe}),{status,headers});
   }

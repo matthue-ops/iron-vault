@@ -89,6 +89,7 @@
 <link rel="stylesheet" href="../assets/admin-dashboard.css">
 <link rel="stylesheet" href="../assets/legal-documents.css">
 <link rel="stylesheet" href="../assets/admin-feedback.css">
+<link rel="stylesheet" href="../assets/subscriptions.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -192,7 +193,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                    <button onclick="adminApp.openScannerModal()" class="w-full py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                    <button id="btn-subscription-qr-scan" onclick="adminApp.openScannerModal()" class="w-full py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
                         <i class="fa-solid fa-qrcode text-base"></i>
                         <span>Scan Member QR Pass</span>
                     </button>
@@ -2560,5 +2561,8 @@ adminApp.logoutAdmin=async function(){
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(adminApp,supabaseClient,'admin');</script>
 <dialog id="admin-feedback-dialog" aria-labelledby="admin-feedback-title" aria-describedby="admin-feedback-message"><i id="admin-feedback-icon" aria-hidden="true"></i><h2 id="admin-feedback-title"></h2><p id="admin-feedback-message"></p><dl id="admin-feedback-rows"></dl><div class="admin-feedback-actions"><button id="admin-feedback-cancel" type="button">Cancel</button><button id="admin-feedback-confirm" type="button">Confirm</button></div></dialog>
+<script src="../assets/service-policy.js"></script>
+<script src="../assets/subscriptions.js"></script>
+<script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');</script>
 </body>
 </html>
