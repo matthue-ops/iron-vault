@@ -38,6 +38,21 @@
     );
     return b;
   }
+  function documentPreview(target,text){
+    target.textContent='';target.classList.add('iv-sub-readable');
+    const paragraphs=String(text||'Preview the draft first.').split(/\n\s*\n/);
+    for(const part of paragraphs){const value=part.trim();if(!value)continue;
+      const title=/^#{1,3}\s+/.test(value),heading=/^\d+\. [A-Z][A-Z ,/&–—()-]+$/.test(value);
+      target.appendChild(element(title?'h3':heading?'h4':'p',value.replace(/^#{1,3}\s+/,'')));
+    }
+  }
+  function tabs(target,items,initial){
+    const nav=element('div',null,'iv-sub-tabs');nav.setAttribute('role','tablist');const sections=new Map(),buttons=new Map();
+    function show(key){for(const [id,section] of sections){section.hidden=id!==key;buttons.get(id).setAttribute('aria-selected',String(id===key));buttons.get(id).tabIndex=id===key?0:-1;}}
+    target.appendChild(nav);
+    items.forEach(([key,label],index)=>{const section=element('section',null,'iv-sub-tab-panel'),tab=button(label,()=>show(key));tab.setAttribute('role','tab');tab.id='subscription-tab-'+key;section.id='subscription-section-'+key;tab.setAttribute('aria-controls',section.id);section.setAttribute('role','tabpanel');section.setAttribute('aria-labelledby',tab.id);tab.addEventListener('keydown',event=>{if(['ArrowRight','ArrowLeft','Home','End'].includes(event.key)){event.preventDefault();const at=event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowRight'?1:-1)+items.length)%items.length;show(items[at][0]);buttons.get(items[at][0]).focus();}});sections.set(key,section);buttons.set(key,tab);nav.appendChild(tab);target.appendChild(section);});
+    show(sections.has(initial)?initial:items[0][0]);return{sections,show};
+  }
   let tipSequence=0,helpRoot=null;
   function help(parent,text){
     if(parent.querySelector?.('.iv-field-help'))return;
@@ -211,6 +226,7 @@
           }
           );
           record=data;
+          if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,data,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
           const count=data.notifications.filter(n=>!n.read_at).length;
           bell.textContent='🔔 Billing'+(count?' ('+count+')':'');
           bell.setAttribute('aria-label','Billing notifications'+(count?', '+count+' unread':''));
@@ -246,12 +262,22 @@
         showError(e.message);
       }
     }
+    function setupChecklist(target,data,review){
+      const steps=[
+        ['1. Gym Terms & Privacy',data.gym_documents_ready,'Complete and publish your gym details.',()=>{dialog?.close();app.openLegalSettings(data.tenant_id);}],
+        ['2. Iron Vault service documents',data.accepted,!data.current_version?'Awaiting Iron Vault publication.':!data.gym_documents_ready?'Complete step 1 first.':'Review and accept the service documents.',data.current_version&&data.gym_documents_ready?review:null],
+        ['3. Pilot approval',data.state.status!=='setup',!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready?'Complete the requirements above.':'Awaiting Super Admin approval. Your pilot has not started.',null]
+      ];
+      const list=element('div',null,'iv-sub-steps');for(const [title,done,description,action] of steps){const card=element('article',null,'iv-sub-step');card.dataset.complete=String(!!done);card.append(element('h3',(done?'✓ ':'')+title),element('p',done?'Complete':description));if(!done&&action&&data.is_owner)card.appendChild(button(title.startsWith('1.')?'Complete gym details':'Review service documents',action,'primary'));list.appendChild(card);}target.appendChild(list);
+      if(!data.platform_documents_ready)target.appendChild(element('p','Iron Vault must also publish its platform member documents before activation.','iv-sub-muted'));
+    }
     function renderDocs(target,data){
       const section=element('section');
+      if(!data.documents.length){section.append(element('h3','Awaiting Iron Vault publication'),element('p','Your service documents will appear here once Iron Vault publishes them. No action is needed from you yet.'));target.appendChild(section);return;}
       section.appendChild(element('h3','Service agreements and acceptance history','iv-sub-heading'));
       const select=element('select',null,'iv-sub-select');
       for(const v of data.documents){
-        const option=element('option',v.effective_date+' · '+v.id);
+        const option=element('option','Effective '+v.effective_date+(v.id===data.current_version?' · current':''));
         option.value=v.id;
         select.appendChild(option);
       }
@@ -261,7 +287,7 @@
       let type='terms_text';
       const render=()=>{
         const v=data.documents.find(v=>v.id===select.value);
-        body.textContent=v?.[type]||'Service documents have not been published.';
+        documentPreview(body,v?.[type]);
       }
       ;
       for(const [key,label] of [['terms_text','Service Agreement'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])tabs.appendChild(button(label,()=>{
@@ -285,11 +311,12 @@
           await openBilling(selected);
         }
         ),'primary');
-        acceptButton.disabled=!data.gym_documents_ready||!data.documents.length;
+        acceptButton.disabled=true;agree.input.addEventListener('change',()=>{acceptButton.disabled=!agree.input.checked||!data.gym_documents_ready;});
+        const already=()=>data.acceptances.some(a=>a.version_id===select.value);const acceptanceState=()=>{const done=already();agree.wrap.hidden=done||!data.gym_documents_ready;acceptButton.hidden=done||!data.gym_documents_ready;agree.input.checked=false;acceptButton.disabled=true;};select.addEventListener('change',acceptanceState);acceptanceState();
         section.append(agree.wrap,acceptButton);
         if(!data.gym_documents_ready)section.appendChild(element('p','Publish your gym legal details first so the gym identity can be recorded with acceptance.'));
       }
-      section.appendChild(element('p',data.acceptances.map(a=>'Accepted '+a.version_id+' · '+new Intl.DateTimeFormat('en-PH',{
+      section.appendChild(element('p',data.acceptances.map(a=>'Accepted documents effective '+(data.documents.find(v=>v.id===a.version_id)?.effective_date||'recorded version')+' · '+new Intl.DateTimeFormat('en-PH',{
         timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'
       }
       ).format(new Date(a.accepted_at))+' · Gym '+(a.gym_snapshot?.name||data.tenant_id)+' · Owner '+(a.owner_snapshot?.name||a.owner_id)).join('\n')||'No acceptance recorded.','iv-sub-summary'));
@@ -333,12 +360,12 @@
         root.sessionStorage.removeItem(key);
       }
       ),'primary');
-      approve.disabled=true;
+      approve.disabled=true;approve.hidden=true;confirm.wrap.hidden=true;confirm.input.addEventListener('change',()=>{approve.disabled=!lastQuote||!confirm.input.checked;});
       const invalidate=()=>{
         lastQuote=null;
         confirm.input.checked=false;
         approve.disabled=true;
-        quoteView.textContent='Selection changed. Get a new quote.';
+        approve.hidden=true;confirm.wrap.hidden=true;quoteView.textContent='Selection changed. Get a new quote.';
       }
       ;
       actions.addEventListener('change',invalidate);
@@ -351,8 +378,8 @@
         }
         );
         confirm.input.checked=false;
-        approve.disabled=false;
-        quoteView.textContent=planName(lastQuote.plan)+' · '+money(lastQuote.amount)+'\nCounted dates: '+lastQuote.start_date+' – '+lastQuote.end_date+'\nAccess begins: '+lastQuote.access_from+'\nAgreement version: '+lastQuote.version_id+'\nAccept this version above before confirming.';
+        approve.disabled=true;approve.hidden=false;confirm.wrap.hidden=false;
+        quoteView.textContent=planName(lastQuote.plan)+' · '+money(lastQuote.amount)+'\nCounted dates: '+lastQuote.start_date+' – '+lastQuote.end_date+'\nAccess begins: '+lastQuote.access_from+'\nReview any required agreement acceptance in the Documents tab before confirming.';
       }
       )),quoteView,confirm.wrap,approve);
       target.appendChild(section);
@@ -431,65 +458,27 @@
       if(data.is_owner)for(const r of data.requests)target.appendChild(element('p',(r.approved_at?'Approved request':'Awaiting Super Admin approval')+' · '+r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date,'iv-sub-notice'));
       target.appendChild(element('h3','Periods and approvals','iv-sub-heading'));
       for(const p of data.periods)target.appendChild(element('p',p.kind+' · '+planName(p.plan)+' · '+p.start_date+' – '+p.end_date+' · '+money(p.amount)+'\nReference: '+(p.reference||'Not applicable')+' · Approved '+dateTime(p.approved_at),'iv-sub-notice'));
-      for(const e of data.events)target.appendChild(element('p',e.action+' · '+dateTime(e.created_at)+' · '+(e.data.reason||e.data.reference||'Recorded approval')+' · Actor '+e.actor_id,'iv-sub-summary'));
+      for(const e of data.events)target.appendChild(element('p',({activate_pilot:'Pilot activated',approve_payment:'Payment approved',approve_downgrade:'Downgrade scheduled',extend:'Extension approved'}[e.action]||'Subscription updated')+' · '+dateTime(e.created_at)+' · '+(e.data.reason||e.data.reference||'Recorded by platform administrator'),'iv-sub-summary'));
     }
-    async function openBilling(tenant){
+    async function openBilling(tenant,initial='overview'){
       const serial=++viewSerial;
-      const data=await call('iv_subscription_portal',{
-        p_tenant:tenant,p_action:'get'
+      const data=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'get'});if(serial!==viewSerial)return;
+      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':'Your gym subscription');
+      const view=tabs(target,[['overview','Overview'],['documents','Documents'],...(data.is_owner?[['notifications','Notifications']]:[]),['history','History']],initial);
+      const overview=view.sections.get('overview');summary(overview,data);
+      if(data.state.status==='setup')setupChecklist(overview,data,()=>view.show('documents'));
+      else if(data.is_owner){
+        if(data.next_plan)overview.appendChild(element('p','Next plan: '+planName(data.next_plan)+' — payment approval is required.'));
+        if(!data.accepted)overview.appendChild(button('Review service documents',()=>view.show('documents'),'primary'));
+        else if(data.current_version){const choose=button(data.state.status==='pilot'?'Choose your plan':'Renew or change plan',()=>{choose.hidden=true;planControls(overview,data);},'primary');overview.appendChild(choose);}
       }
-      );
-      if(serial!==viewSerial)return;
-      selected=tenant;
-      record=data;
-      const target=modal('Subscription & Billing');
-      summary(target,data);
-      if(data.next_plan)target.appendChild(element('p','Selected next plan: '+planName(data.next_plan)+' — renewal payment approval is required.'));
-      target.appendChild(element('p','Setup: '+(data.gym_documents_ready?'gym documents published':'publish gym documents')+' · '+(data.platform_documents_ready?'platform member documents published':'platform member documents missing')+' · '+(data.accepted?'owner service acceptance recorded':'owner must accept current service documents'),'iv-sub-summary'));
-      if(kind==='admin')target.appendChild(button('Open gym Terms & Privacy settings',()=>{
-        dialog.close();
-        app.openLegalSettings(tenant);
-      }
-      ));
-      if(data.is_owner){
-        target.appendChild(element('h3','Owner notifications','iv-sub-heading'));
-        for(const n of data.notifications){
-          const card=element('article',null,'iv-sub-notice');
-          card.dataset.unread=String(!n.read_at);
-          card.append(element('h4',n.title),element('p',n.message,'iv-sub-summary'),element('small',new Intl.DateTimeFormat('en-PH',{
-            timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'
-          }
-          ).format(new Date(n.available_at))));
-          if(!n.read_at)card.appendChild(button('Mark read',()=>run(async()=>{
-            await call('iv_subscription_portal',{
-              p_tenant:tenant,p_action:'read_notice',p_data:{
-                key:n.notice_key
-              }
-            }
-            );
-            card.dataset.unread='false';
-            await refresh();
-          }
-          )));
-          target.appendChild(card);
-        }
-      }
-      renderDocs(target,data);
-      planControls(target,data);
-      masterControls(target,data);
-      history(target,data);
-      if(data.is_owner)target.appendChild(button('Download subscription and agreement records',()=>{
-        const url=root.URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{
-          type:'application/json'
-        }
-        ));
-        const a=element('a');
-        a.href=url;
-        a.download='IronVault-subscription-'+data.tenant_id+'.json';
-        a.click();
-        root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);
-      }
-      ));
+      masterControls(overview,data);
+      renderDocs(view.sections.get('documents'),data);
+      const feed=view.sections.get('notifications');
+      if(feed){if(!data.notifications.length)feed.appendChild(element('p','No notifications yet.'));for(const n of data.notifications){const card=element('article',null,'iv-sub-notice');card.dataset.unread=String(!n.read_at);card.append(element('h3',n.title),element('p',n.message),element('small',dateTime(n.available_at)));if(!n.read_at)card.appendChild(button('Mark read',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:tenant,p_action:'read_notice',p_data:{key:n.notice_key}});card.dataset.unread='false';await refresh();})));feed.appendChild(card);}}
+      const archive=view.sections.get('history');history(archive,data);
+      if(!data.periods.length&&!data.requests.length&&!data.events.length)archive.appendChild(element('p','Your subscription history will appear after activation.'));
+      if(data.is_owner)archive.appendChild(button('Download records',()=>{const url=root.URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download='IronVault-subscription-'+data.tenant_id+'.json';a.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);}));
     }
     async function directory(){
       const rows=await call('iv_subscription_directory',{
@@ -520,10 +509,10 @@
       }
       );
       documentsState=state;
-      const target=modal('Iron Vault Service Agreement Settings'),form=element('div',null,'iv-sub-grid'),values=new Map();
+      const target=modal('Service Agreement Settings'),values=new Map();const wizard=tabs(target,[['provider','1. Provider details'],['plans','2. Plans & pilot'],['policies','3. Policies'],['publish','4. Preview & publish']],'provider');const groups=new Map();for(const key of ['provider','plans','policies']){const grid=element('div',null,'iv-sub-grid');wizard.sections.get(key).appendChild(grid);groups.set(key,grid);}const publication=wizard.sections.get('publish');target.appendChild(element('p','Changes remain drafts until you preview and publish.','iv-sub-muted'));
       const advanced=element('details'),advancedHead=element('summary','Advanced document templates');
       advanced.appendChild(advancedHead);
-      target.append(form,advanced);
+      publication.appendChild(advanced);
       let previewed=null;
       const reviewed=check('I reviewed all three documents, provider identity, actual infrastructure and policies; the publication matches current practices.');
       const preview=element('article','','iv-sub-document'),publishDate=element('input');
@@ -543,11 +532,11 @@
         input.dataset.policyField=field.key;
         help(label,field.help+(field.required?' Required before publication.':' Optional.'));
         wrap.append(label,input);
-        (field.key.startsWith('_')?advanced:form).appendChild(wrap);
+        const provider=['provider_name','brand','address','support_email','billing_contact','privacy_contact','privacy_email','support_hours','support_days','tax_policy','billing_instructions'];const plans=['dashboard_price','portal_price','pilot_days','paid_days','grace_days','price_notice_days','late_payment_policy','upgrade_policy'];(field.key.startsWith('_')?advanced:groups.get(provider.includes(field.key)?'provider':plans.includes(field.key)?'plans':'policies')).appendChild(wrap);
         values.set(field.key,input);
         input.addEventListener('input',()=>{
           previewed=null;
-          reviewed.input.checked=false;
+          reviewed.input.checked=false;reviewed.input.disabled=true;publish.disabled=true;
         }
         );
       }
@@ -555,7 +544,7 @@
       const viewButtons=element('div',null,'iv-sub-actions');
       let previewData=null;
       for(const [key,label] of [['terms_text','Service Agreement'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])viewButtons.appendChild(button(label,()=>{
-        preview.textContent=previewData?.[key]||'Preview the draft first.';
+        documentPreview(preview,previewData?.[key]);
       }
       ));
       const actions=element('div',null,'iv-sub-actions');
@@ -573,7 +562,7 @@
         );
         previewed=JSON.stringify(data);
         previewData=result.preview;
-        preview.textContent=previewData.terms_text;
+        documentPreview(preview,previewData.terms_text);reviewed.input.disabled=false;publish.disabled=true;
       }
       )),button('Publish new version',()=>run(async()=>{
         const data=collect();
@@ -586,12 +575,14 @@
         await serviceEditor();
       }
       ),'primary'));
-      target.append(actions,dateWrap,reviewed.wrap,viewButtons,preview,element('h3','Published version history','iv-sub-heading'));
-      for(const v of state.versions)target.appendChild(button(v.effective_date+' · '+v.id,()=>{
+      const publish=actions.lastElementChild;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
+      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(dateWrap,viewButtons,preview,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
+      for(const v of state.versions)publication.appendChild(button('Published version effective '+v.effective_date,()=>{
         previewData=v;
-        preview.textContent=v.terms_text;
+        documentPreview(preview,v.terms_text);
       }
       ));
+      publication.appendChild(advanced);
     }
     if(kind==='master'){
       const old=app.showDashboard;
@@ -666,7 +657,7 @@
     app.openSubscriptionBilling=tenant=>run(()=>openBilling(tenant||app.currentTenantId));
   }
   root.IronVaultSubscriptions={
-    install,help,money,planName,statusText
+    install,help,money,planName,statusText,documentPreview
   }
   ;
   if(typeof module==='object'&&module.exports)module.exports=root.IronVaultSubscriptions;
