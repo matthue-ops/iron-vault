@@ -19,7 +19,7 @@
     {
       "key": "address",
       "label": "Provider business/service address",
-      "default": "",
+      "default": "Poblacion 2, Tagbilaran City, Bohol, Philippines",
       "help": "Enter a real, appropriate service address before publication. Do not invent a registered address.",
       "type": "text",
       "required": true
@@ -59,7 +59,7 @@
     {
       "key": "support_hours",
       "label": "Support schedule",
-      "default": "9 AM\u20135 PM, Philippine time",
+      "default": "9 AM–5 PM, Philippine time",
       "help": "Specify working days and the time zone. Normal support hours do not remove breach-response duties.",
       "type": "text",
       "required": true
@@ -131,7 +131,7 @@
     {
       "key": "late_payment_policy",
       "label": "Late-payment rule",
-      "default": "During grace, renewal continues from the original due date. After suspension, access resumes on approval and counted days start the following day.",
+      "default": "During paid grace, renewal continues from the original renewal date. After suspension, access returns on approval and counted days start the following day.",
       "help": "This must match the implemented billing date calculation. Defaults are enforced by the subscription engine.",
       "type": "text",
       "required": true
@@ -139,7 +139,7 @@
     {
       "key": "upgrade_policy",
       "label": "Upgrade and downgrade rule",
-      "default": "Upgrades charge the plan-price difference proportionally for remaining days and retain expiry. Downgrades take effect after the current paid period.",
+      "default": "Upgrades charge the plan-price difference proportionally for remaining days and retain the expiry date. Downgrades take effect after the current paid period and require the applicable renewal payment.",
       "help": "The exact upgrade quote is shown before owner confirmation and payment approval.",
       "type": "text",
       "required": true
@@ -147,7 +147,7 @@
     {
       "key": "refund_policy",
       "label": "Refund policy",
-      "default": "",
+      "default": "Cancellation before a scheduled paid period begins qualifies for a full refund. After activation, unused days are generally non-refundable, except where required by law or where a service failure or exceptional circumstance justifies another remedy. Duplicate or incorrect payments will be reviewed and corrected. Credit may replace a refund only with the owner’s agreement.",
       "help": "Set duplicate/incorrect payments, cancellation after activation, and cancellation before a scheduled period. Respect non-waivable rights. Suggested: refund excess; credit only by owner choice; full refund before a scheduled period begins.",
       "type": "textarea",
       "required": true
@@ -155,7 +155,7 @@
     {
       "key": "outage_policy",
       "label": "Service interruption policy",
-      "default": "",
+      "default": "Report service problems promptly. A confirmed interruption preventing core operations for four continuous hours qualifies for review. Depending on the circumstances, remedies may include correction, an extension, credit, or a refund where appropriate or legally required.",
       "help": "Describe confirmed provider outages, review thresholds and remedies. Suggested: review after four continuous hours; extension by default, other remedies as appropriate.",
       "type": "textarea",
       "required": true
@@ -163,8 +163,8 @@
     {
       "key": "billing_complaints",
       "label": "Billing complaint and refund timing",
-      "default": "",
-      "help": "Suggested: report within 30 days of discovery without removing statutory rights; initiate approved refunds within 7\u201314 business days, allowing payment-provider settlement time.",
+      "default": "Report billing issues promptly, preferably within 30 days of discovering them. The Service Provider aims to initiate approved refunds within 7–14 business days; payment providers may require additional settlement time. Statutory rights remain unaffected.",
+      "help": "Suggested: report within 30 days of discovery without removing statutory rights; initiate approved refunds within 7–14 business days, allowing payment-provider settlement time.",
       "type": "textarea",
       "required": true
     },
@@ -179,7 +179,7 @@
     {
       "key": "security_retention",
       "label": "Security/audit retention",
-      "default": "",
+      "default": "Security/audit records are generally kept for up to 12 months where reasonably necessary.",
       "help": "Specify and justify duration. Proposed starting point: 12 months, longer only where justified by a dispute, incident or legal obligation.",
       "type": "textarea",
       "required": true
@@ -203,7 +203,7 @@
     {
       "key": "privacy_purposes",
       "label": "Personal data and purposes",
-      "default": "Owner identity and contacts, account/security records, agreement acceptances, subscription/payment references, support and service communications; used to deliver, secure and administer the service.",
+      "default": "Depending on features used: names, contact details, Member IDs, optional photos, membership details, attendance, account credits, transactions, staff permissions, subscription/payment references, agreement acceptances, support and necessary security logs. Use these to deliver, secure and administer the service, provide support, investigate problems and meet legal obligations.",
       "help": "Describe only data actually collected. Member processing on behalf of gyms is covered separately by the DPA.",
       "type": "textarea",
       "required": true
@@ -211,7 +211,7 @@
     {
       "key": "marketing_policy",
       "label": "Advertising and promotional messages",
-      "default": "Do not sell personal information or use gym/member data for third-party advertising. Promotional emails require separate optional opt-in and unsubscribe. Service/security/billing notices are separate.",
+      "default": "Do not sell personal information or use gym/member information for third-party advertising. Promotional emails require separate optional opt-in and an unsubscribe method. Billing, security and necessary service notices are separate.",
       "help": "Do not use agreement acceptance as blanket advertising consent. New purposes require a legal and product review.",
       "type": "textarea",
       "required": true
@@ -219,7 +219,7 @@
     {
       "key": "sensitive_data_policy",
       "label": "Sensitive information",
-      "default": "Standard registration does not request medical records, health information or government ID images.",
+      "default": "Standard registration does not request medical records, health information or government ID images. Do not enter these into general-purpose fields. New sensitive-information uses require an appropriate assessment and safeguards before collection.",
       "help": "Only describe collection actually implemented. Additional sensitive-data features require a specific lawful basis, safeguards and retention review.",
       "type": "textarea",
       "required": true
@@ -227,7 +227,7 @@
     {
       "key": "deletion_process",
       "label": "Data requests and deletion procedure",
-      "default": "",
+      "default": "Deletion is reviewed manually; expiry does not automatically erase records. Operational records are reviewed for deletion or anonymisation within the stated review period after final operational access ends, subject to lawful preservation needs. Coordinate gym-controlled requests with the registered owner. On backup restoration, reapply previously approved deletion or restriction instructions where appropriate.",
       "help": "Specify monitored privacy contact, identity checks, gym coordination for member requests, review/hold process, export and deletion/anonymisation procedure. The app lists retention review dates; this release does not automatically erase records.",
       "type": "textarea",
       "required": true
@@ -235,7 +235,7 @@
     {
       "key": "breach_process",
       "label": "Security incident process",
-      "default": "Report suspected incidents promptly to the privacy contact. The parties assess and respond without undue delay, observing applicable NPC notification rules, including the 72-hour requirement where its conditions apply.",
+      "default": "Protect passwords and limit staff access. Report suspected misuse promptly to the privacy/security contact. Assess and handle incidents without undue delay. Legally required notifications, including the applicable 72-hour requirement where its conditions apply, must not be delayed by normal support hours.",
       "help": "Do not treat normal support hours as permission to delay a legally required response.",
       "type": "textarea",
       "required": true
@@ -243,7 +243,7 @@
     {
       "key": "liability_policy",
       "label": "Liability and remedies",
-      "default": "",
+      "default": "The Service Provider exercises reasonable care but does not promise uninterrupted or error-free service or absolute security. Maintain a practical alternative for essential gym operations during an outage. Nothing removes rights or remedies that cannot lawfully be waived.",
       "help": "Specify a lawyer-reviewed liability allocation. Do not exclude fraud, gross negligence or responsibilities that cannot lawfully be waived.",
       "type": "textarea",
       "required": true
@@ -251,7 +251,7 @@
     {
       "key": "dispute_policy",
       "label": "Governing law and dispute process",
-      "default": "Philippine law applies. First attempt good-faith resolution through the support contact. Competent Philippine courts and authorities retain jurisdiction under applicable law. Complaints to the NPC are not restricted.",
+      "default": "Philippine law applies. Contact the Service Provider first to address concerns in good faith. Competent courts and authorities retain jurisdiction under applicable law. Complaints to the National Privacy Commission are not restricted.",
       "help": "Do not remove mandatory venue, jurisdiction or statutory complaint rights.",
       "type": "textarea",
       "required": true
@@ -270,15 +270,15 @@
       "help": "Specify actual working days and holiday arrangements before publishing.",
       "type": "textarea",
       "required": true,
-      "default": ""
+      "default": "Monday to Friday, excluding Philippine public holidays."
     },
     {
       "key": "tax_policy",
-      "label": "Tax treatment",
-      "help": "Confirm applicable tax treatment with an accountant. Configured plan prices must be final quoted totals; do not add undisclosed fees.",
+      "label": "Price and additional charges",
+      "help": "State whether the quote is the final total. Do not claim tax registration or tax treatment that has not been verified.",
       "type": "textarea",
       "required": true,
-      "default": ""
+      "default": "The quoted subscription amount is the total payable. Any additional charges require prior disclosure and agreement."
     },
     {
       "key": "billing_instructions",
@@ -291,7 +291,7 @@
     {
       "key": "_terms_template",
       "label": "Service Agreement template",
-      "default": "# {{brand}} \u2014 Gym Subscription Service Agreement\n\n1. PARTIES AND AUTHORITY\n{{provider_name}}, operating {{brand}}, at {{address}} provides this software service. The accepting registered gym owner confirms authority to bind the identified gym. The gym identity and accepting owner are recorded with this version in its acceptance receipt. A brand is not represented as a separate legal entity merely by its use.\n\n2. ELECTRONIC ACCEPTANCE\nExplicit checkbox and acceptance-button actions record the gym, owner account, version and Philippine timestamp. Opening a notification is not agreement. Electronic records may have legal effect under the Civil Code and Electronic Commerce Act (RA 8792).\n\n3. SERVICE AND GYM RESPONSIBILITY\nSoftware supports member records, attendance, credits, purchases, staff and reports. The gym operates its business and is responsible for permits, personnel, pricing, member policies, safety and lawful handling of information. This is not medical advice or a guarantee of member conduct.\n\n4. PLANS AND PRICES\nDashboard Only: PHP {{dashboard_price}} total per gym for {{paid_days}} days. Dashboard + Member Portal: PHP {{portal_price}} total for the same period, not an additional fee. Dashboard includes staff-assisted registration, entry, transactions and reports. Member Portal adds member login, profiles, QR and supported self-service. One tenant is covered; additional tenants require their own subscriptions. Tax treatment: {{tax_policy}}. Configured prices are final quoted totals.\n\n5. ONBOARDING\nBefore operations, the registered owner must complete required gym details, publish the gym's member Terms and Privacy documents, and accept these service documents. Super Admin separately approves pilot activation. Publication does not certify the gym's compliance with all laws. Setup-only access remains available before approval.\n\n6. FREE PILOT\nOne {{pilot_days}}-day full-feature pilot per gym business, subject to Super Admin approval. Access opens immediately on approval; counted days start the following calendar day. All dates use Philippine time (UTC+8), ending at 11:59:59 PM on the final day. No automatic charge or automatic paid conversion. Extensions require a recorded reason. No paid grace period automatically follows the pilot.\n\n7. PAID PERIODS AND EARLY PAYMENT\nEach paid period lasts {{paid_days}} consecutive counted days. For a new activation outside an existing period, access begins on approval and counting starts the next day. Early payment during a pilot schedules the paid period for the day after the pilot's final day. Early renewal adds days after the existing paid-through date. Billing confirmation discloses the exact plan, amount and dates.\n\n8. PAYMENTS\nPay only through the instructions shown in billing. Payment is effective after verification and approval by Super Admin. Submission of a reference is not proof of approval. Required invoices/payment documentation must be provided under applicable rules. No automatic recurring debit is authorized by this agreement. Billing contact: {{billing_contact}}. Instructions: {{billing_instructions}}.\n\n9. OVERDUE ACCESS\nPaid subscriptions receive {{grace_days}} dashboard-only grace days after expiry. Portal access is unavailable during grace. Operational access is suspended afterward; the owner retains billing and eligible read-only/export access. Temporary restrictions do not automatically change the chosen plan or price. {{late_payment_policy}}\n\n10. PLAN CHANGES\n{{upgrade_policy}} Exact amounts and dates must be explicitly confirmed before approval. Existing records and credentials are retained when portal access changes. Existing member sessions lose protected access when entitlement ends.\n\n11. NOTIFICATIONS\nOnboarding, agreement, billing and subscription notices go only to the registered owner account. Staff cannot accept this agreement or approve charges. Keep owner credentials and contacts current. Service communications are separate from optional marketing. Scheduled notifications remain available when the owner next signs in.\n\n12. MEMBERS AND MANUAL SERVICE\nPortal signups accept member documents and may await gym approval. Staff-registered walk-ins may have no email and are pre-approved; they may later sign in by Member ID and password. Member approval, member legal acceptance and gym subscription entitlement are independent. Staff-assisted entry does not itself establish acceptance of app terms. Membership and balance rules remain applicable.\n\n13. LAWFUL COLLECTION\nThe gym must provide accurate notices, establish lawful bases, minimise collection and protect member/staff information under RA 10173 and applicable NPC rules. Physical presence and previous collection are not blanket consent. App agreement does not authorize unrelated marketing or sensitive-data collection.\n\n14. DATA ROLES AND PROCESSING\nThe gym generally controls member processing for its operations. The provider processes it on documented instructions and may separately control account, billing and security processing described in its Privacy Notice. Actual activities determine roles. The accompanying Data Processing Agreement applies to processor services.\n\n15. SECURITY AND INCIDENTS\nMaintain reasonable organisational, physical and technical safeguards, restrict staff access and report suspected misuse. {{breach_process}} The provider and gym retain their respective statutory obligations.\n\n16. SERVICE PROVIDERS\n{{providers}} Appropriate safeguards and accountability must accompany cross-border processing; location alone does not establish compliance. Material provider changes must be communicated through the disclosed process.\n\n17. TRANSACTIONS\nDisplayed balances record the gym's obligations; the provider does not hold member funds merely because a balance appears. The gym collects funds, reconciles records, authorizes changes and issues required documents. Reports do not replace accounting or tax obligations.\n\n18. ACCEPTABLE USE\nDo not access other gyms, falsify financial/attendance/audit records, upload unlawful information, share credentials to defeat accountability, bypass access restrictions or compromise service security. Proportionate protective restrictions may be applied.\n\n19. AVAILABILITY AND SUPPORT\nSupport: {{support_email}}; {{support_hours}}, {{support_days}}. Exercise reasonable care, but no unagreed uptime guarantee is given. Maintain an outage contingency. {{outage_policy}}\n\n20. CANCELLATION AND REFUNDS\n{{refund_policy}} {{billing_complaints}} Mandatory legal rights and remedies are not waived.\n\n21. SUSPENSION AND TERMINATION\nNonpayment follows the grace rules. Security threats, material misuse or legal requirements may require restrictions; provide notice and an opportunity to remedy where appropriate. Suspension does not automatically erase records. Termination and data handling remain subject to applicable law and the DPA.\n\n22. RETENTION AND EXPORT\nOwner export access lasts {{export_days}} days after final operational entitlement ends. Operational records are due for retention review within {{retention_days}} days after that endpoint, subject to lawful holds. {{deletion_process}} Backup handling: {{backup_policy}} Security history: {{security_retention}} Payment records: {{payment_retention}} Do not promise immediate removal from every backup.\n\n23. INTELLECTUAL PROPERTY\nProvider/licensor rights in software and branding remain theirs. The gym receives service-use rights during authorised access and retains rights in its own content. Use gym identity and records only as needed for the service and other expressly agreed lawful purposes. Individuals retain privacy rights.\n\n24. LIABILITY\n{{liability_policy}} Nothing waives future fraud, non-waivable remedies or statutory privacy duties.\n\n25. AGREEMENT AND PRICE CHANGES\nPublish immutable versions and notify the owner of material changes. Obtain renewed explicit acceptance where required; reading a notification is insufficient. Price changes require at least {{price_notice_days}} calendar days' notice stating old/new price, affected plan, effective date and options. Existing paid and approved future periods are protected. New prices apply to unapproved periods starting on/after the effective date. Owners may decline renewal without an extra cancellation penalty. No automatic payment authorization is implied.\n\n26. LAW, CONTACTS AND ADDITIONAL CONDITIONS\n{{dispute_policy}} Privacy: {{privacy_contact}}, {{privacy_email}}. Address: {{address}}. {{contract_extra}}\n",
+      "default": "# {{brand}} — Terms of Use\n\nService Provider: {{provider_name}}, operating {{brand}}\nAddress: {{address}}\nSupport: {{support_email}} · Billing: {{billing_contact}}\nPrivacy/security: {{privacy_contact}}, {{privacy_email}}\nVersion: {{document_version}}\n\n1. ABOUT THE SERVICE\n\nSoftware for managing gym members, attendance, staff access, membership transactions and reports. The Gym remains responsible for its operations, staff, member services, payment collection and accurate, lawful information. Only the registered owner with authority to represent this Gym may accept.\n\n2. FREE PILOT\n\nEligible gyms may receive one {{pilot_days}}-day pilot with dashboard and member-portal access. Complete setup, publish gym member documents and accept these service documents before separate Service Provider activation. Access opens on approval; counted days start the following calendar day in Philippine time and end at 11:59:59 PM on the final day. No automatic charge or paid subscription. No automatic pilot grace period.\n\n3. PAID PLANS\n\nEach plan covers this Gym for {{paid_days}} counted calendar days. Dashboard Only: PHP {{dashboard_price}}. Dashboard + Member Portal: PHP {{portal_price}} TOTAL, not an additional fee. Dashboard Only supports staff-assisted operations. Member login, member QR passes and self-service require Member Portal entitlement. Review the selected price and exact dates in the subscription summary before payment approval. No automatic charges.\n\n4. PAYMENTS AND DATES\n\n{{billing_instructions}}\n{{tax_policy}}\nPayment requires Service Provider verification and approval; submitting a reference is not approval. New activation opens access on approval and counts from the following day. Payment approved before pilot expiry starts the paid period the day after the pilot ends. Early renewal preserves remaining paid days. {{late_payment_policy}}\n\n5. EXPIRY AND PLAN CHANGES\n\nPaid subscriptions receive {{grace_days}} dashboard-only grace days; member-portal access is disabled during grace. After grace, registrations, check-ins and transactions are suspended. The registered owner retains billing access and a {{export_days}}-day read-only export window after final operational access ends, including applicable paid grace. {{upgrade_policy}} Exceptions or extensions require Service Provider approval and a recorded reason.\n\n6. RESPONSIBLE USE\n\nProtect credentials, limit staff access and use only authorised accounts, records and features. Do not bypass access controls, falsify records or use the service unlawfully. Provide appropriate notices and a lawful basis for necessary member and staff information. {{sensitive_data_policy}} The Privacy Notice and Data Processing Agreement explain processing responsibilities.\n\n7. SUPPORT AND INTERRUPTIONS\n\nSupport: {{support_days}} {{support_hours}}. {{outage_policy}} {{liability_policy}}\n\n8. CANCELLATION AND REFUNDS\n\nYou may stop renewing by contacting the Service Provider. {{refund_policy}} {{billing_complaints}}\n\n9. RECORDS AND ENDING ACCESS\n\nExpiry or suspension does not automatically delete records. Export available records within the stated window. The Privacy Notice and Data Processing Agreement explain retention and backups. The Service Provider may restrict access for serious misuse, security threats or legal requirements, with notice where reasonably practical.\n\n10. CHANGES AND LEGAL RIGHTS\n\nPrice changes require at least {{price_notice_days}} calendar days’ advance notice to the registered owner, stating old/new prices, affected plan, effective date and options. Approved current and future periods retain approved prices. You may decline renewal without an additional cancellation penalty. Notify material changes and obtain renewed explicit acceptance where required; reading a notice is not acceptance. {{dispute_policy}} {{contract_extra}}\n",
       "help": "Advanced: preserve all applicable protections and use {{field_key}} placeholders. Preview and review before publishing.",
       "type": "textarea",
       "required": true
@@ -299,7 +299,7 @@
     {
       "key": "_privacy_template",
       "label": "Tenant Privacy Notice template",
-      "default": "# {{brand}} \u2014 Tenant Privacy Notice\n\n1. RESPONSIBLE PROVIDER\n{{provider_name}}, operating {{brand}}, {{address}}. Privacy contact: {{privacy_contact}}, {{privacy_email}}.\n\n2. SCOPE AND ROLES\nThis notice covers owner/staff account administration, billing, security, acceptance history, support and communications controlled by the provider. Member processing on the gym's instructions is separately described by the gym's notice and the DPA. Roles follow actual processing.\n\n3. DATA AND PURPOSES\n{{privacy_purposes}} Do not collect more than reasonably necessary.\n\n4. LAWFUL BASIS\nIdentify and document applicable bases under RA 10173 for the actual activity, such as contractual necessity, legal duties or properly assessed legitimate interests. Obtain specific consent where required. Agreement acceptance is not blanket privacy consent.\n\n5. RECIPIENTS AND LOCATIONS\n{{providers}} Disclose actual recipients, processing locations and appropriate cross-border safeguards. Do not invent a region or an email delivery provider.\n\n6. MARKETING\n{{marketing_policy}} Declining promotions does not block service. Owners cannot opt members into unrelated advertising on their behalf.\n\n7. SENSITIVE INFORMATION\n{{sensitive_data_policy}} New collection requires a specific assessment, lawful basis, safeguards and notice before use.\n\n8. RETENTION\nExport access: {{export_days}} days after final access. Operational records: retention review within {{retention_days}} days, with lawful exceptions. {{backup_policy}} Security/audit: {{security_retention}} Subscription/payment: {{payment_retention}}\n\n9. REQUESTS AND RIGHTS\nSubject to applicable law, individuals may seek information, access, correction, objection, erasure/blocking, portability and other available remedies. Contact {{privacy_email}}. {{deletion_process}} Verify identity proportionately and coordinate gym-controlled records with the gym. NPC complaint rights remain available.\n\n10. SECURITY AND INCIDENTS\nApply appropriate organisational, physical and technical controls. {{breach_process}} No system can promise absolute security.\n\n11. REQUIRED AND OPTIONAL INFORMATION\nExplain required account/billing fields and consequences of omission. Promotional consent is optional. A working owner contact is necessary for administration; walk-in members need no email for staff-assisted services.\n\n12. VERSIONS AND CONTACT\nPreserve published versions, announce material processing changes and obtain new consent where required. Support: {{support_email}}; privacy: {{privacy_email}}. This notice does not replace the provider's underlying legal obligations.\n",
+      "default": "# {{brand}} — Privacy Notice\n\nService Provider: {{provider_name}}, operating {{brand}}\nAddress: {{address}}\nSupport: {{support_email}} · Billing: {{billing_contact}}\nPrivacy/security: {{privacy_contact}}, {{privacy_email}}\nVersion: {{document_version}}\n\n1. RESPONSIBILITIES\n\nThe Gym decides why and how its operational member and staff records are used. The Service Provider handles them to deliver the agreed software and separately uses necessary owner, billing, support and security information to administer the service. Read this with the Terms of Use and Data Processing Agreement.\n\n2. INFORMATION AND PURPOSES\n\n{{privacy_purposes}} {{sensitive_data_policy}} Walk-ins need no email for staff-assisted service; email recovery needs a real contact email. Each purpose needs an appropriate lawful basis under Philippine law. Consent is obtained where required; visiting a gym or accepting Terms is not blanket permission for unrelated uses. {{marketing_policy}}\n\n3. AUTHORISED ACCESS AND PROVIDERS\n\nOnly authorised people/providers with a necessary purpose, or lawful disclosure, may receive information. {{providers}} Database region: {{database_region}}. Email delivery: {{email_provider}}. Overseas processing and safeguards: {{overseas_processing}}.\n\n4. RETENTION\n\nThe owner normally has {{export_days}} days after final operational access ends, including any paid grace, to export available records. Operational records are reviewed within {{retention_days}} days after that same endpoint. {{deletion_process}} {{security_retention}} {{payment_retention}} Backups: {{backup_policy}}.\n\n5. SECURITY AND INCIDENTS\n\n{{breach_process}} Contact {{privacy_email}}. No service promises absolute security.\n\n6. RIGHTS AND REQUESTS\n\nSubject to law, request access, correction, objection, deletion/blocking, portability or other remedies through {{privacy_email}}. Reasonable identity checks may be necessary. Coordinate gym-controlled records with the Gym; the Service Provider handles its own account/billing records. Complaints may be raised with the National Privacy Commission.\n\n7. UPDATES\n\nCommunicate material changes and obtain new consent where required. Acknowledging this notice does not waive privacy rights or authorise unrelated processing.\n",
       "help": "Advanced: preserve all applicable protections and use {{field_key}} placeholders. Preview and review before publishing.",
       "type": "textarea",
       "required": true
@@ -307,8 +307,40 @@
     {
       "key": "_dpa_template",
       "label": "Data Processing Agreement template",
-      "default": "# {{brand}} \u2014 Data Processing Agreement\n\n1. PARTIES AND SCOPE\n{{provider_name}}, operating {{brand}} (processor for the covered activities), and the accepting gym (controller) agree to the following processing of member/staff records for gym management. Separate provider-controlled billing/account processing is covered by its Privacy Notice.\n\n2. SUBJECT MATTER, DURATION AND INSTRUCTIONS\nProcess membership/contact records, attendance, credits, purchases, staff permissions and related service records solely to provide the agreed gym software on documented lawful instructions. Processing lasts for the service and defined retention/return periods. Notify the gym if an instruction appears unlawful; do not follow it merely because it is requested.\n\n3. CONTROLLER DUTIES\nThe gym establishes purposes and lawful bases, issues accurate notices, minimises collection, authorizes users, maintains accurate data, and responds to requests with processor assistance. Physical presence is not blanket consent.\n\n4. CONFIDENTIALITY AND ACCESS\nLimit access to authorised persons with confidentiality duties and need-to-know roles. Protect credentials and maintain accountable access controls. Do not sell or independently advertise using covered data.\n\n5. SECURITY\nMaintain appropriate organisational, physical and technical measures proportionate to risk, including access control, secure transmission, logging, recovery and review processes as actually provided. No unsupported certification or absolute-security claim is made.\n\n6. SUBPROCESSORS AND TRANSFERS\nCurrent providers/locations: {{providers}} Use appropriate contractual safeguards, maintain accountability, and notify the gym of material changes with a reasonable opportunity to raise data-protection concerns. Follow applicable Philippine transfer rules.\n\n7. DATA-SUBJECT REQUESTS\nHelp the gym locate, correct, export, restrict or delete covered data as appropriate. Refer gym-controlled requests to the gym without obstructing statutory rights. Contact: {{privacy_email}}.\n\n8. INCIDENTS\n{{breach_process}} Provide available details, containment and remediation assistance without undue delay. Each party assesses applicable NPC/data-subject notifications; no contract postpones a mandatory deadline.\n\n9. ASSURANCE AND COMPLIANCE\nProvide reasonable information about processing and safeguards and cooperate with proportionate lawful review requests, protecting other customers' data and confidential security information. Cooperate with competent authorities as required.\n\n10. RETURN, DELETION AND BACKUPS\nOwner export window: {{export_days}} days after final access. Operational retention review: {{retention_days}} days. {{deletion_process}} Backup cycle: {{backup_policy}} Security: {{security_retention}} Payment/legal records: {{payment_retention}} Document lawful exceptions and deletion/return actions.\n\n11. LIMITS OF INSTRUCTIONS\n{{sensitive_data_policy}} New sensitive-data uses require prior assessment and appropriate written instructions/safeguards. The processor does not acquire ownership of member personal information.\n\n12. CONFLICTS AND CONTACT\nMandatory RA 10173 and applicable NPC rules prevail over conflicting terms. The Service Agreement governs commercial matters without removing statutory processing duties. Privacy contact: {{privacy_contact}}, {{privacy_email}}, {{address}}. {{dispute_policy}}\n",
+      "default": "# {{brand}} — Data Processing Agreement\n\nService Provider: {{provider_name}}, operating {{brand}}\nAddress: {{address}}\nSupport: {{support_email}} · Billing: {{billing_contact}}\nPrivacy/security: {{privacy_contact}}, {{privacy_email}}\nVersion: {{document_version}}\n\n1. PARTIES AND INSTRUCTIONS\n\nThis agreement is between the Service Provider and the Gym identified on this page and in its acceptance record, including during a pilot. The Gym determines the purposes of its operational records. The Service Provider processes them on documented lawful instructions to deliver the service. Its own account, billing and security uses are described in the Privacy Notice.\n\n2. COVERED INFORMATION\n\n{{privacy_purposes}} Use only for lawful gym-management purposes. {{sensitive_data_policy}}\n\n3. GYM RESPONSIBILITIES\n\nGive accurate notices, establish lawful bases, obtain consent where required, minimise information and keep it reasonably accurate. Authorise staff appropriately, protect credentials, remove unnecessary access and report suspected misuse. Physical presence, manual registration or Terms acceptance is not blanket consent.\n\n4. SERVICE PROVIDER RESPONSIBILITIES\n\nProcess on lawful instructions for the agreed service or as required by law; raise concerns about apparently unlawful instructions. Limit access with confidentiality duties and reasonable organisational, physical and technical safeguards. Do not sell covered data or use it for third-party advertising. Assist with lawful rights requests and proportionate compliance enquiries while protecting confidential security information.\n\n5. INFRASTRUCTURE PROVIDERS\n\nThe Gym authorises necessary providers identified here: {{providers}}. Database region: {{database_region}}. Email delivery: {{email_provider}}. Overseas processing: {{overseas_processing}}. The Service Provider remains responsible for applicable duties and safeguards. Communicate material provider changes, allowing reasonable opportunity for privacy concerns where practicable.\n\n6. INCIDENTS\n\nNotify the Gym without undue delay after awareness of a personal data breach affecting covered information, with available response details. The Gym must promptly report suspected compromise. {{breach_process}} Contact {{privacy_email}}. This agreement postpones no legal deadline.\n\n7. EXPORT, RETURN AND DELETION\n\nOwner export: {{export_days}} days after final operational access, including paid grace. Operational retention review: {{retention_days}} days after that endpoint. {{deletion_process}} Backups: {{backup_policy}}. {{security_retention}} {{payment_retention}}\n\n8. LAW AND ACCEPTANCE\n\nCommercial matters follow the Terms of Use. Mandatory Philippine law, RA 10173 and applicable NPC rules prevail. Neither party acquires ownership of individuals’ personal information. Communicate material changes and obtain renewed explicit acceptance where required. The registered owner must explicitly agree to the Terms and this Agreement and acknowledge the Privacy Notice; a notification alone is not acceptance.\n",
       "help": "Advanced: preserve all applicable protections and use {{field_key}} placeholders. Preview and review before publishing.",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "key": "document_version",
+      "label": "Document version",
+      "default": "1.0",
+      "help": "Unique label for this publication; changing accepted wording creates a new version.",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "database_region",
+      "label": "Database processing region",
+      "default": "",
+      "help": "Verify the actual Supabase project region; do not guess.",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "email_provider",
+      "label": "Email delivery provider",
+      "default": "",
+      "help": "Identify the service that actually sends authentication and service messages.",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "overseas_processing",
+      "label": "Overseas processing and safeguards",
+      "default": "",
+      "help": "Describe verified overseas locations, safeguards and accountability. Do not claim an unverified arrangement.",
       "type": "textarea",
       "required": true
     }
