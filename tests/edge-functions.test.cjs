@@ -75,11 +75,11 @@ test('completed provisioning retry never creates another Auth account or resets 
  const result=await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'member@example.invalid',password:'test-only-password'},'member');
  assert.equal(result.member_id,'member');assert.equal(finished,1);
 });
-function contactFixture(verified=true,tenant='gym',accountRole='member'){
+function contactFixture(verified=true,tenant='gym',accountRole='member',contactEmail='old@example.invalid'){
  const queues=[],mail=[];const hash=v=>require('node:crypto').createHash('sha256').update(v).digest('hex');
  const c=load('supabase/functions/_shared/contact.ts',{ensurePrivateIdentifier:async()=> 'private@accounts.ironvault.invalid',mailReady:()=>true,actor:async()=>({id:'owner'}),role:async()=>({role:'owner',tenant_id:'gym'}),
   admin:{auth:{admin:{generateLink:async()=>({data:{properties:{hashed_token:'replacement-not-mailed'}},error:null})}},from:()=>({select(){return this},eq(){return this},single:async()=>({data:{status:'ACTIVE'}})})},digest:async v=>hash(v),limit:async()=>{},site:'https://app.example.invalid',
-  rpc:async(name,args)=>{if(name==='iv_branch_account_details')return{tenant_id:tenant,role:accountRole,verified,email:'old@example.invalid',token:'gym-token'};queues.push(args);return null},
+  rpc:async(name,args)=>{if(name==='iv_branch_account_details')return{tenant_id:tenant,role:accountRole,verified,email:contactEmail,token:'gym-token'};queues.push(args);return null},
   sendMail:async(to,subject,link)=>{mail.push({to,subject,link})}});
  return {c,queues,mail};
 }
@@ -234,4 +234,31 @@ test('self-registration carries only the exact accepted version pair into the pr
  const legal={accepted:true,platform_version:'12345678-1234-4234-8234-123456789ABC',gym_version:'22345678-1234-4234-8234-123456789ABC',extra:'must not persist'};
  await c.provision(new Request('https://edge.example.invalid'),{request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Member',email:'test@example.invalid',password:'test-only-password',legal},'member',true);
  const saved=calls.find(x=>x.name==='iv_prepare_branch_account').args.p_payload.legal;assert.equal(saved.accepted,true);assert.equal(saved.platform_version,legal.platform_version.toLowerCase());assert.equal(saved.gym_version,legal.gym_version.toLowerCase());assert.equal('extra' in saved,false);
+});
+
+function optionalContactProvision(binding={role:'owner',tenant_id:'gym'}){
+ const calls=[];let created=0;
+ const c=load('supabase/functions/_shared/provision.ts',{actor:async()=>({id:'operator'}),role:async()=>binding,
+ admin:{auth:{admin:{createUser:async()=>{created++;return{data:{user:{id:'member-auth'}}}}}}},digest:async()=> 'a'.repeat(64),limit:async()=>{},
+ rpc:async(name,args)=>{calls.push({name,args});return name==='iv_prepare_branch_account'?{}:name==='iv_find_created_account'?null:{ok:true,member_id:'member'};}});
+ return{c,calls,created:()=>created};
+}
+const walkinInput={request_id:'12345678-1234-4234-8234-123456789abc',tenant_id:'gym',name:'Walk In',phone:'09999999999',email:'',password:'test-only-password'};
+test('operator-created walk-in accepts no email and still creates password-backed Auth with private alias',async()=>{
+ const f=optionalContactProvision();const result=await f.c.provision(new Request('https://edge.example.invalid'),walkinInput,'member');
+ assert.equal(f.created(),1);const args=f.calls.find(c=>c.name==='iv_prepare_branch_account').args;assert.equal(args.p_email,null);assert.match(args.p_alias,/@accounts.ironvault.invalid$/);assert.equal(args.p_actor,'operator');assert.match(result.message,/Member ID and password/);
+});
+test('optional walk-in contact does not weaken passwords, real email validation or operator gym authority',async()=>{
+ for(const changes of [{password:''},{password:'short'},{email:'not-an-email'}]){const f=optionalContactProvision();await assert.rejects(f.c.provision(new Request('https://edge.example.invalid'),{...walkinInput,...changes},'member'),/Invalid request/);assert.equal(f.created(),0);}
+ for(const binding of [{role:'owner',tenant_id:'other'},{role:'member',tenant_id:'gym'}]){const f=optionalContactProvision(binding);await assert.rejects(f.c.provision(new Request('https://edge.example.invalid'),walkinInput,'member'),/Not authorized/);assert.equal(f.created(),0);}
+ const f=optionalContactProvision();await assert.rejects(f.c.provision(new Request('https://edge.example.invalid'),walkinInput,'member',true),/Invalid request/);assert.equal(f.created(),0);
+});
+test('walk-in with supplied real email retains that contact',async()=>{
+ const f=optionalContactProvision();await f.c.provision(new Request('https://edge.example.invalid'),{...walkinInput,email:'Person@Example.invalid'},'member');assert.equal(f.calls.find(c=>c.name==='iv_prepare_branch_account').args.p_email,'person@example.invalid');
+});
+
+test('member with no contact can add a real email using only proof of that new inbox',async()=>{
+ const f=contactFixture(false,'gym','member',null);f.c.actor=async()=>({id:'member'});f.c.role=async()=>({role:'member',tenant_id:'gym'});
+ await f.c.changeContact(new Request('https://edge.example.invalid'),{new_email:'real@example.invalid'});
+ assert.equal(f.mail.length,1);assert.equal(f.mail[0].to,'real@example.invalid');assert.equal(f.queues[0].p_kind,'correct_unverified');assert.equal(f.queues[0].p_base_email,null);assert.equal(f.queues[0].p_actor,'member');
 });

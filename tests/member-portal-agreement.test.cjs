@@ -5,7 +5,7 @@ function fixture(agreed=false){
  const events={},auth=[],calls=[];let user='user',reply={user_id:user,member_id:'member',tenant_id:'gym',accepted:agreed,platform_version:p,gym_version:g,acceptance:agreed?{platform_version:p,gym_version:g,accepted_at:'2026-11-05T00:00:00Z'}:null};
  const root={Intl,Date,URLSearchParams,navigator:{onLine:true},document:{body:node('body'),getElementById:node,addEventListener(){}},setTimeout:()=>1,clearTimeout(){},addEventListener:(n,f)=>{events[n]=f;}};
  const client={auth:{getUser:async()=>({data:{user:{id:user}}}),onAuthStateChange:f=>auth.push(f)},rpc:async(name,args)=>{calls.push({name,args});if(name==='iv_member_legal_accept')reply={...reply,accepted:true,acceptance:{platform_version:p,gym_version:g,accepted_at:'2026-11-05T00:00:00Z'}};return{data:reply};}};
- let purchases=0,qr=0;const app={authenticatedRole:{user_id:'user',member_id:'member',tenant_id:'gym'},currentMember:{id:'member',tenantId:'gym',tenantToken:'token'},init:async()=>{},renderProfile(){},openMemberAnnouncements:async()=>{},selectPlan:async()=>{purchases++;},generateDailyQR:async()=>{qr++;}};
+ let purchases=0,qr=0;const app={authenticatedRole:{user_id:'user',member_id:'member',tenant_id:'gym'},currentMember:{id:'member',tenantId:'gym',tenantToken:'token',status:'ACTIVE'},init:async()=>{},renderProfile(){},openMemberAnnouncements:async()=>{},selectPlan:async()=>{purchases++;},generateDailyQR:async()=>{qr++;}};
  vm.runInNewContext(fs.readFileSync('assets/member-portal-agreement.js','utf8'),root);root.IronVaultMemberPortalAgreement.install(app,client);
  return{root,node,client,app,auth,calls,setReply:value=>{reply=value;},reply:()=>reply,setUser:value=>{user=value;},purchases:()=>purchases,qr:()=>qr};
 }
@@ -44,4 +44,16 @@ test('financial writer changes only the new member agreement gate and preserves 
  let updated=sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.iv_financial_transaction'),sql.indexOf('CREATE OR REPLACE FUNCTION public.iv_issue_member_pass')).trim();
  const gate=" -- Staff-assisted operations stay available; completed retries above remain read-only.\n IF p_operation='purchase' AND ironvault_private.is_own_membership(m.id,m.tenant_id) AND NOT public.iv_can_access(m.tenant_id) THEN\n  PERFORM ironvault_private.require_current_member_legal(m.id);\n END IF;\n";
  assert.ok(updated.includes(gate));updated=updated.replace(gate,'');assert.equal(updated,original);
+});
+
+test('pending member stays on profile with accepted Terms but cannot purchase or generate QR until approved',async()=>{
+ const f=fixture(true);f.app.currentMember.status='PENDING';await f.app.init();
+ assert.match(f.node('member-legal-state').textContent,/Awaiting gym approval/);assert.equal(f.app.currentMember.id,'member');
+ await f.app.selectPlan('1-Day Pass');await f.app.generateDailyQR();assert.equal(f.purchases(),0);assert.equal(f.qr(),0);
+ assert.equal(f.node('member-accepted-record').hidden,false);
+ f.app.currentMember.status='ACTIVE';await f.app.refreshMemberLegal(true);await f.app.selectPlan('1-Day Pass');assert.equal(f.purchases(),1);
+});
+test('pending member can explicitly accept Terms without approving their membership',async()=>{
+ const f=fixture();f.app.currentMember.status='PENDING';await f.app.init();f.node('member-legal-checkbox').checked=true;await f.node('member-legal-agree').onclick();
+ assert.equal(f.app.currentMember.status,'PENDING');assert.equal(f.node('btn-generate-qr').attrs['aria-disabled'],'true');assert.equal(f.node('member-accepted-record').hidden,false);
 });
