@@ -1252,6 +1252,8 @@
                 const regContent = document.getElementById('staff-content-register');
                 const listContent = document.getElementById('staff-content-list');
 
+                regTab.setAttribute('aria-selected', String(tab === 'register'));
+                listTab.setAttribute('aria-selected', String(tab !== 'register'));
                 if (tab === 'register') {
                     regTab.className = "w-1/2 py-2 rounded-xl font-bold text-xs transition bg-amber-500 text-slate-950 shadow";
                     listTab.className = "w-1/2 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white";
