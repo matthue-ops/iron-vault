@@ -541,31 +541,51 @@
         );
       }
       const collect=()=>Object.fromEntries([...values].map(([k,input])=>[k,input.type==='number'?Number(input.value):input.value.trim()]));
+      const review=root.IronVaultServiceReview;
       const viewButtons=element('div',null,'iv-sub-actions');
-      let previewData=null;
-      for(const [key,label] of [['terms_text','Service Agreement'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])viewButtons.appendChild(button(label,()=>{
-        documentPreview(preview,previewData?.[key]);
-      }
-      ));
+      let previewData=null,activeDocument='terms_text',pendingChoice=false;
+      const editedPlain=new Set();
+      const defaults=Object.fromEntries(root.IronVaultServicePolicy.fields.filter(f=>f.key.startsWith('_')).map(f=>[f.key,f.default]));
+      const custom=()=>Object.keys(defaults).some(k=>values.get(k).value.trim()!==defaults[k].trim());
+      const status=element('p','','iv-sub-muted');status.setAttribute('role','status');
+      const settingsSummary=element('p','','iv-sub-summary iv-sub-key-settings');
+      const changed=element('section',null,'iv-sub-notice');changed.hidden=true;
+      changed.append(element('p','Your settings changed. Keep your edited documents for comparison, or regenerate all three documents from the standard templates? Regenerating replaces edited wording.'));
+      const editor=element('textarea',null,'iv-sub-draft-editor');editor.hidden=true;editor.maxLength=50000;editor.setAttribute('aria-label','Edit full document draft');
+      const currentLabel=element('h3','Service Agreement','iv-sub-heading');
+      function invalidate(clear=true){previewed=null;reviewed.input.checked=false;reviewed.input.disabled=true;publish.disabled=true;if(clear){previewData=null;editor.hidden=true;preview.hidden=false;}copy.disabled=!previewData;edit.disabled=!previewData;settingsSummary.textContent=review.keySettings(collect());}
+      function validateEdits(){if(pendingChoice)throw Error('Choose Keep edited documents or Regenerate before saving or publishing.');for(const key of editedPlain)if(values.get(key).value.includes('{{'))throw Error('Resolve template placeholders in your edited document before saving.');}
+      function showDocument(){editor.hidden=true;preview.hidden=false;currentLabel.textContent=review.documents.find(d=>d[0]===activeDocument)[2];documentPreview(preview,previewData?.[activeDocument]);copy.disabled=!previewData;edit.disabled=!previewData;}
+      for(const [key,,label] of review.documents)viewButtons.appendChild(button(label,()=>{activeDocument=key;showDocument();}));
+      const copy=button('Copy full document',()=>run(async()=>{if(!previewData)throw Error('Generate a current preview first.');const copied=await review.copyText(previewData[activeDocument]);status.textContent=copied?currentLabel.textContent+' copied in full.':'Select and copy the full text in the manual-copy window.';}));
+      const edit=button('Edit draft',()=>{if(!previewData)return;editor.value=previewData[activeDocument]||'';editor.hidden=false;preview.hidden=true;editor.focus();status.textContent='Edit the full text, or select all and paste a replacement. Save draft to preserve it.';});
+      copy.disabled=edit.disabled=true;
+      editor.addEventListener('input',()=>{const key=review.documents.find(d=>d[0]===activeDocument)[1];values.get(key).value=editor.value;editedPlain.add(key);previewData[activeDocument]=editor.value;invalidate(false);status.textContent='Edited draft not saved. Preview the final text again before publishing.';});
+      changed.append(button('Keep edited documents',()=>{pendingChoice=false;changed.hidden=true;status.textContent='Edited wording kept. Compare it with your updated settings before publishing.';}),button('Regenerate documents',()=>{for(const [key,value] of Object.entries(defaults))values.get(key).value=value;editedPlain.clear();pendingChoice=false;changed.hidden=true;invalidate();documentPreview(preview,'Generate a preview to review the regenerated documents.');status.textContent='Standard templates restored. Your form details are unchanged.';}));
+      for(const [key,input] of values)input.addEventListener('input',()=>{if(!key.startsWith('_')&&custom()){pendingChoice=true;changed.hidden=false;}invalidate();status.textContent='Settings changed. Generate a fresh preview before copying or publishing.';});
+      const reviewActions=element('div',null,'iv-sub-actions');reviewActions.append(copy,edit);
+      const copySettings=button('Copy settings for review',()=>run(async()=>{const copied=await review.copyText(review.settingsCopy(root.IronVaultServicePolicy.fields,collect()));status.textContent=copied?'All settings from steps 1–3 copied for comparison.':'Select and copy the settings in the manual-copy window.';}));
+      settingsSummary.textContent=review.keySettings(collect());
       const actions=element('div',null,'iv-sub-actions');
       actions.append(button('Save draft',()=>run(async()=>{
         await call('iv_service_documents',{
-          p_action:'save',p_data:collect()
+          p_action:'save',p_data:(validateEdits(),collect())
         }
         );
-        preview.textContent='Draft saved. Published documents have not changed.';
+        status.textContent='Draft saved, including edited documents. Published documents have not changed.';
       }
       )),button('Preview all documents',()=>run(async()=>{
-        const data=collect(),result=await call('iv_service_documents',{
+        validateEdits();const data=collect(),result=await call('iv_service_documents',{
           p_action:'preview',p_data:data
         }
         );
+        if(JSON.stringify(collect())!==JSON.stringify(data)){status.textContent='Settings changed while the preview was loading. Generate a fresh preview.';return;}
         previewed=JSON.stringify(data);
         previewData=result.preview;
-        documentPreview(preview,previewData.terms_text);reviewed.input.disabled=false;publish.disabled=true;
+        showDocument();reviewed.input.disabled=false;publish.disabled=true;status.textContent='Current draft preview generated. Review all three documents against the settings.';
       }
       )),button('Publish new version',()=>run(async()=>{
-        const data=collect();
+        validateEdits();const data=collect();
         if(!reviewed.input.checked||previewed!==JSON.stringify(data))throw Error('Preview this exact draft and confirm review before publication.');
         if(!root.confirm('Publish these service documents with effective date '+publishDate.value+'? Existing acceptances will be preserved.'))return;
         await call('iv_service_documents',{
@@ -576,10 +596,9 @@
       }
       ),'primary'));
       const publish=actions.lastElementChild;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
-      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(dateWrap,viewButtons,preview,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
+      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(copySettings,element('h3','Compare with your settings','iv-sub-heading'),settingsSummary,changed,status,dateWrap,viewButtons,currentLabel,reviewActions,preview,editor,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
       for(const v of state.versions)publication.appendChild(button('Published version effective '+v.effective_date,()=>{
-        previewData=v;
-        documentPreview(preview,v.terms_text);
+        previewData=null;editor.hidden=true;preview.hidden=false;copy.disabled=true;edit.disabled=true;documentPreview(preview,v.terms_text);status.textContent='Viewing a published version. Generate a current draft preview to edit or copy.';
       }
       ));
       publication.appendChild(advanced);

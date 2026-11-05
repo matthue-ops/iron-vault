@@ -68,3 +68,11 @@ If Service Agreement Settings reports `column reference "id" is ambiguous`, run 
 Owner Subscription & Billing is separated into Overview, Documents, Notifications and History. Setup shows the three ordered onboarding requirements and does not display payment controls. Unpublished documents display a waiting message without acceptance controls. During/after an activated pilot, the owner can open plan selection explicitly; quote confirmation appears only after a quote is available.
 
 Super Admin Service Agreement Settings has four steps: Provider details, Plans & pilot, Policies, Preview & publish. Draft values survive tab changes; Save draft remains available, with Back/Next navigation. Publication stays disabled until the exact current draft has been previewed and review acknowledged. Advanced templates remain collapsed. Document headings are formatted with text-only rendering. This layout change requires only a frontend deployment, no SQL or Edge update.
+
+## Copy and edit service documents for review
+
+Step 4 includes **Copy settings for review**, the current key-price/duration summary, and **Copy full document / Edit draft** for the selected document. Copy uses the complete text, not only the visible preview. Clipboard denial offers a manual-copy window. No information is sent to an AI service; the owner chooses where to paste it.
+
+Edited full text (including pasted replacements) is saved through the existing private template fields and existing save/preview/publish APIs. Reopening preserves it. Form changes after custom edits require choosing Keep edited documents or Regenerate documents; regeneration explicitly replaces custom wording with standard templates. Published records and earlier acceptance receipts are untouched. Direct draft edits must be complete text; template placeholders belong in Advanced templates. Every edit invalidates publication review, requiring a fresh server preview and acknowledgement. Wording edits do not change prices or operational entitlements, and copying for review is not a legal compliance certification.
+
+This feature needs only a frontend merge/deployment, not new SQL or an Edge-function update.
