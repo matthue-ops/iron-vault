@@ -34,3 +34,38 @@ test('sign-in keeps existing shorter passwords usable',async()=>{
  const f=fixture();f.client.functions.invoke=async(name,{body})=>{f.calls.push({name,body});return{data:{session:{access_token:'access',refresh_token:'refresh'}}}};
  await branch.signIn(f.client,{email:'member@example.invalid',password:'six123'});assert.equal(f.calls[0].body.password,'six123');assert.equal(f.calls[1].session.access_token,'access');
 });
+
+const blankWalkin={tenant_id:'gym',email:'',name:'First Person',phone:'09999999999',password:'test-only-password'};
+test('distinct email-less walk-ins have independent pending requests and each retry retains its request ID',async()=>{
+ const f=fixture();f.client.functions.invoke=async(name,{body})=>{f.calls.push(body);return{error:{message:'Unknown result'}}};
+ const other={...blankWalkin,name:'Second Person',phone:'09888888888'};
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',blankWalkin),/Unknown result/);
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',other),/Unknown result/);
+ assert.notEqual(f.calls[0].request_id,f.calls[1].request_id);
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',blankWalkin),/Unknown result/);
+ assert.equal(f.calls[0].request_id,f.calls[2].request_id);assert.equal(f.values.size,2);
+ assert.ok([...f.values].every(([key,value])=>!(key+value).includes(blankWalkin.password)));
+});
+test('successful walk-in clears only its own request while another uncertain request remains retryable',async()=>{
+ const f=fixture();f.client.functions.invoke=async(name,{body})=>{f.calls.push(body);return{error:{message:'Unknown result'}}};
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',blankWalkin));const pending=[...f.values][0];
+ f.client.functions.invoke=async(name,{body})=>{f.calls.push(body);return{data:{ok:true}}};
+ await branch.provision(f.client,f.storage,'iv-create-member',{...blankWalkin,name:'Other'});
+ assert.equal(f.values.size,1);assert.equal(f.values.get(pending[0]),pending[1]);
+ await branch.provision(f.client,f.storage,'iv-create-member',blankWalkin);assert.equal(f.calls[0].request_id,f.calls[2].request_id);assert.equal(f.values.size,0);
+});
+test('pre-fix blank-email request is reused for an exact retry and does not block another person',async()=>{
+ const f=fixture(),key='ironvault_provision:operator:iv-create-member:gym:';
+ const {password,...safe}=blankWalkin;const saved=JSON.stringify({id:'legacy-request',payload:JSON.stringify(safe)});f.values.set(key,saved);
+ await branch.provision(f.client,f.storage,'iv-create-member',{...blankWalkin,name:'Other'});
+ assert.equal(f.values.get(key),saved);assert.notEqual(f.calls[0].body.request_id,'legacy-request');
+ await branch.provision(f.client,f.storage,'iv-create-member',blankWalkin);assert.equal(f.calls[1].body.request_id,'legacy-request');assert.equal(f.values.has(key),false);
+});
+test('walk-in request isolation retains actor and gym boundaries',async()=>{
+ const f=fixture();f.client.functions.invoke=async(name,{body})=>{f.calls.push(body);return{error:{message:'Unknown result'}}};
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',blankWalkin));
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',{...blankWalkin,tenant_id:'other-gym'}));
+ f.client.auth.getUser=async()=>({data:{user:{id:'other-operator'}}});
+ await assert.rejects(branch.provision(f.client,f.storage,'iv-create-member',blankWalkin));
+ assert.equal(new Set(f.calls.map(c=>c.request_id)).size,3);
+});
