@@ -1,7 +1,7 @@
 /* Read-only adapters. Background refresh never calls legacy save/check-in/payment load paths. */
 (function(root){
  'use strict';
- function member(m){return {id:m.id,displayCode:m.display_code||m.id,tenantId:m.tenant_id,tenantToken:m.tenant_token,name:m.name,email:m.email,phone:m.phone,
+ function member(m){return {id:m.id,displayCode:m.display_code||m.id,tenantId:m.tenant_id,tenantToken:m.tenant_token,name:m.name,email:m.email||'',phone:m.phone,
   classification:m.classification,discountPercentage:m.discount_percentage,plan:m.plan,cardBarcode:m.card_barcode,walletBalance:Number(m.wallet_balance||0),amount:m.amount==null?null:Number(m.amount),scansUsed:m.scans_used,lastScannedDate:m.last_scanned_date,expirationDate:m.expiration_date,status:m.status,dateJoined:m.date_joined,avatar:m.avatar};}
  function gym(g){return {id:g.id,displayCode:g.display_code||g.id,gymName:g.gym_name,ownerName:g.owner_name,email:g.email,token:g.token,portalSlug:g.portal_slug||null,logo:g.logo,accentColor:g.accent_color,status:g.status,pricing:g.pricing,staff:g.staff||[],auditLogs:g.audit_logs||[],dateCreated:g.date_created};}
  function displayMember(m,kind,today){const value={...m};if(/^\d{4}-\d{2}-\d{2}$/.test(value.expirationDate||'')&&value.expirationDate<today){value.plan='Not Selected';if(kind==='member')value.expirationDate=null;else if(kind==='admin')value.scansUsed=0;}return value;}
@@ -37,7 +37,7 @@
   async function read(scope,hints){
    if(kind==='member'){
     const [ms,gs]=await Promise.all([rows(client.from('members').select('*').eq('id',scope.member).eq('tenant_id',scope.tenant)),rows(client.from('owners').select('id,gym_name,token,logo,status,pricing').eq('id',scope.tenant))]);
-    if(ms.length!==1||gs.length!==1||ms[0].id!==scope.member||ms[0].tenant_id!==scope.tenant||gs[0].id!==scope.tenant||ms[0].status!=='ACTIVE'||gs[0].status!=='ACTIVE'){const e=Error('Membership access changed.');e.code='ACCESS_DENIED';throw e;}
+    if(ms.length!==1||gs.length!==1||ms[0].id!==scope.member||ms[0].tenant_id!==scope.tenant||gs[0].id!==scope.tenant||!['ACTIVE','PENDING'].includes(ms[0].status)||gs[0].status!=='ACTIVE'){const e=Error('Membership access changed.');e.code='ACCESS_DENIED';throw e;}
     return {members:ms.map(member),gyms:gs.map(gym),full:true};
    }
    if(kind==='admin'&&hints?.some(h=>h.kind==='gym'))hints=null;
@@ -94,7 +94,7 @@
   const labels={connecting:'Connecting automatic updates…',live:'Live updates connected',fallback:'Automatic checks active; connecting live updates…',reconnecting:'Reconnecting — showing last confirmed values',unavailable:'Automatic updates unavailable — refresh manually'};
   controller=root.IronVaultLiveUpdates.create({client,context,authorize,read,apply,isVisible:()=>!d.hidden&&root.navigator?.onLine!==false,
    status:state=>{if(state==='stopped'){statusNode.hidden=true;return;}statusNode.hidden=false;const value=labels[state]||state;if(statusNode.textContent!==value)statusNode.textContent=value;},
-   onDenied:()=>{clearPrivate();if(kind==='master')Promise.resolve(app.logout()).catch(()=>{});else{const token=app.matchedOwnerRecord?.token;root.IronVaultAuth.clearState(root.sessionStorage,root.localStorage);root.location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));}}
+   onDenied:()=>{const token=app.currentMember?.tenantToken||app.matchedOwnerRecord?.token||root.sessionStorage.getItem('ironvault_active_token');clearPrivate();if(kind==='master')Promise.resolve(app.logout()).catch(()=>{});else{root.IronVaultAuth.clearState(root.sessionStorage,root.localStorage);root.location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));}}
   });app.liveUpdates=controller;
   const init=app.init;app.init=async function(...args){controller.stop();const result=await init.apply(this,args);await controller.start();return result;};
   if(kind==='master'){const hub=app.showHubView;if(typeof hub==='function')app.showHubView=function(...args){controller.stop();return hub.apply(this,args);};const check=app.checkSession;app.checkSession=async function(...args){const ok=await check.apply(this,args);if(ok)await controller.start();else controller.stop();return ok;};}

@@ -8,12 +8,15 @@
   function context(){const r=app.authenticatedRole,m=app.currentMember;if(!r?.user_id||!m||r.member_id!==m.id||r.tenant_id!==m.tenantId||d.body.classList.contains('iv-auth-pending'))return null;return {user:r.user_id,member:m.id,tenant:m.tenantId};}
   const same=(a,b)=>!!a&&!!b&&a.user===b.user&&a.member===b.member&&a.tenant===b.tenant;
   const statusScope=s=>s?{user:s.user_id,member:s.member_id,tenant:s.tenant_id}:null;
-  const allowed=()=>!error&&status?.accepted===true&&same(context(),statusScope(status));
+  const approved=()=>app.currentMember?.status==='ACTIVE';
+  const allowed=()=>approved()&&!error&&status?.accepted===true&&same(context(),statusScope(status));
   const ready=()=>same(context(),statusScope(status))&&uuid(status?.platform_version)&&uuid(status?.gym_version);
   function link(kind,p,g){return '/gym/'+kind+'.html?'+new URLSearchParams({key:app.currentMember?.tenantToken||'',platform:p,gym:g});}
-  function message(){return error?'Terms verification is unavailable. You can view your profile; staff can assist with gym entry.':!status?'Checking your Terms & Privacy agreement…':!ready()?'Your gym must publish its Terms & Privacy details before member QR passes and pass purchases can be used.':allowed()?'You have agreed to the current Terms and Privacy Notice.':'Review and agree to unlock QR passes and membership purchases. Staff-assisted entry remains available.';}
+  function message(){return app.currentMember?.status==='PENDING'?'Awaiting gym approval. You can view your profile and review Terms & Privacy; QR passes and purchases become available after approval and agreement.':error?'Terms verification is unavailable. You can view your profile; staff can assist with gym entry.':!status?'Checking your Terms & Privacy agreement…':!ready()?'Your gym must publish its Terms & Privacy details before member QR passes and pass purchases can be used.':allowed()?'You have agreed to the current Terms and Privacy Notice.':'Review and agree to unlock QR passes and membership purchases. Staff-assisted entry remains available.';}
   function render(){
    const locked=!allowed();
+   if(node('member-approval-notice'))node('member-approval-notice').hidden=app.currentMember?.status!=='PENDING';
+   for(const id of ['member-qr-legal-help','member-plan-legal-help'])if(node(id))node(id).textContent=app.currentMember?.status==='PENDING'?'Awaiting gym approval. Terms acceptance does not approve membership.':'Review Terms & Privacy from the bell or menu to unlock this feature.';
    for(const id of ['btn-generate-qr','plan-card-daypass','plan-card-week','plan-card-month']){const el=node(id);el?.setAttribute('aria-disabled',String(locked));el?.classList.toggle('member-legal-locked',locked);}
    for(const id of ['member-qr-legal-help','member-plan-legal-help'])if(node(id))node(id).hidden=!locked;
    if(locked){node('qr-wrapper')?.classList.add('hidden');node('qr-wrapper')?.classList.remove('flex');if(node('qrcode-container'))node('qrcode-container').textContent='';}
@@ -55,6 +58,7 @@
   for(const name of ['selectPlan','generateDailyQR']){const original=app[name];app[name]=async function(){const scope=context();if(!scope||!await refresh(true)||!same(scope,context())){await this.openMemberTerms();return;}return original.apply(this,arguments);};}
   for(const id of ['plan-card-daypass','plan-card-week','plan-card-month']){const el=node(id);el?.setAttribute('role','button');if(el){el.tabIndex=0;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}};}}
   const openNotices=app.openMemberAnnouncements;app.openMemberAnnouncements=async function(){await refresh(true);return openNotices.apply(this,arguments);};
+  for(const name of ['handleProfileUpdate','handleAvatarUpload']){const original=app[name];if(typeof original==='function')app[name]=async function(...args){if(!approved()){this.showAlert('Awaiting gym approval; your profile is read-only.',false);return;}return original.apply(this,args);};}
   function clear(){epoch++;status=null;error=null;pending=null;lastChecked=0;shownPair='';accepting=false;unread=0;if(timer!=null)root.clearTimeout?.(timer);if(deferred!=null)root.clearTimeout?.(deferred);timer=null;deferred=null;node('member-legal-checkbox').checked=false;for(const id of ['member-settings-dialog','member-terms-dialog'])if(node(id)?.open)node(id).close();node('member-account-menu').open=false;render();}
   function tick(){if(!d.hidden&&root.navigator?.onLine!==false)void refresh(true);timer=root.setTimeout(tick,20000);}
   const init=app.init;app.init=async function(){clear();const result=await init.apply(this,arguments);if(context()){await refresh(true);timer=root.setTimeout(tick,20000);}return result;};

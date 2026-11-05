@@ -108,12 +108,12 @@
    };
    app.handleAdminAddMember=async function(event){event.preventDefault();
     try{const result=await provision('iv-create-member',{tenant_id:this.currentTenantId,name:value('new-member-name').trim(),email:value('new-member-email').trim(),phone:value('new-member-phone').trim(),password:value('new-member-password')});
-     await root.IronVaultData.saveMembers(client,[{id:result.member_id,tenantId:this.currentTenantId,name:value('new-member-name').trim(),email:value('new-member-email').trim(),phone:value('new-member-phone').trim(),classification:value('new-member-classification'),discountPercentage:Number(value('new-member-discount')),cardBarcode:value('new-member-barcode'),status:'ACTIVE'}]);
+     await root.IronVaultData.saveMembers(client,[{id:result.member_id,tenantId:this.currentTenantId,name:value('new-member-name').trim(),phone:value('new-member-phone').trim(),classification:value('new-member-classification'),discountPercentage:Number(value('new-member-discount')),status:'ACTIVE'}]);
      this.closeAddMemberModal();await this.loadMembers();root.alert(result.message+' Buy a plan through the desk sale when required.');
     }catch(error){root.alert(error.message);}
    };
    app.sendMemberPasswordReset=async function(){const m=this.members.find(x=>x.id===this.activeModalMemberId);if(!m)return;
-    try{const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',gym_token:this.matchedOwnerRecord?.token,email:m.email,portal:'member'});root.alert(result.message);}catch(error){root.alert(error.message);}
+    try{if(!m.email)throw Error('Add and verify a contact email before requesting email recovery.');const result=await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'recovery',gym_token:this.matchedOwnerRecord?.token,email:m.email,portal:'member'});root.alert(result.message);}catch(error){root.alert(error.message);}
    };
    app.deleteStaff=async function(index){
     const staff=this.matchedOwnerRecord?.staff?.[index];if(!staff?.auth_user_id)return root.alert('Staff account link unavailable.');
@@ -233,7 +233,7 @@
       const checked=await client.auth.signInWithPassword({email:data.user.email,password:value('edit-current-password')});if(checked.error)throw Error('Current password is incorrect.');
       const changed=await client.auth.updateUser({password});if(changed.error)throw Error('Password change failed.');}
      let pending=false;
-     if(email!==this.currentMember.email.toLowerCase()){
+     if(email!==String(this.currentMember.email||'').toLowerCase()){
       await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'email_change',new_email:email});pending=true;
      }
      this.currentMember.name=value('edit-name').trim();this.currentMember.phone=value('edit-phone').trim();await this.saveData();this.renderProfile();

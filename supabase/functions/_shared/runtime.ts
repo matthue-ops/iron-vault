@@ -31,7 +31,7 @@ export async function sendMail(to:string,subject:string,link:string){
  }
 }
 export async function sendVerification(userId:string){
- const info=await rpc('iv_branch_account_details',{p_user:userId});if(!info)throw Error('Account unavailable.');
+ const info=await rpc('iv_branch_account_details',{p_user:userId});if(!info||!info.email)throw Error('Account contact email unavailable.');
  const token=crypto.randomUUID()+crypto.randomUUID();const hash=await digest(token);
  await rpc('iv_queue_email_action',{p_user:userId,p_hash:hash,p_kind:'verify',p_group:crypto.randomUUID(),p_new_email:null});
  await sendMail(info.email,'Verify your '+String(info.gym_name).replace(/[\r\n]/g,' ')+' gym account',site+'/gym/memberlogin.html?key='+encodeURIComponent(info.token)+'#iv_verify='+token);

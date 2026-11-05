@@ -51,6 +51,7 @@ serve(async(req,input)=>{
   else{
    if(!mailReady())return {ok:true,message};
    const info=await rpc('iv_branch_account_details',{p_user:rows[0].user_id});
+   if(!info.email)return {ok:true,message};
    const authEmail=await ensurePrivateIdentifier(rows[0].user_id);
    const {data,error}=await admin.auth.admin.generateLink({type:'recovery',email:authEmail});
    if(error||!data.properties?.hashed_token)throw Error('Email delivery failed.');

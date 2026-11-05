@@ -19,11 +19,11 @@ export async function changeContact(req:Request,input:any,targetUser?:string){
  }
  if(!mailReady())throw Error('Email delivery is not configured.');
  const group=crypto.randomUUID();
- const correction=target!==user.id&&!info.verified;
+ const correction=!info.email||(target!==user.id&&!info.verified);
  const deliveries=correction?[['correct_unverified',email]]:[['change_old',info.email],['change_new',email]];
  for(const [kind,to] of deliveries){
   const token=crypto.randomUUID()+crypto.randomUUID();
-  await rpc('iv_queue_contact_change',{p_actor:user.id,p_user:target,p_hash:await digest(token),p_kind:kind,p_group:group,p_new_email:email,p_base_email:info.email});
+  await rpc('iv_queue_contact_change',{p_actor:user.id,p_user:target,p_hash:await digest(token),p_kind:kind,p_group:group,p_new_email:email,p_base_email:info.email||null});
   await sendMail(to,'Confirm your Iron Vault contact email change',site+'/gym/memberlogin.html?key='+encodeURIComponent(info.token)+'#iv_verify='+token);
  }
  return {ok:true,pending:true,message:correction?'Confirm the corrected new email address to activate this unverified account.':'Confirm both the old and new email addresses to complete the change.'};
