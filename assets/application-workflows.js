@@ -52,8 +52,6 @@
      entry=await root.IronVaultData.call(client,'iv_redeem_member_pass',{p_token:match[1],p_tenant:this.currentTenantId});
     }catch(error){this.showScanResult(false,'ACCESS DENIED',error.message);return;}
     let note='Entry recorded.';
-    try{await root.IronVaultData.call(client,'iv_log_event',{p_tenant:this.currentTenantId,p_event:'QR admission',p_details:entry?.member_id||'Admission recorded'});}
-    catch(error){note+=' Activity note unavailable.';}
     try{await this.loadMembers();}catch(error){note+=' Refresh the roster to see the entry.';}
     this.showScanResult(true,'ENTRY RECORDED',note);this.pauseScannerAfterSuccess();
    };
@@ -210,8 +208,6 @@
      entry=await root.IronVaultData.call(client,'iv_redeem_member_pass',{p_token:match[1],p_tenant:this.currentTenantId});
     }catch(error){this.showScanResult(false,'ACCESS DENIED',error.message);return;}
     let note='Entry recorded.';
-    try{await root.IronVaultData.call(client,'iv_log_event',{p_tenant:this.currentTenantId,p_event:'QR admission',p_details:entry?.member_id||'Admission recorded'});}
-    catch(error){note+=' Activity note unavailable.';}
     try{await this.loadMembers();}catch(error){note+=' Refresh the roster to see the entry.';}
     this.showScanResult(true,'ENTRY RECORDED',note);this.pauseScannerAfterSuccess();
    };
