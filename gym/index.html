@@ -77,6 +77,7 @@
 <script defer src="../assets/mobile-ui.js"></script>
 <link rel="stylesheet" href="../assets/legal-documents.css">
 <link rel="stylesheet" href="../assets/subscriptions.css">
+<link rel="stylesheet" href="../assets/tenant-tools.css">
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -273,7 +274,8 @@
 
             <!-- REGISTERED GYM OWNERS TABLE (COLLAPSIBLE) -->
             <div class="glass-card rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
-                <button onclick="indexApp.toggleDashboardSection('tenants')" class="w-full p-5 flex items-center justify-between text-left hover:bg-slate-800/40 transition">
+                <div class="tenant-section-heading">
+                <button onclick="indexApp.toggleDashboardSection('tenants')" class="tenant-section-toggle w-full p-5 flex items-center justify-between text-left hover:bg-slate-800/40 transition">
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-building-shield text-amber-400 text-base"></i>
                         <h3 class="font-bold text-white text-sm">Registered Gym Tenants & White-Label Access Links</h3>
@@ -283,7 +285,8 @@
                         <i id="dash-toggle-icon-tenants" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
                     </div>
                 </button>
-                <button type="button" onclick="event.stopPropagation();indexApp.resumeTenantPurges()" class="text-xs text-rose-300 underline px-3">Resume pending purges</button>
+                <button id="pending-purge-badge" type="button" hidden onclick="indexApp.resumeTenantPurges()" class="pending-cleanup-badge"><i class="fa-solid fa-broom" aria-hidden="true"></i><span id="pending-purge-label">Pending cleanup</span><span id="pending-purge-count" class="pending-cleanup-count">0</span></button>
+                </div>
                 <div id="dash-content-tenants" class="p-6 pt-0 space-y-4 hidden border-t border-slate-800/60 mt-1">
                     <div class="overflow-x-auto pt-3">
                         <table class="w-full text-left text-xs">
