@@ -20,9 +20,25 @@
   app.loadData=async function(...args){try{const result=await originalLoad.apply(this,args);const auth=await client.auth.getUser();identity=auth.data?.user?.id;update(await consoleCall());if(!timer)timer=root.setTimeout(tick,60000);return result;}catch(error){state=null;app.providerTenants={};controls.hidden=true;if(timer)root.clearTimeout(timer);timer=null;throw error;}};
   const originalRender=app.renderDashboard;
   app.renderDashboard=function(...args){const result=originalRender.apply(this,args);if(state){d.getElementById('stat-gyms').textContent=state.live_totals.gyms;d.getElementById('stat-members').textContent=state.live_totals.members;}return result;};
+  const filterRow=element('div',null,'tenant-filter-toolbar'),filterGroup=element('div',null,'tenant-filter-group'),filterButtons=new Map(),filterCounts=new Map();
+  filterGroup.setAttribute('role','group');filterGroup.setAttribute('aria-label','Filter gyms');
+  function updateFilters(owners){
+   const counts={all:owners.length,live:owners.filter(o=>!app.providerTenants?.[o.id]?.is_test).length,test:owners.filter(o=>app.providerTenants?.[o.id]?.is_test).length};
+   for(const [key,control] of filterButtons){control.setAttribute('aria-pressed',String(filter===key));filterCounts.get(key).textContent=String(counts[key]);}
+   return counts;
+  }
+  for(const [key,label] of [['all','All'],['live','Live'],['test','Test']]){
+   const control=button('',()=>{filter=key;app.renderOwnersTable();}),count=element('span','0','tenant-filter-count');
+   control.dataset.tenantFilter=key;control.setAttribute('aria-controls','owners-tbody');control.setAttribute('aria-pressed',String(key==='all'));control.append(element('span',label),count);
+   control.addEventListener('keydown',event=>{const keys=['all','live','test'];if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const index=event.key==='Home'?0:event.key==='End'?2:(keys.indexOf(key)+(event.key==='ArrowRight'?1:2))%3;filterButtons.get(keys[index]).click();filterButtons.get(keys[index]).focus();});
+   filterButtons.set(key,control);filterCounts.set(key,count);filterGroup.appendChild(control);
+  }
   const originalRows=app.renderOwnersTable;
-  app.renderOwnersTable=function(...args){const all=this.owners;if(state)this.owners=all.filter(o=>filter==='all'||(filter==='test')===!!this.providerTenants[o.id]?.is_test);try{return originalRows.apply(this,args);}finally{this.owners=all;}};
-  const filterRow=element('div',null,'iv-sub-actions'),filters=element('select');filters.setAttribute('aria-label','Filter gyms');for(const [value,label] of [['all','All gyms'],['live','Live gyms'],['test','Test gyms']]){const option=element('option',label);option.value=value;filters.appendChild(option);}filters.onchange=()=>{filter=filters.value;app.renderOwnersTable();};filterRow.append(filters,element('p','Production totals exclude Test gyms.','iv-sub-muted'));d.getElementById('dash-content-tenants')?.prepend(filterRow);
+  app.renderOwnersTable=function(...args){
+   const all=this.owners,counts=updateFilters(all);if(state)this.owners=all.filter(o=>filter==='all'||(filter==='test')===!!this.providerTenants[o.id]?.is_test);
+   try{const result=originalRows.apply(this,args);if(!this.owners.length){const cell=d.getElementById('owners-tbody')?.querySelector('td');if(cell)cell.textContent=filter==='live'?(counts.test?'No Live gyms yet. Select Test to view your test gyms.':'No Live gyms yet.'):filter==='test'?'No Test gyms yet. Select All to view registered gyms.':'No gyms registered yet.';}return result;}finally{this.owners=all;}
+  };
+  filterRow.append(filterGroup,element('p','Live totals exclude Test gyms.','tenant-filter-help'));d.getElementById('dash-content-tenants')?.prepend(filterRow);
   const inspect=app.openInspectModal;
   app.openInspectModal=function(id){const result=inspect.apply(this,arguments);let action=d.getElementById('inspect-subscription-button');if(!action){action=button('Manage Subscription',()=>{});action.id='inspect-subscription-button';d.getElementById('inspect-gym-name')?.parentElement.appendChild(action);}action.onclick=()=>app.openSubscriptionBilling(id);const name=d.getElementById('inspect-gym-name'),tag=this.providerTenants?.[id];if(name&&tag?.is_test)name.textContent+=' · TEST';return result;};
   async function notifications(){update(await consoleCall());const target=modal('Provider notifications'),active=state.notices.filter(n=>!n.read_at&&!n.resolved_at);if(!active.length)target.appendChild(element('p','You’re all caught up.'));for(const n of active){const row=element('article',null,'iv-sub-notice'),tenant=state.tenants.find(t=>t.tenant_id===n.tenant_id);row.append(button(n.title+(tenant?' — '+tenant.name:''),()=>run(async()=>{update(await consoleCall('read',{key:n.notice_key}));body.hidden=false;row.dataset.read='true';})),element('small',new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(n.available_at))+' · Philippine time'));const body=element('p',n.message,'iv-sub-summary');body.hidden=true;row.appendChild(body);if(tenant)row.appendChild(button('Review gym',()=>run(async()=>{update(await consoleCall('read',{key:n.notice_key}));await openBilling(n.tenant_id);})));target.appendChild(row);}}
