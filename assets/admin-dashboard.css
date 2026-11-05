@@ -86,3 +86,60 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline:2px solid
 @media(max-width:639px) {
  .mobile-roster-remove:not([hidden]) { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 12px; color:#fda4af; background:#3b1c2a; border:1px solid #713044; border-radius:10px; font-size:12px; }
 }
+
+/* Compact navigation and on-demand dashboard sections. */
+.admin-header-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+#owner-billing-bell { display:inline-flex; align-items:center; gap:8px; min-height:44px; position:relative; }
+#owner-billing-bell[hidden],#owner-subscription-menu[hidden],#pending-approvals-button[hidden],#roster-expansion[hidden],.owner-notification-count[hidden] { display:none!important; }
+.owner-notification-count { background:#e11d48; color:white; padding:2px 5px; border-radius:999px; font-size:10px; line-height:1.2; }
+#owner-billing-bell[data-unread=true] .fa-bell { animation:admin-bell-ring 3s ease-in-out infinite; transform-origin:top center; color:#fbbf24; }
+@keyframes admin-bell-ring { 0%,30%,100% {transform:rotate(0)} 5%,15% {transform:rotate(18deg)} 10%,20% {transform:rotate(-18deg)} }
+#pricing-settings-card { display:none!important; }
+.roster-filter-actions { flex-wrap:wrap; }
+#pending-approvals-button,#roster-expansion { border:1px solid #475569; border-radius:9px; padding:9px 12px; min-height:40px; font-size:12px; background:#1b2737; color:#e2e8f0; }
+#pending-approvals-button { display:inline-flex; gap:6px; align-items:center; color:#fbbf24; border-color:#786025; }
+#pending-approvals-count { border-radius:999px; background:#55411a; padding:1px 6px; }
+#roster-expansion { display:block; margin-left:auto; }
+.admin-compact-dialog { box-sizing:border-box; width:min(1000px,calc(100% - 24px)); max-height:88dvh; padding:20px; border:1px solid #475569; border-radius:18px; background:#111925; color:#e2e8f0; overflow:auto; }
+.admin-compact-dialog::backdrop { background:#020617c9; }
+.admin-compact-dialog>header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
+.admin-compact-dialog h2 {font-size:18px;font-weight:700}
+.admin-compact-dialog>header button {padding:10px 16px;background:#243248;border-radius:10px;min-height:44px}
+#account-recovery>summary {cursor:pointer;min-height:24px;}
+body[data-subscription-operations=false] #btn-membership-pricing {display:none!important}
+@media(max-width:639px) {
+ #owner-billing-bell { width:44px; padding:0; justify-content:center; }
+ #owner-billing-bell .owner-notification-label { display:none; }
+ #owner-billing-bell .owner-notification-count { display:block; position:absolute; top:-4px; right:-4px; }
+ #owner-billing-bell .owner-notification-count[hidden] {display:none!important}
+ .roster-filter-actions { gap:5px; }
+ .roster-filter-actions button { flex:1; justify-content:center; min-height:40px; padding:8px 6px!important; font-size:10px!important; white-space:nowrap; }
+ #pending-approvals-button span:not(#pending-approvals-count) {font-size:10px}
+ .admin-compact-dialog {padding:14px}
+ #pending-section {padding:0;background:transparent;border:0}
+ #pending-section>div:first-child {display:none}
+ #pending-section table {min-width:0;width:100%}
+ #pending-section thead {display:none}
+ #pending-section tbody {display:grid;gap:12px}
+ #pending-section tr {display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px;border:1px solid #475569;border-radius:12px}
+ #pending-section td {padding:2px!important;font-size:11px;overflow-wrap:anywhere;min-width:0}
+ #pending-section td:nth-child(1) {grid-column:2;grid-row:1;color:#fbbf24}
+ #pending-section td:nth-child(2) {grid-column:1;grid-row:1;font-size:13px;font-weight:700}
+ #pending-section td:nth-child(3) {grid-column:2;grid-row:2}
+ #pending-section td:nth-child(4),#pending-section td:nth-child(5),#pending-section td:nth-child(6) {grid-column:1/-1}
+ #pending-section td:nth-child(7) {grid-column:1/-1;padding-top:8px!important}
+ #pending-section td button {min-height:40px;width:100%;justify-content:center}
+}
+@media(prefers-reduced-motion:reduce) {#owner-billing-bell[data-unread=true] .fa-bell {animation:none}}
+@media(max-width:639px) {
+ #pending-section td::before {display:none!important}
+ #pending-section td {display:block;text-align:left;white-space:normal}
+}
+.pending-label-mobile {display:none}
+@media(max-width:639px) {
+ .roster-filter-actions {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+ .roster-filter-actions:not(:has(#pending-approvals-button:not([hidden]))) {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .roster-filter-actions button {min-width:0;gap:4px;padding:8px 4px!important}
+ #pending-approvals-button .pending-label-desktop {display:none}
+ #pending-approvals-button .pending-label-mobile {display:inline}
+}

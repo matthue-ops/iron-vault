@@ -6,7 +6,7 @@ const path=require('node:path');
 function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();let created=0;
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
- function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],appendChild(child){this.children.push(child)},addEventListener(name,fn){(this.listeners??={})[name]=fn},click(){},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
+ function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],appendChild(child){this.children.push(child)},addEventListener(name,fn){(this.listeners??={})[name]=fn},click(){},close(){this.open=false;},showModal(){this.open=true;},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
