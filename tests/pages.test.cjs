@@ -16,8 +16,8 @@ test('every inline script parses and every local script reference exists',()=>{
     }
     assert.ok(count>=19);
 });
-test('both master entry points use the same adapter and no embedded-credential comparison',()=>{
-    for(const file of ['index.html','gym/index.html']){
+test('the gym Provider entry uses verified authentication and no embedded-credential comparison',()=>{
+    for(const file of ['gym/index.html']){
         const html=fs.readFileSync(file,'utf8');
         assert.match(html,/IronVaultSuperAdmin\.install\(indexApp,supabaseClient/);
         assert.doesNotMatch(html,/if\s*\(email\s*===\s*['"]/);

@@ -135,7 +135,7 @@
     main.prepend(panel);
     let bell;
     if(kind==='admin'){
-      bell=button('',()=>run(openOwnerNotifications));
+      bell=button('',()=>run(()=>app.openAccountNotifications?app.openAccountNotifications():openOwnerNotifications()));
       const icon=element('i');icon.className='fa-solid fa-bell';icon.setAttribute('aria-hidden','true');
       const label=element('span','Notifications','owner-notification-label'),badge=element('span','','owner-notification-count');badge.id='owner-notification-count';badge.hidden=true;
       bell.append(icon,label,badge);bell.title='Notifications';
@@ -143,9 +143,10 @@
       bell.hidden=true;
       bell.className='iv-sub-select';
       d.querySelector('.admin-header-actions')?.prepend(bell);
-      const plan=button('My Plan & Subscription',()=>openBilling(app.currentTenantId));plan.id='owner-subscription-menu';plan.hidden=true;
+      const plan=button('Subscription',()=>app.openStaffSubscription?.()||openBilling(app.currentTenantId));const planIcon=element('i');planIcon.className='fa-solid fa-credit-card';planIcon.setAttribute('aria-hidden','true');plan.prepend(planIcon);plan.id='owner-subscription-menu';plan.hidden=true;
       d.querySelector('.admin-menu-panel')?.prepend(plan);
     }
+    app.openSubscriptionNotifications=openOwnerNotifications;
     function scope(){
       return app.authenticatedRole?.user_id||actor;
     }
@@ -235,8 +236,8 @@
       }
       else panel.appendChild(element('p','Please contact your gym owner about subscription access.'));
       panel.appendChild(element('p','','iv-sub-error'));
-      if(bell)bell.hidden=!value.is_owner;
-      const plan=d.getElementById('owner-subscription-menu');if(plan)plan.hidden=!value.is_owner;
+      if(bell)bell.hidden=!value.is_owner&&!app.staffAnnouncementAccess;
+      const plan=d.getElementById('owner-subscription-menu');if(plan)plan.hidden=!value.is_owner&&!app.staffPermissions?.subscription_read;
     }
     async function refresh(){
       if(kind!=='admin'||!app.currentTenantId||!app.authenticatedRole)return;
@@ -253,7 +254,7 @@
           );
           record=data;
           if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,data,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
-          const count=data.unread_count??data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at).length;
+          const count=(data.unread_count??data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at).length)+(app.accountNoticeCount||0);app.ownerNoticeCount=count-(app.accountNoticeCount||0);
           const badge=d.getElementById('owner-notification-count');badge.textContent=String(count);badge.hidden=!count;bell.dataset.unread=String(count>0);
           bell.setAttribute('aria-label','Notifications'+(count?', '+count+' unread':''));
           if(value.operations&&value.status==='grace'){
@@ -481,7 +482,7 @@
     async function openBilling(tenant,initial='overview'){
       const serial=++viewSerial;
       const data=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'get'});if(serial!==viewSerial)return;
-      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':data.state.status==='setup'&&!data.accepted&&initial==='documents'?'Service Agreement':'My Plan & Subscription');
+      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':data.state.status==='setup'&&!data.accepted&&initial==='documents'?'Service Agreement':'Subscription');
       const view=tabs(target,[['overview','My Plan'],['documents','Agreements'],['history','History']],initial);
       target.querySelector('[role=tablist]').classList.add('iv-plan-tabs');
       const overview=view.sections.get('overview'),current=element('section',null,'iv-sub-current-plan');overview.appendChild(current);summary(current,data);

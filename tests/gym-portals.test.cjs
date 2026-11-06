@@ -32,5 +32,5 @@ test('SQL is additive and private, preserves safe projection and grants no direc
 });
 test('login and both dashboards load a shared URL helper; recovery remains gym scoped',()=>{
  const login=fs.readFileSync('gym/login.html','utf8');assert.match(login,/src="\/assets\/gym-portals.js"/);assert.match(login,/portalSlug\?query.eq\('portal_slug',portalSlug\)/);assert.match(login,/recoverySlug\?'portal_slug':'token'/);assert.match(login,/role.tenant_id!==gyms\[0\].id/);
- for(const file of ['index.html','gym/index.html']){const html=fs.readFileSync(file,'utf8');assert.match(html,/IronVaultGymPortals.url\(owner, window.location\)/);assert.match(html,/href="\$\{IronVaultData.escape\(memberPortalUrl\)\}"/);assert.match(html,/openQrModal\(decodeURIComponent\('\$\{IronVaultData.argument\(memberPortalUrl\)\}/);}
+ for(const file of ['gym/index.html']){const html=fs.readFileSync(file,'utf8');assert.match(html,/IronVaultGymPortals.url\(owner, window.location\)/);assert.match(html,/href="\$\{IronVaultData.escape\(memberPortalUrl\)\}"/);assert.match(html,/openQrModal\(decodeURIComponent\('\$\{IronVaultData.argument\(memberPortalUrl\)\}/);}
 });

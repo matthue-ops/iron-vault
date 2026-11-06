@@ -13,17 +13,19 @@
  function schedule(notice,now){if(notice.archived_at)return 'Removed';if(Date.parse(notice.starts_at)>Date.parse(now))return 'Scheduled';return Date.parse(notice.ends_at)<=Date.parse(now)?'Expired':'Active schedule';}
  function install(app,client){
   const node=id=>root.document.getElementById(id),panel=node('announcements-panel');if(!panel)return;
-  const fields=['announcement-title','announcement-body','announcement-start','announcement-end','announcement-pinned'];
+  const fields=['announcement-audience','announcement-title','announcement-body','announcement-start','announcement-end','announcement-pinned'];
+  let audienceRequest=0,audienceRecipients=[],selectedRecipients=new Set();
   let generation=0,request=0,visible=false,busy=false,canManage=false,actor=null,tenant=null,items=[],page=0,total=0,serverNow=null,draft=null;
   function message(text,error=false){const box=node('announcements-message');box.textContent=text;box.className=error?'text-sm text-rose-300':'text-sm text-emerald-300';}
   function editorVisibility(show){node('announcement-editor').hidden=!show;node('announcement-preview').hidden=true;}
-  function clear(){generation++;request++;visible=false;canManage=false;actor=null;tenant=null;items=[];draft=null;page=0;total=0;panel.hidden=true;panel.classList.add('hidden');node('announcements-list').textContent='';for(const id of ['announcements-access','announcements-page','announcements-asof'])node(id).textContent='';node('announcement-preview-title').textContent='';node('announcement-preview-body').textContent='';message('');for(const id of fields)node(id).value='';node('announcement-pinned').checked=false;editorVisibility(false);node('announcement-new').hidden=true;node('announcements-archived-option').hidden=true;}
+  function clear(){generation++;request++;audienceRequest++;audienceRecipients=[];selectedRecipients.clear();node('announcement-recipients').textContent='';node('announcement-recipient-count').textContent='';visible=false;canManage=false;actor=null;tenant=null;items=[];draft=null;page=0;total=0;panel.hidden=true;panel.classList.add('hidden');node('announcements-list').textContent='';for(const id of ['announcements-access','announcements-page','announcements-asof'])node(id).textContent='';node('announcement-preview-title').textContent='';node('announcement-preview-body').textContent='';message('');for(const id of fields)if(node(id))node(id).value='';node('announcement-pinned').checked=false;editorVisibility(false);node('announcement-new').hidden=true;node('announcements-archived-option').hidden=true;}
   function changed(text){const error=Error(text);error.code='ACTOR_CHANGED';return error;}
   async function verify(write=false){
    const selected=app.currentTenantId;if(!selected)throw changed('Open a specific gym first.');
-   const role=await root.IronVaultAuth.requireRole(client,{roles:write?['owner']:['owner','staff'],tenantId:selected});
+   const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff'],tenantId:selected});
    if(app.currentTenantId!==selected||(tenant&&selected!==tenant)||(actor&&(role.user_id!==actor.user_id||role.role!==actor.role)))throw changed('The signed-in account, role or selected gym changed. Reopen Announcements.');
    if(app.authenticatedRole&&app.authenticatedRole.user_id!==role.user_id)throw changed('The signed-in account changed.');
+   if(write){const {data,error}=await client.rpc('iv_staff_access',{p_tenant:selected,p_action:'mine'});if(error||data?.state!=='active'||data.permissions?.announcements_manage!==true)throw Error('Announcement management required.');}
    return role;
   }
   function explain(error){if(['PGRST202','42P01','42883'].includes(error?.code))return 'Announcements storage is not installed yet. Run the stage-one SQL before using this panel.';return error?.message||'Announcement request failed. Refresh and try again.';}
@@ -31,7 +33,7 @@
    const text=prefix+explain(error);
    if(['AUTH_REQUIRED','ACCESS_DENIED','ROLE_LOOKUP_FAILED','ACTOR_CHANGED'].includes(error?.code)||/access denied|owner access required/i.test(text)){clear();node('btn-announcements').classList.add('hidden');root.alert('Announcements: '+text);}else message(text,true);
   }
-  function controls(){for(const id of fields)node(id).disabled=busy||!canManage;node('announcement-save').disabled=busy||!canManage;node('announcement-new').disabled=busy;node('announcements-refresh').disabled=busy;node('announcements-filter').disabled=busy;node('announcements-prev').disabled=busy||page===0;node('announcements-next').disabled=busy||(page+1)*20>=total;}
+  function controls(){for(const id of fields)if(node(id))node(id).disabled=busy||!canManage;node('announcement-save').disabled=busy||!canManage;node('announcement-new').disabled=busy;node('announcements-refresh').disabled=busy;node('announcements-filter').disabled=busy;node('announcements-prev').disabled=busy||page===0;node('announcements-next').disabled=busy||(page+1)*20>=total;}
   function textElement(tag,text,className){const el=root.document.createElement(tag);el.textContent=text;if(className)el.className=className;return el;}
   function render(){
    const list=node('announcements-list');list.textContent='';
@@ -56,10 +58,10 @@
    const after=await verify();if(!visible||stamp!==generation||ticket!==request)return;
    if(after.user_id!==before.user_id||after.role!==before.role)throw changed('The signed-in account or role changed.');
    if(!data||!Array.isArray(data.items)||!Number.isSafeInteger(data.total)||data.total<0||!Number.isFinite(Date.parse(data.server_now))||data.items.some(row=>row.tenant_id!==selected||typeof row.title!=='string'||typeof row.body!=='string'||!Number.isInteger(row.version)||row.version<1||!Number.isFinite(Date.parse(row.starts_at))||!Number.isFinite(Date.parse(row.ends_at))))throw Error('Announcements returned an invalid response. Refresh and try again.');
-   actor=after;tenant=selected;canManage=after.role==='owner'&&data.can_manage===true;items=data.items;total=data.total;serverNow=data.server_now;
+   actor=after;tenant=selected;canManage=data.can_manage===true;items=data.items;total=data.total;serverNow=data.server_now;
    const last=Math.max(0,Math.ceil(total/20)-1);if(page>last){page=last;return load();}
    node('announcement-new').hidden=!canManage;node('announcements-archived-option').hidden=!canManage;if(!canManage)editorVisibility(false);
-   node('announcements-access').textContent=canManage?'Owner controls: create, edit, schedule, pin and remove.':'Staff view: announcement management is restricted to the gym owner.';
+   node('announcements-access').textContent=canManage?'Authorized controls: create, target, schedule, pin and remove.':'Staff view: announcement management is restricted to the gym owner.';
    render();return true;
    }catch(error){if(visible&&stamp===generation&&ticket===request)throw error;return false;}
   }
@@ -74,7 +76,7 @@
    draft=notice?{id:notice.id,version:notice.version}:{id:root.crypto.randomUUID(),version:null};
    node('announcement-title').value=notice?.title||'';node('announcement-body').value=notice?.body||'';
    const now=new Date(serverNow||Date.now());node('announcement-start').value=localTime(notice?.starts_at||now);node('announcement-end').value=localTime(notice?.ends_at||new Date(now.getTime()+86400000));node('announcement-pinned').checked=notice?.pinned||false;
-   node('announcement-editor-title').textContent=notice?'Edit announcement':'New announcement';editorVisibility(true);controls();node('announcement-title').focus?.();
+   node('announcement-editor-title').textContent=notice?'Edit announcement':'New announcement';editorVisibility(true);controls();node('announcement-title').focus?.();audience.value=notice?.audience||'everyone';selectedRecipients=new Set(notice?.audience_selection||[]);void loadAudience();
   }
   app.newAnnouncement=async function(){if(busy||!visible||!canManage)return;const stamp=generation;try{await verify(true);if(visible&&stamp===generation)fill(null);}catch(error){if(visible&&stamp===generation)failed(error);}};
   app.editAnnouncement=async function(id){if(busy||!visible||!canManage)return;const stamp=generation;try{await verify(true);if(!visible||stamp!==generation)return;const notice=items.find(row=>row.id===id&&!row.archived_at);if(!notice)throw Error('Reload the announcement list.');if(visible)fill(notice);}catch(error){if(visible&&stamp===generation)failed(error);}};
@@ -91,13 +93,17 @@
    }catch(error){if(visible&&stamp===generation)failed(error,committed?'The server confirmed the change; refresh to verify. ':'');}
    finally{busy=false;if(visible){controls();render();}}
   }
+  const audience=node('announcement-audience'),recipientBox=node('announcement-recipients'),audienceCount=node('announcement-recipient-count');
+  async function loadAudience(){const ticket=++audienceRequest;recipientBox.textContent='';audienceCount.textContent='Loading recipients…';try{await verify(true);const {data,error}=await client.rpc('iv_announcement_audience',{p_tenant:app.currentTenantId,p_audience:audience.value==='selected'?'everyone':audience.value});if(error)throw error;if(ticket!==audienceRequest||!visible)return;audienceRecipients=data.recipients||[];if(audience.value==='selected'){for(const recipient of audienceRecipients.filter(r=>r.kind!=='owner')){const label=root.document.createElement('label'),input=root.document.createElement('input');input.type='checkbox';input.checked=selectedRecipients.has(recipient.key);input.onchange=()=>{input.checked?selectedRecipients.add(recipient.key):selectedRecipients.delete(recipient.key);audienceCount.textContent=selectedRecipients.size+' selected recipients';};label.append(input,root.document.createTextNode(' '+recipient.name+' · '+recipient.kind));recipientBox.appendChild(label);}}audienceCount.textContent=(audience.value==='selected'?selectedRecipients.size:data.count)+' recipients';}catch(error){if(ticket===audienceRequest)audienceCount.textContent='Recipient preview unavailable: '+error.message;}}
+  audience.onchange=()=>{selectedRecipients.clear();void loadAudience();};
   app.saveAnnouncement=async function(event){event.preventDefault();if(!draft||busy||!visible||!canManage)return;
    try{const title=node('announcement-title').value.trim(),body=node('announcement-body').value.trim(),start=instant(node('announcement-start').value),end=instant(node('announcement-end').value);
     if(!title||title.length>160||!body||body.length>4000)throw Error('Title and message are required (160 and 4000 characters maximum).');if(Date.parse(end)<=Date.parse(start))throw Error('End time must be after start time.');
-    await write('iv_save_announcement',payload({...draft,title,body,starts_at:start,ends_at:end,pinned:node('announcement-pinned').checked}),'Announcement saved.');
+    const selection=audience.value==='selected'?[...selectedRecipients]:[];const {data:count,error}=await client.rpc('iv_announcement_audience',{p_tenant:tenant,p_audience:audience.value,p_selected:selection});if(error)throw error;if(!count?.count)throw Error('Choose at least one eligible recipient.');if(!root.confirm('Publish this announcement to '+count.count+' recipient(s) in this gym?'))return;
+    await write('iv_save_targeted_announcement',{...payload({...draft,title,body,starts_at:start,ends_at:end,pinned:node('announcement-pinned').checked}),p_audience:audience.value,p_selected:selection},'Announcement saved.');
    }catch(error){failed(error);}
   };
-  app.pinAnnouncement=async function(id){const notice=items.find(row=>row.id===id&&!row.archived_at);if(!notice)return;await write('iv_save_announcement',payload({...notice,pinned:!notice.pinned}),'Pin updated.');};
+  app.pinAnnouncement=async function(id){const notice=items.find(row=>row.id===id&&!row.archived_at);if(!notice)return;await write('iv_pin_targeted_announcement',{p_tenant:tenant,p_id:id,p_expected_version:notice.version,p_pinned:!notice.pinned},'Pin updated.');};
   app.removeAnnouncement=async function(id){if(!visible||!canManage||busy)return;const notice=items.find(row=>row.id===id&&!row.archived_at);if(!notice||!root.confirm('Remove “'+notice.title+'”? It will be retained in the Removed section.'))return;await write('iv_archive_announcement',{p_tenant:tenant,p_id:id,p_expected_version:notice.version},'Announcement removed.');};
   const original=app.applyUIRoleVisibility;app.applyUIRoleVisibility=function(role){original.call(this,role);const button=node('btn-announcements');button.classList.toggle('hidden',!['admin','owner','staff'].includes(role));};
   client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(actor&&session?.user?.id&&actor.user_id!==session.user.id)){clear();node('btn-announcements').classList.add('hidden');}});
