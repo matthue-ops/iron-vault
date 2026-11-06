@@ -30,7 +30,7 @@
   const menu=make('details',undefined,'gym-profile-menu'),menuSummary=make('summary','⋯');menuSummary.setAttribute('aria-label','Gym profile actions');const menuBody=make('div',undefined,'gym-profile-menu-panel');
   const edit=action('Edit Gym Details',()=>{const id=app.currentInspectOwnerId;app.closeInspectModal();app.openEditModal(id);});
   const retag=action('Change Test / Live Status',()=>{menu.open=false;app.setTenantTag?.(app.currentInspectOwnerId);});
-  const purge=action('Purge Gym',()=>{const id=app.currentInspectOwnerId;app.closeInspectModal();app.openTenantPurge(id);},'gym-profile-danger');menuBody.append(edit,retag,purge);menu.append(menuSummary,menuBody);actions.append(portal,menu);identityText.appendChild(actions);
+  const purge=action('Purge Gym',()=>{const id=app.currentInspectOwnerId;app.closeInspectModal();app.openTenantPurge(id);},'gym-profile-danger');const suspend=action('Suspend Gym',async()=>{const id=app.currentInspectOwnerId;menu.open=false;if(!root.confirm('Change operational access for this gym? Its records will be kept.'))return;await app.toggleOwnerStatus(id);render(id);});menuBody.append(edit,retag,make('hr'),suspend,purge);menu.append(menuSummary,menuBody);actions.append(portal,menu);identityText.appendChild(actions);
   const subscription=make('section',undefined,'gym-profile-card gym-profile-subscription'),eyebrow=make('p','SUBSCRIPTION','gym-profile-eyebrow'),planHeading=make('div',undefined,'gym-profile-plan-heading'),planTitle=make('h3'),status=make('span',undefined,'gym-profile-status'),plan=make('p',undefined,'gym-profile-plan'),remaining=make('p',undefined,'gym-profile-remaining'),dates=make('p',undefined,'gym-profile-dates');
   const manage=action('Manage Subscription',()=>app.openSubscriptionBilling(app.currentInspectOwnerId),'gym-profile-primary');manage.id='inspect-subscription-button';planHeading.append(planTitle,status);subscription.append(eyebrow,planHeading,plan,remaining,dates,manage);
   const top=make('div',undefined,'gym-profile-top');top.append(identity,subscription);stats.className='gym-profile-stats';
@@ -46,6 +46,7 @@
    const known=typeof tenant?.is_test==='boolean';tag.textContent=known?(tenant.is_test?'TEST':'LIVE'):'Status unavailable';tag.dataset.kind=known?(tenant.is_test?'test':'live'):'unknown';
    planTitle.textContent=view.title;status.textContent=view.status;status.dataset.tone=view.tone;plan.textContent=view.plan;remaining.textContent=view.remaining;dates.textContent=view.dates;dates.hidden=!view.dates;
    const url=root.IronVaultGymPortals?.url(owner,root.location);if(url){portal.href=url;portal.hidden=false;}else{portal.removeAttribute('href');portal.hidden=true;}
+   suspend.textContent=owner.status==='ACTIVE'?'Suspend Gym':'Reactivate Gym';
    retag.hidden=typeof app.setTenantTag!=='function';manage.disabled=typeof app.openSubscriptionBilling!=='function';
   }
   const originalOpen=app.openInspectModal;
