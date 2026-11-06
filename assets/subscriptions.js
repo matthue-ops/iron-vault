@@ -1,6 +1,8 @@
 /* Subscription authority and dates come from scoped server RPCs, never browser storage. */
 (function(root){
   'use strict';
+  const ownerAcknowledgment='I confirm that I am authorized to represent this Gym, have reviewed the documents listed above, and agree to the applicable Terms of Use, Data Processing Agreement, and Free Pilot Conditions. I acknowledge receipt of the Privacy Notice.';
+  const pilotHeading=/^(?:#{1,6}\s*)?(?:\d+[.)]\s*)?FREE\s+PILOT(?:\s+CONDITIONS)?\b/i;
   const money=n=>'₱'+Number(n||0).toLocaleString('en-PH',{
     minimumFractionDigits:2,maximumFractionDigits:2
   }
@@ -269,19 +271,21 @@
     function setupChecklist(target,data,review){
       const steps=[
         ['1. Gym Terms & Privacy',data.gym_documents_ready,'Complete and publish your gym details.',()=>{dialog?.close();app.openLegalSettings(data.tenant_id);}],
-        ['2. Iron Vault service documents',data.accepted,!data.current_version?'Awaiting Iron Vault publication.':!data.gym_documents_ready?'Complete step 1 first.':'Review and accept the service documents.',data.current_version&&data.gym_documents_ready?review:null],
+        ['2. Service Agreement',data.accepted,!data.current_version?'Awaiting Iron Vault publication.':!data.gym_documents_ready?'Review the documents; complete step 1 before accepting.':'Review the Terms of Use, Privacy Notice, Data Processing Agreement and Free Pilot Conditions.',data.current_version?review:null],
         ['3. Pilot approval',data.state.status!=='setup',!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready?'Complete the requirements above.':'Awaiting Service Provider approval. Your pilot has not started.',null]
       ];
-      const list=element('div',null,'iv-sub-steps');for(const [title,done,description,action] of steps){const card=element('article',null,'iv-sub-step');card.dataset.complete=String(!!done);card.append(element('h3',(done?'✓ ':'')+title),element('p',done?'Complete':description));if(!done&&action&&data.is_owner)card.appendChild(button(title.startsWith('1.')?'Complete gym details':'Review service documents',action,'primary'));list.appendChild(card);}target.appendChild(list);
+      const list=element('div',null,'iv-sub-steps');for(const [title,done,description,action] of steps){const card=element('article',null,'iv-sub-step');card.dataset.complete=String(!!done);card.append(element('h3',(done?'✓ ':'')+title),element('p',done?'Complete':description));if(!done&&action&&data.is_owner)card.appendChild(button(title.startsWith('1.')?'Complete gym details':'Review Service Agreement',action,'primary'));list.appendChild(card);}target.appendChild(list);
+      if(data.accepted&&data.state.status==='setup'){const pending=element('p','Your agreement acceptance is recorded. Pilot activation still requires manual approval by the Iron Vault Service Provider.','iv-sub-notice');pending.setAttribute('role','status');target.appendChild(pending);}
       if(!data.platform_documents_ready)target.appendChild(element('p','Iron Vault must also publish its platform member documents before activation.','iv-sub-muted'));
     }
     function renderDocs(target,data){
       const section=element('section');
       if(!data.documents.length){section.append(element('h3','Awaiting Iron Vault publication'),element('p','Your service documents will appear here once Iron Vault publishes them. No action is needed from you yet.'));target.appendChild(section);return;}
-      section.appendChild(element('h3','Service agreements and acceptance history','iv-sub-heading'));
+      section.appendChild(element('h3','Service Agreement','iv-sub-heading'));
+      section.appendChild(element('p','Review the documents below. Free Pilot Conditions are incorporated into the Terms of Use. Accepting does not activate the pilot, authorize payment or enroll you in optional paid features.','iv-sub-muted'));
       const select=element('select',null,'iv-sub-select');
       for(const v of data.documents){
-        const option=element('option','Effective '+v.effective_date+(v.id===data.current_version?' · current':''));
+        const option=element('option',(v.version_label?'Version '+v.version_label+' · ':'')+'Effective '+v.effective_date+(v.id===data.current_version?' · current':''));
         option.value=v.id;
         select.appendChild(option);
       }
@@ -289,9 +293,12 @@
       select.setAttribute('aria-label','Document version');section.appendChild(select);
       const tabs=element('div',null,'iv-sub-actions'),body=element('article','','iv-sub-document');
       let type='terms_text';
+      const pilotHelp=element('p','','iv-sub-muted');pilotHelp.hidden=true;
+      function pilotSection(){return Array.from(body.querySelectorAll('h3,h4,p')).find(n=>pilotHeading.test(n.textContent.trim()));}
       const render=()=>{
         const v=data.documents.find(v=>v.id===select.value);
-        documentPreview(body,v?.[type]);
+        documentPreview(body,v?.[type]);pilotHelp.hidden=true;
+        if(type==='terms_text'){const pilot=pilotSection();if(pilot){pilot.id='service-pilot-conditions';pilot.tabIndex=-1;}}
       }
       ;
       for(const [key,label] of [['terms_text','Terms of Use'],['privacy_text','Privacy Notice'],['dpa_text','Data Processing Agreement']])tabs.appendChild(button(label,()=>{
@@ -299,24 +306,26 @@
         render();
       }
       ));
+      const pilotLink=element('a','Free Pilot Conditions','iv-agreement-document-link');pilotLink.href='#service-pilot-conditions';pilotLink.addEventListener('click',event=>{event.preventDefault();type='terms_text';render();const pilot=pilotSection();if(pilot){pilot.focus({preventScroll:true});pilot.scrollIntoView({block:'nearest'});}else{pilotHelp.textContent='The Free Pilot section could not be located in this version. Contact the Service Provider before accepting.';pilotHelp.hidden=false;}});tabs.appendChild(pilotLink);
       select.addEventListener('change',render);
-      section.append(tabs,body);
+      section.append(tabs,body,pilotHelp);
       render();
       if(data.is_owner){
-        const agree=check('I am authorised to represent this gym. I agree to the selected Terms of Use and Data Processing Agreement and acknowledge its Privacy Notice.');
-        const acceptButton=button('Accept selected version',()=>run(async()=>{
-          if(!agree.input.checked)throw Error('Tick the agreement after reviewing all three documents.');
+        const agree=check(ownerAcknowledgment);agree.input.required=true;
+        const acceptButton=button('Accept and Continue',()=>run(async()=>{
+          if(!agree.input.checked)throw Error('Review the listed documents and check the acknowledgment before continuing.');
           await call('iv_subscription_portal',{
             p_tenant:selected,p_action:'accept',p_data:{
-              version_id:select.value,accepted:true,review_hash:data.documents.find(v=>v.id===select.value)?.review_hash
+              version_id:select.value,accepted:true,acknowledgment_text:ownerAcknowledgment,review_hash:data.documents.find(v=>v.id===select.value)?.review_hash
             }
           }
           );
-          await openBilling(selected);
+          await openBilling(selected);await refresh();
         }
         ),'primary');
-        acceptButton.disabled=true;agree.input.addEventListener('change',()=>{acceptButton.disabled=!agree.input.checked||!data.gym_documents_ready;});
-        const already=()=>data.acceptances.some(a=>a.version_id===select.value);const acceptanceState=()=>{const done=already();agree.wrap.hidden=done||!data.gym_documents_ready;acceptButton.hidden=done||!data.gym_documents_ready;agree.input.checked=false;acceptButton.disabled=true;};select.addEventListener('change',acceptanceState);acceptanceState();
+        acceptButton.disabled=true;agree.input.addEventListener('change',()=>{acceptButton.disabled=!agree.input.checked||!data.gym_documents_ready||!hasPilot();});
+        const hasPilot=()=>String(data.documents.find(v=>v.id===select.value)?.terms_text||'').split(/\r?\n/).some(line=>pilotHeading.test(line.trim()));
+        const already=()=>data.acceptances.some(a=>a.version_id===select.value);const acceptanceState=()=>{const done=already();agree.wrap.hidden=done||!data.gym_documents_ready;acceptButton.hidden=done||!data.gym_documents_ready;agree.input.checked=false;agree.input.disabled=!hasPilot();acceptButton.disabled=true;if(!done&&!hasPilot()){pilotHelp.textContent='The Provider must identify the Free Pilot Conditions in these Terms before you can accept.';pilotHelp.hidden=false;}};select.addEventListener('change',acceptanceState);acceptanceState();
         section.append(agree.wrap,acceptButton);
         if(!data.gym_documents_ready)section.appendChild(element('p','Publish your gym legal details first so the gym identity can be recorded with acceptance.'));
       }
@@ -462,7 +471,7 @@
     async function openBilling(tenant,initial='overview'){
       const serial=++viewSerial;
       const data=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'get'});if(serial!==viewSerial)return;
-      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':'My Plan & Subscription');
+      selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':data.state.status==='setup'&&!data.accepted&&initial==='documents'?'Service Agreement':'My Plan & Subscription');
       const view=tabs(target,[['overview','My Plan'],['documents','Agreements'],['history','History']],initial);
       target.querySelector('[role=tablist]').classList.add('iv-plan-tabs');
       const overview=view.sections.get('overview'),current=element('section',null,'iv-sub-current-plan');overview.appendChild(current);summary(current,data);
@@ -651,7 +660,7 @@
     app.openSubscriptionBilling=tenant=>run(()=>openBilling(tenant||app.currentTenantId));
   }
   root.IronVaultSubscriptions={
-    install,help,money,planName,statusText,documentPreview,pilotRemaining
+    install,help,money,planName,statusText,documentPreview,pilotRemaining,ownerAcknowledgment
   }
   ;
   if(typeof module==='object'&&module.exports)module.exports=root.IronVaultSubscriptions;
