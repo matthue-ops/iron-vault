@@ -22,14 +22,14 @@
     if(stamp!==generation||currentKey()!==key||after.user_id!==before.user_id||!media.matches)return;
     const rows=data.financial;if(rows.some(row=>row.tenant_id!==tenant))throw Error('Transaction scope mismatch.');
     const result=R.analyze({financial:rows,attendance:[],members:[],purchases:[]},day,day);if(result.invalid)throw Error('Some transaction amounts need review in Reports.');
-    cached=R.money(result.grossSales);value.textContent=cached;value.title='Membership sales for '+day+' · Philippine time';loadedDay=day;last=Date.now();
+    cached=R.money(result.grossSales);value.textContent=cached;value.style.fontSize=cached.length>12?'11px':cached.length>9?'13px':'16px';value.title='Membership sales for '+day+' · Philippine time';loadedDay=day;last=Date.now();
    }catch(error){if(stamp===generation&&currentKey()===key&&media.matches){cached='—';value.textContent=cached;value.title=error.message;loadedDay='';last=Date.now();}}
    finally{busy=false;}
   }
   const stats=app.updateStats;app.updateStats=function(){const result=stats.apply(this,arguments);if(media.matches){label.textContent='Revenue Today';value.textContent=loadedDay===R.date(new Date())?cached:'—';void refresh();}return result;};
   const financial=app.refreshFinancialReportAccess;app.refreshFinancialReportAccess=async function(){const allowed=await financial.apply(this,arguments);if(media.matches){if(allowed)void refresh();else reset();}return allowed;};
   for(const name of ['confirmPlanSelection','addModalCredits']){const operation=app[name];if(typeof operation==='function')app[name]=async function(){try{return await operation.apply(this,arguments);}finally{last=0;void refresh(true);}};}
-  function mode(){reset();if(media.matches){label.textContent='Revenue Today';void refresh(true);}else{label.textContent=originalLabel;app.updateStats();}}
+  function mode(){reset();if(media.matches){label.textContent='Revenue Today';void refresh(true);}else{label.textContent=originalLabel;value.style.fontSize='';app.updateStats();}}
   media.addEventListener('change',mode);d.addEventListener('visibilitychange',()=>{if(!d.hidden)void refresh();});
   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){signedOut=true;reset();}else if(event==='SIGNED_IN'){signedOut=false;}});
   timer=root.setInterval(()=>{void refresh();},60000);root.addEventListener('pagehide',()=>{root.clearInterval(timer);timer=null;});root.addEventListener('pageshow',()=>{if(!timer)timer=root.setInterval(()=>{void refresh();},60000);void refresh();});
