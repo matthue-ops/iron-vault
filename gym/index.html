@@ -78,6 +78,7 @@
 <link rel="stylesheet" href="../assets/legal-documents.css">
 <link rel="stylesheet" href="../assets/subscriptions.css">
 <link rel="stylesheet" href="../assets/tenant-tools.css">
+<link rel="stylesheet" href="../assets/gym-profile.css">
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -781,8 +782,8 @@
                                 </span>
                             </td>
                             <td class="p-3 text-right space-y-1 sm:space-y-0 sm:space-x-1">
-                                <button onclick="indexApp.openInspectModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Inspect Branch & Staff">
-                                    <i class="fa-solid fa-eye"></i> View Branch
+                                <button onclick="indexApp.openInspectModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Open Gym Profile">
+                                    <i class="fa-solid fa-eye"></i> Gym Profile
                                 </button>
                                 <button type="button" onclick="indexApp.openSubscriptionBilling(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="tenant-manage-button">Manage Subscription</button>
                                 <button type="button" onclick="indexApp.setTenantTag(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="tenant-manage-button">${this.providerTenants?.[owner.id]?.is_test ? 'Mark Live' : 'Mark Test'}</button>
@@ -1428,7 +1429,7 @@ indexApp.handleRegisterOwner = async function(event) {
     let staffNote = '';
     if (staff.name) {
       try { await ivProvisionTenant({ mode:'staff', tenantId:result.tenantId, ...staff }); }
-      catch(e) { staffNote = '\nStaff setup failed: '+e.message+'\nYou can add the staff member from View Branch later.'; }
+      catch(e) { staffNote = '\nStaff setup failed: '+e.message+'\nYou can add the staff member from Gym Profile later.'; }
     }
     await this.loadData();this.renderDashboard();form.reset();
     alert('Gym tenant '+result.tenantId+' created. Owner can now sign in using the supplied email/password.'+staffNote);
@@ -1483,5 +1484,7 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script src="../assets/provider-console.js"></script>
 <script src="../assets/subscriptions.js"></script>
 <script>IronVaultSubscriptions.install(indexApp,supabaseClient,'master');</script>
+<script src="../assets/gym-profile.js"></script>
+<script>IronVaultGymProfile.install(indexApp,supabaseClient);</script>
 </body>
 </html>
