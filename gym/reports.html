@@ -130,7 +130,7 @@
     <main class="relative z-10 flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
 
         <!-- FILTER CONTROLS BAR -->
-        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div id="report-date-controls" class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-wrap items-center justify-between gap-4 no-print">
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex items-center gap-2 text-xs text-slate-300 flex-wrap">
                     <span class="font-bold text-emerald-400">Start Date:</span>
@@ -701,6 +701,8 @@ reportsApp.ivCredits=async function(){
 
 
 </script>
-<script>IronVaultReportsUI.install(reportsApp,supabaseClient);</script>
+<link rel="stylesheet" href="../assets/phone-reports.css">
+<script src="../assets/phone-reports.js"></script>
+<script>IronVaultPhoneReports.prepare();IronVaultReportsUI.install(reportsApp,supabaseClient);IronVaultPhoneReports.install(reportsApp);</script>
 </body>
 </html>

@@ -45,10 +45,11 @@
   }
   function matches(){const query=node('report-search').value.trim().toLowerCase();return tableRows().filter(row=>!query||row.some(cell=>String(cell).toLowerCase().includes(query)));}
   function rowsInto(id,rows){const body=node(id);body.textContent='';for(const cells of rows){const row=root.document.createElement('tr');for(const value of cells){const cell=root.document.createElement('td');cell.className='p-3';cell.textContent=value;row.appendChild(cell);}body.appendChild(row);}}
-  function renderDetails(){if(!model||app.currentTab==='overview')return;const rows=matches();page=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));const kind=app.currentTab==='attendance'?'attendance':app.currentTab==='audit'?'audit':'financial';
+  const pageSize=()=>root.matchMedia?.('(max-width:639px)').matches?10:100;
+  function renderDetails(){if(!model||app.currentTab==='overview')return;const rows=matches();page=Math.min(page,Math.max(0,Math.ceil(rows.length/pageSize())-1));const kind=app.currentTab==='attendance'?'attendance':app.currentTab==='audit'?'audit':'financial';
    if(kind==='audit')node('metric-audit-count').textContent=rows.length+' records';
-   rowsInto(kind+'-tbody',rows.slice(page*100,(page+1)*100));node('report-page').textContent=rows.length?'Showing '+(page*100+1)+'–'+Math.min((page+1)*100,rows.length)+' of '+rows.length+' matching rows':'No matching records';
-   node('report-prev').disabled=page===0;node('report-next').disabled=(page+1)*100>=rows.length;node('report-print-context').textContent=(app.currentTab==='financial'?'Money':app.currentTab==='audit'?'Activity':'Attendance')+' · '+node('report-page').textContent+(node('report-search').value?' · Search: '+node('report-search').value:'')+(kind==='attendance'?' · Membership details are saved at check-in; days left exclude that day. Older history may be unavailable.':'');
+   rowsInto(kind+'-tbody',rows.slice(page*pageSize(),(page+1)*pageSize()));node('report-page').textContent=rows.length?'Showing '+(page*pageSize()+1)+'–'+Math.min((page+1)*pageSize(),rows.length)+' of '+rows.length+' matching rows':'No matching records';
+   app.phoneReportChanged?.();node('report-prev').disabled=page===0;node('report-next').disabled=(page+1)*pageSize()>=rows.length;node('report-print-context').textContent=(app.currentTab==='financial'?'Money':app.currentTab==='audit'?'Activity':'Attendance')+' · '+node('report-page').textContent+(node('report-search').value?' · Search: '+node('report-search').value:'')+(kind==='attendance'?' · Membership details are saved at check-in; days left exclude that day. Older history may be unavailable.':'');
   }
   function card(label,value,note){const box=root.document.createElement('div');box.className='bg-slate-900/70 rounded-xl p-4 border border-slate-700';const heading=root.document.createElement('p');heading.className='text-xs text-slate-300';heading.textContent=label;
    const number=root.document.createElement('p');number.className='text-xl font-bold text-emerald-300 mt-2';number.textContent=value;const detail=root.document.createElement('p');detail.className='text-xs text-slate-400 mt-2';detail.textContent=note;box.appendChild(heading);box.appendChild(number);box.appendChild(detail);return box;}
@@ -77,10 +78,10 @@
    node('metric-revenue').textContent=R.money(model.grossSales);node('metric-credits').textContent=R.money(model.wallet);node('metric-registrations').textContent=model.purchaseCount;node('metric-subscriptions').textContent=model.currentPasses;
    overview();renderDetails();
   };
-  const searches={};
+  const searches={},pages={};
   app.switchTab=function(tab){
    if(!['overview','financial','attendance','audit'].includes(tab))return;
-   searches[this.currentTab]=node('report-search').value;this.currentTab=tab;page=0;
+   searches[this.currentTab]=node('report-search').value;pages[this.currentTab]=page;this.currentTab=tab;page=pageSize()===10?(pages[tab]||0):0;
    node('report-search').value=searches[tab]||'';
    for(const name of ['overview','financial','attendance','audit']){
     const panel=node(name==='overview'?'section-overview':'section-'+name+'-table');
@@ -88,7 +89,7 @@
     const button=node('tab-btn-'+name);button.setAttribute('aria-selected',String(name===tab));button.setAttribute('aria-controls',panel.id);button.classList.toggle('report-tab-active',name===tab);
    }
    const tools=node('report-table-tools');tools.hidden=tab==='overview';
-   if(tab!=='overview'){const panel=node('section-'+tab+'-table');if(panel.insertBefore)panel.insertBefore(tools,panel.querySelector('.overflow-x-auto'));else panel.appendChild(tools);}
+   if(tab!=='overview'){const panel=node('section-'+tab+'-table'),container=panel.querySelector?.('.phone-report-records')||panel;if(container.insertBefore)container.insertBefore(tools,container.querySelector('.overflow-x-auto'));else container.appendChild(tools);}
    node('report-search').placeholder=tab==='audit'?'Name, role, action, date…':'Member code, name, type, date…';
    renderDetails();
   };

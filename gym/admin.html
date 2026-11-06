@@ -193,7 +193,7 @@
                     <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">Accommodate phone-less walk-ins, log manual desk check-ins, or use live QR pass camera verification.</p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                <div class="desk-entry-actions grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                     <button id="btn-subscription-qr-scan" onclick="adminApp.openScannerModal()" class="w-full py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
                         <i class="fa-solid fa-qrcode text-base"></i>
                         <span>Scan Member QR Pass</span>
@@ -208,6 +208,7 @@
                         <i class="fa-solid fa-user-plus text-base"></i>
                         <span>Express Walk-In Reg</span>
                     </button>
+                    <button id="phone-members-button" type="button" class="phone-members-button" onclick="adminApp.openPhoneMembers()"><i class="fa-solid fa-users" aria-hidden="true"></i><span>Members <span id="phone-members-count">(0)</span></span></button>
                 </div>
             </div>
 
@@ -287,7 +288,7 @@
             </dialog>
 
             <!-- MEMBER ROSTER TABLE CONTAINER -->
-            <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
+            <div id="member-roster-card" class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto flex-grow">
                         <div class="relative w-full sm:w-72">
@@ -317,6 +318,7 @@
 
                 <section id="mobile-roster" aria-label="Members" class="mobile-roster">
                     <div id="mobile-roster-list"></div>
+                    <div class="mobile-roster-pagination"><button id="mobile-roster-prev" type="button">Previous</button><span id="mobile-roster-page" role="status"></span><button id="mobile-roster-next" type="button">Next</button></div>
 
                 </section>
                 <div class="desktop-roster overflow-x-auto touch-scroll">
@@ -2560,8 +2562,11 @@ adminApp.logoutAdmin=async function(){
 <script>IronVaultAnnouncements.install(adminApp,supabaseClient);</script>
 <script src="../assets/gym-accent.js"></script>
 <script>IronVaultGymAccent.installAdmin(adminApp);</script>
+<script src="../assets/reports-analysis.js"></script>
+<script src="../assets/phone-revenue.js"></script>
+<script src="../assets/phone-members.js"></script>
 <script src="../assets/mobile-roster.js"></script>
-<script>IronVaultMobileRoster.install(adminApp);</script>
+<script>IronVaultMobileRoster.install(adminApp);IronVaultPhoneMembers.install(adminApp,supabaseClient);</script>
 <script src="../assets/legal-documents.js"></script>
 <script>IronVaultLegal.installEditor(adminApp,supabaseClient,'admin');</script>
 <script src="../assets/admin-feedback.js"></script>
@@ -2573,6 +2578,6 @@ adminApp.logoutAdmin=async function(){
 <script src="../assets/service-policy.js"></script>
 
 <script src="../assets/subscriptions.js"></script>
-<script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');</script>
+<script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');IronVaultPhoneRevenue.install(adminApp,supabaseClient);</script>
 </body>
 </html>
