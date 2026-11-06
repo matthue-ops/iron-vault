@@ -144,3 +144,15 @@ body[data-subscription-operations=false] #btn-membership-pricing {display:none!i
  #pending-approvals-button .pending-label-desktop {display:none}
  #pending-approvals-button .pending-label-mobile {display:inline}
 }
+
+/* Phone workspace: desktop roster and action layout retain their original markup. */
+.phone-members-button{display:none}#phone-members-view[hidden]{display:none!important}
+@media(max-width:639px){
+ .dashboard-heading{padding:0}.dashboard-heading .dashboard-eyebrow,.dashboard-heading h1+p{display:none}.dashboard-heading h1{font-size:19px}.dashboard-heading h1{font-size:0}.dashboard-heading h1:after{content:'Dashboard';font-size:19px}
+ .desk-entry-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.desk-entry-actions button{min-width:0;min-height:56px;padding:9px 7px;font-size:11px;gap:6px}.phone-members-button{display:flex;align-items:center;justify-content:center;background:#1b2939;color:#e2e8f0;border:1px solid #344156;border-radius:10px;font-weight:650}
+ .desk-entry-card>div:first-child>p{display:none}.desk-entry-card{padding:14px}.desk-entry-card h3{font-size:12px}
+ #phone-members-view{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;background:#0c111b;color:#e2e8f0;height:100dvh;max-height:100dvh}
+ #phone-members-view>header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #334155;flex-shrink:0}#phone-members-view h2{font-size:19px;font-weight:700}#phone-members-view>header button{min-height:44px;padding:8px 14px;border:1px solid #475569;border-radius:10px;background:#1b2939}
+ .phone-members-content{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}.phone-members-content>#member-roster-card{padding:0 14px 14px;border:0;border-radius:0;box-shadow:none}.phone-members-content #member-roster-card>div:first-child{position:sticky;top:0;z-index:2;background:#131c29;padding:12px 0;gap:8px}.phone-members-content .mobile-member-row{padding:9px 2px}.phone-members-content .mobile-member-meta{margin-top:2px}.phone-members-content .mobile-member-bottom{margin-top:2px}.phone-members-content .mobile-member-active{display:none}.phone-members-content #roster-expansion{display:none!important}.mobile-roster-pagination{position:sticky;bottom:0;background:#131c29;padding:10px 0}.mobile-roster-pagination button{padding:8px;font-size:11px}#mobile-roster-page{font-size:10px;text-align:center}
+}
+@media(min-width:640px){#phone-members-view{display:none!important}}
