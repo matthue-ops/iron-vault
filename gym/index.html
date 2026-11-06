@@ -785,17 +785,6 @@
                                 <button onclick="indexApp.openInspectModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow" title="Open Gym Profile">
                                     <i class="fa-solid fa-eye"></i> Gym Profile
                                 </button>
-                                <button type="button" onclick="indexApp.openSubscriptionBilling(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="tenant-manage-button">Manage Subscription</button>
-                                <button type="button" onclick="indexApp.setTenantTag(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="tenant-manage-button">${this.providerTenants?.[owner.id]?.is_test ? 'Mark Live' : 'Mark Test'}</button>
-                                <button onclick="indexApp.openEditModal(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px]" title="Edit Tenant Details">
-                                    <i class="fa-solid fa-pen-to-square"></i> Edit
-                                </button>
-                                <button onclick="indexApp.toggleOwnerStatus(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">
-                                    ${owner.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                                </button>
-                                <button onclick="indexApp.openTenantPurge(decodeURIComponent('${IronVaultData.argument(owner.id)}'))" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px]">
-                                    <i class="fa-solid fa-trash"></i> Purge
-                                </button>
                             </td>
                         </tr>
                     `;

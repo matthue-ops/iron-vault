@@ -30,12 +30,16 @@
     const b=element('button',label,cls);
     b.type='button';
     b.addEventListener('click',async event=>{
+      if(b.dataset.processing)return;
+      let progress=null;
+      b.dataset.processing='true';b.setAttribute('aria-busy','true');
       try{
-        await fn(event);
+        const pending=fn(event);
+        if(pending&&typeof pending.then==='function'){progress=element('span',' · Processing…','iv-action-progress');b.appendChild(progress);b.setAttribute('aria-disabled','true');await pending;}
       }
       catch(error){
         root.alert?.(error.message);
-      }
+      }finally{delete b.dataset.processing;b.removeAttribute('aria-busy');b.removeAttribute('aria-disabled');progress?.remove();}
     }
     );
     return b;
@@ -393,6 +397,9 @@
       if(kind==='master')await app.refreshProviderConsole?.();
       await openBilling(selected);
       root.sessionStorage.removeItem(key);
+      const completed={activate_pilot:'Free pilot activated',approve_payment:'Payment approved',approve_downgrade:'Downgrade scheduled',cancel_request:'Request returned for review',extend:'Extension approved'}[action]||'Action completed';
+      const period=record?.requests?.find(r=>r.id===payload.request_id)?.quote||record?.state;
+      const feedback=element('p',completed+'.'+(action!=='cancel_request'&&period?.start_date?' Period: '+period.start_date+' – '+period.end_date+'.':'')+' The status below has been refreshed.','iv-sub-success');feedback.setAttribute('role','status');dialog?.querySelector('header')?.after(feedback);
       return result;
     }
     function masterControls(target,data){
@@ -409,9 +416,10 @@
         );
       }
       ),'primary');
-      activate.disabled=data.pilot_used||!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready;
-      section.append(activation.wrap,activate);
-      for(const r of data.requests){
+      activate.disabled=!activation.input.checked||data.pilot_used||!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready;
+      activation.input.addEventListener('change',()=>{activate.disabled=!activation.input.checked||!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready;});
+      if(!data.pilot_used){section.append(activation.wrap,activate);section.appendChild(element('p',!data.accepted?'Waiting for the owner to accept the applicable agreement.':!data.gym_documents_ready||!data.platform_documents_ready?'Publish the required gym and platform documents before activation.':'Confirm eligibility above to activate the pilot.','iv-sub-muted'));}
+      for(const r of data.requests.filter(r=>!r.approved_at&&!r.cancelled_at)){
         const card=element('article',null,'iv-sub-notice');
         card.appendChild(element('p',r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date+'\nOwner confirmation: '+dateTime(r.confirmed_at)+'\n'+(r.cancelled_at?'Cancelled':r.approved_at?'Approved '+dateTime(r.approved_at):'Awaiting approval'),'iv-sub-summary'));
         if(!r.approved_at&&!r.cancelled_at){
@@ -426,7 +434,7 @@
           }
           ),'primary'));
         }
-        if(!r.approved_at&&!r.cancelled_at){const reason=element('input');reason.placeholder='Reason for returning request';reason.setAttribute('aria-label','Reason for returning request');card.append(reason,button('Return for review',()=>run(async()=>{if(!root.confirm('Return this request for a fresh owner quote? Payment records remain; resolve any money received separately.'))return;await adminAction('cancel_request',{request_id:r.id,reason:reason.value.trim()});})));}
+        if(!r.approved_at&&!r.cancelled_at){const returning=element('details',null,'iv-sub-return'),reason=element('textarea'),label=element('label',null,'iv-sub-field');returning.appendChild(element('summary','Return for review'));reason.placeholder='Explain what the owner needs to correct';label.append(element('span','Required reason'),reason);returning.append(label,button('Confirm return',()=>run(async()=>{if(!reason.value.trim())throw Error('Enter a reason for returning this request.');if(!root.confirm('Return this request for a fresh owner quote? Payment records remain; resolve any money received separately.'))return;await adminAction('cancel_request',{request_id:r.id,reason:reason.value.trim()});})));card.appendChild(returning);}
         section.appendChild(card);
       }
       const days=element('input'),reason=element('textarea');
@@ -435,7 +443,9 @@
       days.max='365';
       days.placeholder='Extension days';
       reason.placeholder='Required reason for extension';
-      section.append(element('h3','Documented extension','iv-sub-heading'),days,reason,button('Approve extension',()=>run(async()=>{
+      const more=element('details',null,'iv-sub-more');more.appendChild(element('summary','More actions · documented extension'));
+      const dayField=element('label',null,'iv-sub-field'),reasonField=element('label',null,'iv-sub-field');dayField.append(element('span','Extension days'),days);reasonField.append(element('span','Required reason'),reason);
+      more.append(dayField,reasonField,button('Approve extension',()=>run(async()=>{
         if(!root.confirm('Extend the current final period and record this reason?'))return;
         await adminAction('extend',{
           days:Number(days.value),reason:reason.value.trim()
@@ -443,7 +453,7 @@
         );
       }
       )));
-      target.appendChild(section);
+      section.appendChild(more);target.appendChild(section);
     }
     function history(target,data){
       for(const r of data.requests)target.appendChild(element('p',(r.cancelled_at?'Cancelled request':r.approved_at?'Approved request':'Awaiting Service Provider approval')+' · '+r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date,'iv-sub-notice'));
@@ -484,7 +494,7 @@
       masterControls(overview,data);
       renderDocs(view.sections.get('documents'),data);
       for(const period of data.periods.filter(p=>p.start_date>data.today))overview.appendChild(element('p','Scheduled: '+planName(period.plan)+' · '+period.start_date+' – '+period.end_date+' · '+money(period.amount),'iv-sub-notice'));
-      if(kind==='master')overview.appendChild(button('Change Test / Live tag',()=>app.setTenantTag(tenant)));
+
       const archive=view.sections.get('history');history(archive,data);
       if(!data.periods.length&&!data.requests.length&&!data.events.length)archive.appendChild(element('p','Your subscription history will appear after activation.'));
       if(data.is_owner)archive.appendChild(button('Download records',()=>{const url=root.URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download='IronVault-subscription-'+data.tenant_id+'.json';a.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);}));
@@ -495,9 +505,9 @@
       }
       );
       documentsState=state;
-      const target=modal('Service Agreement Settings'),values=new Map();const wizard=tabs(target,[['provider','1. Provider details'],['plans','2. Plans & pilot'],['policies','3. Policies'],['publish','4. Preview & publish']],'provider');const groups=new Map();for(const key of ['provider','plans','policies']){const grid=element('div',null,'iv-sub-grid');wizard.sections.get(key).appendChild(grid);groups.set(key,grid);}const publication=wizard.sections.get('publish');target.appendChild(element('p','Changes remain drafts until you preview and publish.','iv-sub-muted'));
+      const target=modal('Service Agreement Settings'),values=new Map();const wizard=tabs(target,[['publish','Documents'],['plans','App settings'],['provider','Payment & contact']],'publish');const groups=new Map();for(const key of ['provider','plans']){const grid=element('div',null,'iv-sub-grid');wizard.sections.get(key).appendChild(grid);groups.set(key,grid);}const publication=wizard.sections.get('publish');target.appendChild(element('p','Edit the full documents below. App settings and contact information are managed separately. Changes remain drafts until published.','iv-sub-muted'));
       const advanced=element('details'),advancedHead=element('summary','Advanced document templates');
-      const policies=element('details');policies.appendChild(element('summary','Advanced policies — prefilled from the reviewed drafts'));wizard.sections.get('policies').appendChild(policies);
+      const policies=element('details');policies.appendChild(element('summary','Existing template details · only needed for template placeholders'));wizard.sections.get('provider').appendChild(policies);
       advanced.appendChild(advancedHead);
       publication.appendChild(advanced);
       let previewed=null;
@@ -520,7 +530,7 @@
         input.dataset.policyField=field.key;
         help(label,field.help+(field.required?' Required before publication.':' Optional.'));
         wrap.append(label,input);
-        const provider=['provider_name','brand','address','support_email','billing_contact','privacy_contact','privacy_email','support_hours','support_days','tax_policy','billing_instructions'];const plans=['dashboard_price','portal_price','pilot_days','paid_days','grace_days','price_notice_days','export_days','retention_days'];(field.key.startsWith('_')?advanced:(provider.includes(field.key)?groups.get('provider'):plans.includes(field.key)?groups.get('plans'):['providers','database_region','email_provider','overseas_processing','backup_policy','deletion_process','document_version'].includes(field.key)?groups.get('policies'):policies)).appendChild(wrap);
+        const provider=['support_email','billing_contact','billing_instructions'];const plans=['dashboard_price','portal_price','pilot_days','paid_days','grace_days','price_notice_days','export_days','retention_days'];(field.key.startsWith('_')?advanced:(provider.includes(field.key)?groups.get('provider'):plans.includes(field.key)?groups.get('plans'):field.key==='document_version'?groups.get('provider'):policies)).appendChild(wrap);
         values.set(field.key,input);
         input.addEventListener('input',()=>{
           previewed=null;
@@ -552,7 +562,7 @@
       changed.append(button('Keep edited documents',()=>{pendingChoice=false;changed.hidden=true;status.textContent='Edited wording kept. Compare it with your updated settings before publishing.';}),button('Regenerate documents',()=>{for(const [key,value] of Object.entries(defaults))values.get(key).value=value;editedPlain.clear();pendingChoice=false;changed.hidden=true;invalidate();documentPreview(preview,'Generate a preview to review the regenerated documents.');status.textContent='Standard templates restored. Your form details are unchanged.';}));
       for(const [key,input] of values)input.addEventListener('input',()=>{if(!key.startsWith('_')&&custom()){pendingChoice=true;changed.hidden=false;}invalidate();status.textContent='Settings changed. Generate a fresh preview before copying or publishing.';});
       const reviewActions=element('div',null,'iv-sub-actions');reviewActions.append(copy,edit);
-      const copySettings=button('Copy settings for review',()=>run(async()=>{const copied=await review.copyText(review.settingsCopy(root.IronVaultServicePolicy.fields,collect())+'\nPlanned effective date: '+publishDate.value);status.textContent=copied?'All settings from steps 1–3 copied for comparison.':'Select and copy the settings in the manual-copy window.';}));
+      const copySettings=button('Copy settings for review',()=>run(async()=>{const copied=await review.copyText(review.settingsCopy(root.IronVaultServicePolicy.fields,collect())+'\nPlanned effective date: '+publishDate.value);status.textContent=copied?'App settings and contact details copied for comparison.':'Select and copy the settings in the manual-copy window.';}));
       settingsSummary.textContent=review.keySettings(collect());
       const actions=element('div',null,'iv-sub-actions');
       actions.append(button('Save draft',()=>run(async()=>{
@@ -584,12 +594,14 @@
       }
       ),'primary'));
       const publish=actions.lastElementChild;publish.disabled=true;reviewed.input.disabled=true;reviewed.input.addEventListener('change',()=>{publish.disabled=!reviewed.input.checked||previewed!==JSON.stringify(collect());});
-      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');const keys=['provider','plans','policies','publish'];const back=button('Back',()=>move(-1)),next=button('Next step',()=>move(1));const update=()=>{const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);back.disabled=at===0;next.disabled=at===3;};function move(delta){const at=keys.findIndex(key=>!wizard.sections.get(key).hidden);wizard.show(keys[Math.max(0,Math.min(3,at+delta))]);update();target.scrollTop=0;}footer.append(save,back,next);target.appendChild(footer);target.addEventListener('click',update);target.addEventListener('keydown',update);update();publication.append(copySettings,element('h3','Compare with your settings','iv-sub-heading'),settingsSummary,changed,dateWrap,viewButtons,currentLabel,reviewActions,preview,editor,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
+      const save=actions.firstElementChild;const footer=element('div',null,'iv-sub-actions iv-sub-footer');footer.append(save);target.appendChild(footer);publication.append(copySettings,element('h3','Compare with your settings','iv-sub-heading'),settingsSummary,changed,dateWrap,viewButtons,currentLabel,reviewActions,preview,editor,reviewed.wrap,actions,element('h3','Published version history','iv-sub-heading'));documentPreview(preview,'Choose Preview all documents to review your current draft.');
       for(const v of state.versions)publication.appendChild(button('Published version effective '+v.effective_date,()=>{
         previewData=null;editor.hidden=true;preview.hidden=false;copy.disabled=true;edit.disabled=true;documentPreview(preview,v.terms_text);status.textContent='Viewing a published version. Generate a current draft preview to edit or copy.';
       }
       ));
       publication.appendChild(advanced);
+      groups.get('plans').before(element('p','These settings control billing and access. Editing document text does not change them. Compare both before publishing.','iv-sub-muted'));
+      const initial=await call('iv_service_documents',{p_action:'preview',p_data:collect()});previewData=initial.preview;previewed=JSON.stringify(collect());showDocument();reviewed.input.disabled=false;
     }
     if(kind==='master'){
       root.IronVaultProviderConsole.install(app,client,{call,run,modal,element,button,openBilling,serviceEditor});
