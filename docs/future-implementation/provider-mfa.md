@@ -1,6 +1,8 @@
 # FUT-001: Provider MFA
 
-Status: **DEFERRED — NOT APPROVED FOR IMPLEMENTATION**
+Status: **PRELIMINARY IDEA — REVISIT AND DISCUSS BEFORE DEFINING A FINAL SCOPE**
+
+This note is a starting point for discussion, not finalized requirements. Revisit this idea individually with the user; execution requires a separate explicit instruction after reviewing the scope.
 
 Consider authenticator-app multi-factor authentication for the Iron Vault Provider account: password plus a temporary code. The user chose to defer this discussion.
 

@@ -1,6 +1,8 @@
 # FUT-002: Command Center authentication
 
-Status: **DEFERRED — NOT APPROVED FOR IMPLEMENTATION**
+Status: **PRELIMINARY IDEA — REVISIT AND DISCUSS BEFORE DEFINING A FINAL SCOPE**
+
+This note is a starting point for discussion, not finalized requirements. Revisit this idea individually with the user; execution requires a separate explicit instruction after reviewing the scope.
 
 Consider making Project Command Center private when more projects are added or the user needs a private launcher. The current decision is a public launch page; the gym app retains its own authentication.
 

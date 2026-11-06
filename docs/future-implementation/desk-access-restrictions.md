@@ -1,6 +1,8 @@
 # FUT-003: Device or network restrictions for desk actions
 
-Status: **DEFERRED — NOT APPROVED FOR IMPLEMENTATION**
+Status: **PRELIMINARY IDEA — REVISIT AND DISCUSS BEFORE DEFINING A FINAL SCOPE**
+
+This note is a starting point for discussion, not finalized requirements. Revisit this idea individually with the user; execution requires a separate explicit instruction after reviewing the scope.
 
 Consider restricting sensitive staff desk operations, especially Manual Check-In, to approved devices or the gym's network. Motivation: an authorized staff account could otherwise record a manual entry remotely; attribution alone does not prevent this.
 
