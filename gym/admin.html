@@ -122,7 +122,7 @@
                 </button>
 
                 <button id="btn-gym-legal" aria-label="Terms and privacy details" title="Terms &amp; Privacy Details" type="button" onclick="adminApp.openLegalSettings(adminApp.currentTenantId)" class="hidden px-2.5 py-1.5 rounded-xl border border-slate-700 text-[11px] font-semibold text-slate-300"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span> Terms &amp; Privacy</span></button>
-                <button id="btn-membership-pricing" type="button" class="hidden" onclick="adminApp.openPricingModal()"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>Membership Pricing &amp; Default Discounts</span></button>
+                <button id="btn-membership-pricing" type="button" class="hidden" onclick="adminApp.openPricingModal()"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>Membership Pricing</span></button>
                 <!-- LOGOUT BUTTON -->
                 <button id="btn-admin-logout" aria-label="Sign out" onclick="adminApp.logoutAdmin()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
@@ -217,7 +217,7 @@
                 <summary class="flex items-center justify-between gap-2 cursor-pointer list-none">
                     <div>
                         <h3 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-tags text-emerald-400"></i> Membership Pricing & Default Discounts
+                            <i class="fa-solid fa-tags text-emerald-400"></i> Membership Pricing
                         </h3>
                         <p class="text-[11px] sm:text-xs text-slate-400">Configure base rates and default percentage discounts for Student and Senior classifications.</p>
                     </div>
@@ -435,7 +435,7 @@
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-1">
                     <i class="fa-solid fa-tags text-xl"></i>
                 </div>
-                <h3 class="text-lg font-bold text-white">Membership Pricing & Default Discounts</h3>
+                <h3 class="text-lg font-bold text-white">Membership Pricing</h3>
                 <p class="text-xs text-slate-400">Configure base rates and default percentage discounts</p>
             </div>
 
@@ -850,6 +850,7 @@
         <p id="announcements-message" role="status" aria-live="polite" class="text-sm text-emerald-300"></p>
         <form id="announcement-editor" hidden onsubmit="adminApp.saveAnnouncement(event)" class="rounded-2xl border border-slate-700 p-4 space-y-4">
           <h3 id="announcement-editor-title" class="font-bold text-white">New announcement</h3>
+          <label>Who can see this?<select id="announcement-audience"><option value="everyone">Everyone in this gym</option><option value="members">Members only</option><option value="staff">Staff only</option><option value="selected">Selected members / staff</option></select></label><div id="announcement-recipients" class="announcement-recipient-choices"></div><p id="announcement-recipient-count" role="status"></p>
           <label class="block text-sm text-slate-300">Title
             <input id="announcement-title" required maxlength="160" class="glass-input block w-full rounded-xl p-3 mt-1 text-white" placeholder="Holiday closure" />
           </label>
@@ -2579,5 +2580,8 @@ adminApp.logoutAdmin=async function(){
 
 <script src="../assets/subscriptions.js"></script>
 <script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');IronVaultPhoneRevenue.install(adminApp,supabaseClient);</script>
+<link rel="stylesheet" href="../assets/staff-access.css">
+<script src="../assets/staff-access.js"></script>
+<script>IronVaultStaffAccess.installAdmin(adminApp,supabaseClient);</script>
 </body>
 </html>

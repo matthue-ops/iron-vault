@@ -9,11 +9,14 @@ function fixture(role='owner'){
  const app={currentTenantId:'gym-a',authenticatedRole:{user_id:'owner-id'},applyUIRoleVisibility(){}};
  const client={auth:{onAuthStateChange:fn=>auth.push(fn)},rpc:async(name,args)=>{
   calls.push({name,args});
+  if(name==='iv_staff_access')return {data:{state:'active',permissions:{announcements_manage:account.role==='owner'}}};
+  if(name==='iv_announcement_audience')return {data:{count:1,recipients:[]}};
   if(name==='iv_list_announcements')return {data:{items:notices.filter(n=>args.p_state==='archived'?!!n.archived_at:!n.archived_at).slice(args.p_page*20,(args.p_page+1)*20),total:notices.filter(n=>args.p_state==='archived'?!!n.archived_at:!n.archived_at).length,can_manage:account.role==='owner',server_now:'2026-11-02T06:00:00Z'}};
-  if(name==='iv_save_announcement'){
+  if(name==='iv_save_targeted_announcement'){
    let notice=notices.find(n=>n.id===args.p_id);if(notice&&notice.version!==args.p_expected_version)return {error:{message:'Announcement changed. Reload before saving',code:'P0001'}};
    const row={id:args.p_id,tenant_id:args.p_tenant,title:args.p_title,body:args.p_body,starts_at:args.p_starts_at,ends_at:args.p_ends_at,pinned:args.p_pinned,version:notice?notice.version+1:1,archived_at:null};notices=notices.filter(n=>n.id!==row.id).concat(row);return {data:row};
   }
+  if(name==='iv_pin_targeted_announcement'){const row=notices.find(n=>n.id===args.p_id);row.pinned=args.p_pinned;row.version++;return {data:{...row}};}
   const row=notices.find(n=>n.id===args.p_id);row.archived_at='2026-11-02T06:00:00Z';row.version++;return {data:{...row}};
  }};
  const context={Date,Intl,crypto,console,document,confirm:()=>true,alert:text=>alerts.push(text),addEventListener:(name,fn)=>{events[name]=fn},IronVaultAuth:{requireRole:async(_,options)=>{
@@ -31,7 +34,7 @@ test('announcement time inputs use Manila regardless of device timezone and reje
 });
 test('owner creates an announcement with tenant, stable ID, version and explicit Manila schedule',async()=>{
  const f=fixture();await f.app.openAnnouncements();assert.equal(f.node('announcement-new').hidden,false);await f.app.newAnnouncement();draft(f);await f.app.saveAnnouncement({preventDefault(){}});
- const call=f.calls.find(c=>c.name==='iv_save_announcement');assert.equal(call.args.p_tenant,'gym-a');assert.equal(call.args.p_expected_version,null);assert.match(call.args.p_id,/^[a-f0-9-]{36}$/);assert.equal(call.args.p_starts_at,'2026-11-02T00:00:00.000Z');assert.equal(f.rows().length,1);assert.match(f.node('announcements-message').textContent,/Announcement saved/);
+ const call=f.calls.find(c=>c.name==='iv_save_targeted_announcement');assert.equal(call.args.p_tenant,'gym-a');assert.equal(call.args.p_expected_version,null);assert.match(call.args.p_id,/^[a-f0-9-]{36}$/);assert.equal(call.args.p_starts_at,'2026-11-02T00:00:00.000Z');assert.equal(f.rows().length,1);assert.match(f.node('announcements-message').textContent,/Announcement saved/);
 });
 test('staff see announcements but cannot create, edit, pin or remove even through direct method calls',async()=>{
  const f=fixture('staff');f.notices([notice()]);await f.app.openAnnouncements();assert.equal(f.node('announcement-new').hidden,true);assert.match(f.node('announcements-access').textContent,/Staff view/);
@@ -45,13 +48,13 @@ test('title/message are rendered as text in list and preview',async()=>{
  await f.app.newAnnouncement();f.node('announcement-title').value=unsafe;f.app.previewAnnouncement();assert.equal(f.node('announcement-preview-title').textContent,unsafe);
 });
 test('owner edit, pin and removal use optimistic versions; removal retains the notice',async()=>{
- const f=fixture();f.notices([notice()]);await f.app.openAnnouncements();await f.app.pinAnnouncement('notice-id');let call=f.calls.find(c=>c.name==='iv_save_announcement');assert.equal(call.args.p_expected_version,1);assert.equal(call.args.p_pinned,true);
+ const f=fixture();f.notices([notice()]);await f.app.openAnnouncements();await f.app.pinAnnouncement('notice-id');let call=f.calls.find(c=>c.name==='iv_pin_targeted_announcement');assert.equal(call.args.p_expected_version,1);assert.equal(call.args.p_pinned,true);
  await f.app.editAnnouncement('notice-id');f.node('announcement-title').value='New title';await f.app.saveAnnouncement({preventDefault(){}});assert.equal(f.rows()[0].title,'New title');
  await f.app.removeAnnouncement('notice-id');assert.equal(f.rows().length,1);assert.ok(f.rows()[0].archived_at);assert.ok(f.calls.some(c=>c.name==='iv_archive_announcement'));
 });
 test('invalid message lengths and end-before-start never reach a write RPC',async()=>{
  const f=fixture();await f.app.openAnnouncements();await f.app.newAnnouncement();draft(f);f.node('announcement-end').value='2026-11-01T08:00';await f.app.saveAnnouncement({preventDefault(){}});assert.match(f.node('announcements-message').textContent,/after start/);
- draft(f);f.node('announcement-body').value='x'.repeat(4001);await f.app.saveAnnouncement({preventDefault(){}});assert.equal(f.calls.filter(c=>c.name==='iv_save_announcement').length,0);
+ draft(f);f.node('announcement-body').value='x'.repeat(4001);await f.app.saveAnnouncement({preventDefault(){}});assert.equal(f.calls.filter(c=>c.name==='iv_save_targeted_announcement').length,0);
 });
 test('closing the panel discards a late response without exposing data',async()=>{
  const f=fixture();let release;f.client.rpc=(name,args)=>{f.calls.push({name,args});return new Promise(resolve=>{release=resolve})};const pending=f.app.openAnnouncements();while(!release)await new Promise(resolve=>setImmediate(resolve));f.app.closeAnnouncements();release({data:{items:[notice()],total:1,can_manage:true,server_now:'2026-11-02T06:00:00Z'}});await pending;assert.equal(f.node('announcements-panel').hidden,true);assert.equal(f.node('announcements-list').children.length,0);
@@ -73,8 +76,8 @@ test('stale announcement versions show a reload message and never fall back to a
 });
 test('create retries reuse the same notice ID after an uncertain network outcome',async()=>{
  const f=fixture();await f.app.openAnnouncements();await f.app.newAnnouncement();draft(f);const original=f.client.rpc;let fail=true;
- f.client.rpc=async(name,args)=>{if(name==='iv_save_announcement'&&fail){f.calls.push({name,args});fail=false;return {error:{message:'Connection lost'}}}return original(name,args)};
- await f.app.saveAnnouncement({preventDefault(){}});await f.app.saveAnnouncement({preventDefault(){}});const writes=f.calls.filter(c=>c.name==='iv_save_announcement');assert.equal(writes.length,2);assert.equal(writes[0].args.p_id,writes[1].args.p_id);assert.equal(f.rows().length,1);
+ f.client.rpc=async(name,args)=>{if(name==='iv_save_targeted_announcement'&&fail){f.calls.push({name,args});fail=false;return {error:{message:'Connection lost'}}}return original(name,args)};
+ await f.app.saveAnnouncement({preventDefault(){}});await f.app.saveAnnouncement({preventDefault(){}});const writes=f.calls.filter(c=>c.name==='iv_save_targeted_announcement');assert.equal(writes.length,2);assert.equal(writes[0].args.p_id,writes[1].args.p_id);assert.equal(f.rows().length,1);
 });
 test('pagination requests the selected tenant/page and staff never receive removed controls',async()=>{
  const f=fixture('staff');f.notices(Array.from({length:21},(_,i)=>notice({id:'notice-'+i})));await f.app.openAnnouncements();assert.equal(f.node('announcements-next').disabled,false);await f.app.announcementsPage(1);

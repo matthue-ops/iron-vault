@@ -94,7 +94,7 @@
    renderDetails();
   };
   app.ivChoose=function(mode){this.ivMode=['sessions','activity'].includes(mode)?mode:'all';page=0;renderDetails();};
-  app.printReport=async function(){try{await this.ivRequireReport();if(!model||this.currentTab==='overview')return;renderDetails();root.print();}catch(error){this.ivDeny(error);}};
+  app.printReport=async function(){try{await this.ivRequireReport();await this.ivRequireExport?.();if(!model||this.currentTab==='overview')return;renderDetails();root.print();}catch(error){this.ivDeny(error);}};
   function excelMoney(value){
    const cents=typeof value==='bigint'?value:R.cents(value);
    if(cents===null)return 'Unavailable';
@@ -105,7 +105,7 @@
    if(exporting)return;
    const button=node('report-export-excel');exporting=true;button.disabled=true;button.textContent='Preparing Excel…';
    try{
-    let actor;try{actor=await this.ivRequireReport();}catch(error){this.ivDeny(error);return;}
+    let actor;try{actor=await this.ivRequireReport();await this.ivRequireExport?.();}catch(error){this.ivDeny(error);return;}
     if(!model||!period||!snapshotAt)throw Error('Load a report first.');
     const loaded=model,version=reportVersion,request=this.ivRequest,tenant=this.currentTenant.id;
     const exportedAt=new Date(),gym=this.currentTenant.gymName,start=period.start,end=period.end;
@@ -134,7 +134,7 @@
      {name:'Activity',rows:[...metadata,['Recorded at (Manila)','Name / role','Action','Details'],...tableRows('audit','all')],headerRow:7,widths:[27,36,40,85],filter:true}
     ];
     const bytes=await root.IronVaultReportsExcel.create(sheets,root.JSZip||await root.IronVaultReportsExcel.loadZip());
-    let after;try{after=await this.ivRequireReport();}catch(error){this.ivDeny(error);return;}
+    let after;try{after=await this.ivRequireReport();await this.ivRequireExport?.();}catch(error){this.ivDeny(error);return;}
     if(after.user_id!==actor.user_id||this.currentTenant?.id!==tenant||model!==loaded||reportVersion!==version||this.ivRequest!==request)throw Error('The report changed during export. Load the desired period and export again.');
     const blob=new root.Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url=root.URL.createObjectURL(blob),link=root.document.createElement('a');link.href=url;link.download=root.IronVaultReportsExcel.filename(gym,start,end);
@@ -143,7 +143,7 @@
    finally{exporting=false;button.disabled=!model;button.textContent='Export all reports (.xlsx)';}
   };
   app.exportReportCsv=async function(){try{
-   await this.ivRequireReport();if(this.currentTab==='overview')return;if(!model||!period)throw Error('Load a report first.');
+   await this.ivRequireReport();await this.ivRequireExport?.();if(this.currentTab==='overview')return;if(!model||!period)throw Error('Load a report first.');
    const kind=this.currentTab==='attendance'?'attendance':this.currentTab==='audit'?'audit':'financial';
    const headings=kind==='attendance'?['Member code','Name','Plan at check-in','Check-in (Asia/Manila)','Method','Expiry / days left at check-in','Status at check-in']:kind==='audit'?['Time (Asia/Manila)','Name / role','Action','Details']:['Member code','Name','Classification','Entry type','Transaction amount','Wallet after','Time (Asia/Manila)','Description'];
    const text=R.csv([['Gym',this.currentTenant.gymName],['Period',period.start,period.end],['Timezone','Asia/Manila'],['Note',kind==='financial'?'Wallet after is the saved balance immediately after that transaction; Unavailable means the historical balance cannot be verified. Names and classifications reflect current profiles. CSV includes all matching rows.':'Attendance uses saved check-in history. New structured activity uses actor and action details saved at the event; older entries remain as recorded. Other profile labels use current information. CSV includes all matching rows.'],headings,...matches()]);
