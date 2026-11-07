@@ -641,6 +641,8 @@
         const original=app[name];
         if(typeof original!=='function')continue;
         app[name]=async function(...args){
+          // Native form submission must stop before the asynchronous access check.
+          if(typeof args[0]?.preventDefault==='function')args[0].preventDefault();
           try{
             const value=await call('iv_subscription_access',{
               p_tenant:this.currentTenantId

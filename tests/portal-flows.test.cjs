@@ -559,7 +559,7 @@ test('sign-in from a readable URL navigates into gym pages and retains scoped au
   p.client.functions={invoke:async(_,args)=>{payload=args.body;return {data:{session:{access_token:'test-token',refresh_token:'test-refresh'}}}}};p.client.auth.setSession=async()=>({error:null});
   p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';p.element('admin-login-email').value='owner@example.invalid';p.element('admin-login-password').value='test-password';
   await (role==='member'?app.handleSignInSubmit({preventDefault(){}}):app.handleAdminLoginSubmit({preventDefault(){}}));
-  assert.equal(payload.gym_token,'token-a');assert.equal(p.context.location.href,role==='member'?'/gym/profile.html':'/gym/admin.html?key=token-a');
+  assert.equal(payload.gym_token,'token-a');if(role==='member')assert.equal(p.context.location.href,'/gym/profile.html');else assert.equal(p.redirects.at(-1),'/gym/admin.html?key=token-a');
  }
 });
 test('a different gym membership cannot sign in through a friendly URL',async()=>{

@@ -43,7 +43,8 @@
    root.sessionStorage.setItem('ironvault_active_tenant_id',role.tenant_id);root.sessionStorage.setItem('ironvault_active_role',role.role==='owner'?'admin':'staff');
    await client.rpc('iv_staff_event',{p_tenant:role.tenant_id,p_event:'login'});
    const destination='admin.html?key='+encodeURIComponent(this.matchedOwnerRecord.token);
-   root.location.href=root.IronVaultGymPortals?root.IronVaultGymPortals.page(destination):destination;
+   // Replace the submitted login entry; Back must not return to a stale sign-in screen.
+   root.location.replace(root.IronVaultGymPortals?root.IronVaultGymPortals.page(destination):destination);
   }catch(error){this.showAlert(error.message);}};
   app.handleSignUpSubmit=async function(event){event.preventDefault();const button=root.document.getElementById('btn-submit-signup');button.disabled=true;try{
    const val=id=>root.document.getElementById(id).value;
