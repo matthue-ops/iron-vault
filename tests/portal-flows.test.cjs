@@ -26,6 +26,11 @@ test('actual admin initialization denies anonymous users before any private tabl
  const p=portal('gym/admin.html');await p.get('adminApp').init();
  assert.equal(p.calls.length,0);assert.equal(p.redirects.length,1);
 });
+test('dashboard Active Passes counts entitlements rather than approved accounts',()=>{
+ const p=portal('gym/admin.html'),app=p.get('adminApp'),today=p.context.IronVaultReports.date(new Date());
+ app.members=[{status:'ACTIVE',plan:'1-Day Pass',expirationDate:today},{status:'ACTIVE',plan:'1-Week Pass',expirationDate:today},{status:'ACTIVE',plan:'1-Month Unlimited',expirationDate:today},{status:'ACTIVE',plan:'Not Selected'}];
+ app.updateStats();assert.equal(p.element('stat-total').innerText,4);assert.equal(p.element('stat-active').innerText,3);
+});
 test('actual admin initialization ignores a forged administrator UI flag for staff',async()=>{
  const p=portal('gym/admin.html',{user:{id:'staff-user'},roles:[{user_id:'staff-user',role:'staff',tenant_id:'gym-a'}]});
  p.storage.setItem('ironvault_active_role','admin');const app=p.get('adminApp');

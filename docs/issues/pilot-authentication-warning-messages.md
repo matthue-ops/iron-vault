@@ -1,7 +1,7 @@
 # Unclear authentication warnings during pilot testing
 
 - Recorded: 2026-11-07 (Asia/Manila).
-- Status: Review only; do not implement without approval.
+- Status: Subsequently authorized for the second batch; context-appropriate warnings implemented for PR review. Original evidence retained below.
 - Evidence: User-reported manual testing in TEST GYM; no credentials recorded.
 
 ## Signed-out admin navigation
@@ -18,4 +18,4 @@ Owner confirmed suspension, then the staff login attempt displayed “Invalid re
 
 After member sign-out, the user clarified that Back showed the login portal and then exited to the browser; the member profile never reappeared. The observed Back-navigation check passed. A separate refresh check was not explicitly confirmed; this observation does not establish every session-restoration path.
 
-No application code, permissions, SQL or database changes are part of this record.
+Second-batch disposition: admin sign-in uses a generic credential/gym/access explanation rather than “Invalid request”, without disclosing account suspension/existence. Signed-out reporting navigation uses session/access wording. No authorization checks or permission grants changed for these warning fixes.

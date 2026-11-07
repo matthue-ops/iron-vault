@@ -45,7 +45,7 @@
    const destination='admin.html?key='+encodeURIComponent(this.matchedOwnerRecord.token);
    // Replace the submitted login entry; Back must not return to a stale sign-in screen.
    root.location.replace(root.IronVaultGymPortals?root.IronVaultGymPortals.page(destination):destination);
-  }catch(error){this.showAlert(error.message);}};
+  }catch(error){this.showAlert(error.message==='Invalid request.'?'Unable to sign in. Check your gym link and credentials, or ask the owner to confirm your account access.':error.message);}};
   app.handleSignUpSubmit=async function(event){event.preventDefault();const button=root.document.getElementById('btn-submit-signup');button.disabled=true;try{
    const val=id=>root.document.getElementById(id).value;
    const result=await provision(client,root.sessionStorage,'iv-branch-auth',{action:'signup',gym_token:this.matchedOwnerRecord?.token,

@@ -1,5 +1,12 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const R=require('../assets/reports-analysis.js');
 const at='2026-11-01T01:00:00Z';
+test('valid passes require an approved account, recognized plan and real unexpired date',()=>{
+ const day='2026-11-08',base={status:'ACTIVE',plan:'1-Day Pass',expirationDate:day};
+ assert.equal(R.validPass(base,day),true);
+ for(const patch of [{status:'PENDING'},{status:'INACTIVE'},{plan:'Not Selected'},{plan:null},{expirationDate:'2026-11-07'},{expirationDate:'2026-02-30'},{expirationDate:''}])assert.equal(R.validPass({...base,...patch},day),false);
+ assert.equal(R.validPass({status:'ACTIVE',plan:'1-Month Unlimited',expiration_date:'2026-12-01'},day),true);
+ assert.equal(R.date('2026-11-07T16:00:00Z'),day);
+});
 test('cash collected and pass sales stay separate and split payments count as one purchase',()=>{
  const data={financial:[{kind:'topup',amount:'100.10',created_at:at},{kind:'plan_wallet',amount:'70.10',created_at:at},{kind:'plan_cash',amount:'29.90',created_at:at},{kind:'refund_cash',amount:'10',created_at:at}],
  purchases:[{request_id:'one',renewal:false,created_at:at}],members:[{wallet_balance:'30.00'}]};

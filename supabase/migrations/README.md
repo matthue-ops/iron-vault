@@ -69,3 +69,7 @@ After confirmed 041, apply `supabase/manual/refunds_member_notices.sql` (042), t
 ### 044: Refund usability, short references and member entry feedback
 
 After confirmed 043, manually apply `supabase/manual/refund_usability_entry_feedback.sql` once (identical numbered 044 copy). Adds a private unique reference registry, a separate actual cash payout receipt, readable refund audit snapshots and authorized latest-entry method data. Existing ledger/history stays intact; old codes are not automatically backfilled. Requires the matching frontend; no Edge/reminder configuration changes. See [the 11-item implementation and staging checklist](../../docs/refund-usability-entry-feedback.md). No SQL executed by the agent. Do not rerun 042/043.
+
+### 045: Pilot cash payout references and rejection notices
+
+After confirmed 044, manually run `supabase/manual/pilot_refund_references_notices.sql` once (identical to numbered 045). It extends the private reference registry with payout codes, adds an optional member-facing rejection reason, wraps the existing refund engine and emits notices only for future cash approvals/rejections. It does not modify financial eligibility, balances, past receipts, historical notices or existing permission grants. Generated cash payout references identify recorded payouts, not proof of physical handover. The UI retains manual receipts when this migration is absent. No Edge Function deployment is needed. See [second-batch rollout](../../docs/pilot-second-fixes.md). No SQL executed by the agent; do not rerun 042–044.
