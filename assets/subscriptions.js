@@ -127,7 +127,7 @@
     const d=root.document;
     if(!d?.addEventListener||!d.querySelectorAll)return;
     const shownWelcome=new Set();
-    let viewSerial=0,epoch=0,busy=false,timer=null,access=null,record=null,selected=null,dialog=null,actor=null,documentsState=null,lastQuote=null;
+    let viewSerial=0,epoch=0,busy=false,timer=null,pollGeneration=0,access=null,record=null,selected=null,dialog=null,actor=null,documentsState=null,lastQuote=null;
     const main=d.querySelector('main')||d.getElementById('super-dashboard')||d.body;
     const panel=element('section',null,'iv-sub-panel');
     panel.id='subscription-main-panel';
@@ -240,19 +240,22 @@
       if(bell)bell.hidden=!value.is_owner&&!app.staffAnnouncementAccess;
       const plan=d.getElementById('owner-subscription-menu');if(plan)plan.hidden=!value.is_owner&&!app.staffPermissions?.subscription_read;
     }
-    async function refresh(){
+    async function refresh(generation=null){
+      const current=()=>generation===null||generation===pollGeneration;
       if(kind!=='admin'||!app.currentTenantId||!app.authenticatedRole)return;
       try{
         const value=await call('iv_subscription_access',{
           p_tenant:app.currentTenantId
         }
         );
+        if(!current())return;
         gate(value);
         if(value.is_owner){
           const data=await call('iv_subscription_portal',{
             p_tenant:app.currentTenantId,p_action:'badge'
           }
           );
+          if(!current())return;
           record=data;
           if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,data,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
           const count=(data.unread_count??data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at).length)+(app.accountNoticeCount||0);app.ownerNoticeCount=count-(app.accountNoticeCount||0);
@@ -267,6 +270,7 @@
         }
       }
       catch(e){
+        if(!current())return;
         gate({
           status:'unavailable',operations:false,is_owner:app.authenticatedRole?.role==='owner'
         }
@@ -615,19 +619,23 @@
     }
     else{
       const original=app.init;
+      function stopPolling(){pollGeneration++;if(timer!==null)root.clearTimeout(timer);timer=null;}
       app.init=async function(...args){
+        stopPolling();const generation=pollGeneration;
         const result=await original.apply(this,args);
-        await refresh();
-        if(timer)root.clearTimeout(timer);
+        if(generation!==pollGeneration)return result;
+        await refresh(generation);
+        if(generation!==pollGeneration)return result;
         const tick=async()=>{
-          if(!d.hidden)await refresh();
-          timer=root.setTimeout(tick,60000);
-        }
-        ;
+          if(generation!==pollGeneration)return;
+          timer=null;
+          if(!d.hidden)await refresh(generation);
+          if(generation===pollGeneration)timer=root.setTimeout(tick,60000);
+        };
         timer=root.setTimeout(tick,60000);
         return result;
-      }
-      ;
+      };
+      root.addEventListener?.('pagehide',stopPolling);
       const ops=['openAddMemberModal','handleAdminAddMember','openManualCheckInModal','admitMemberDirectly','finalizeDeskCheckIn','confirmPlanSelection','addModalCredits','openScannerModal','startScanner','resumeScanner','processScannedCode','openStaffSignupModal','handleStaffSignup','handleSaveMemberDetails','quickApproveMember','approvePendingMember','handleSavePricing','openAnnouncements'];
       for(const name of ops){
         const original=app[name];
@@ -665,7 +673,7 @@
         shownWelcome.clear();
         record=access=null;
         actor=null;
-        if(timer)root.clearTimeout(timer);
+        pollGeneration++;if(timer!==null)root.clearTimeout(timer);timer=null;
         if(dialog?.open)dialog.close();
         panel.textContent='';
         panel.hidden=true;
