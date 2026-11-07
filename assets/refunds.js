@@ -8,7 +8,7 @@
   const make=(tag,value)=>{const n=d.createElement(tag);if(value!==undefined)n.textContent=value;return n;};
   const money=n=>'₱'+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const date=value=>Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(value)):'Date unavailable';
-  let box=null,reviewDialog=null,epoch=0,serial=0,identity=null,draft=null;
+  let box=null,reviewDialog=null,epoch=0,serial=0,identity=null,draft=null;const drafts=new Map();
   const role=()=>app.authenticatedRole;
   async function rpc(action,args={}){
    const stamp=epoch,tenant=app.currentTenantId,user=role()?.user_id;if(!tenant||!user)throw Error('Sign in required.');
@@ -27,10 +27,13 @@
    search.oninput=render;render();return {search,select,render};
   }
   async function open(memberId,initial='new'){
-   close();const ticket=serial,who=role()?.user_id+'|'+app.currentTenantId;if(identity!==who){draft=null;identity=who;}
+   close();const ticket=serial,who=role()?.user_id+'|'+app.currentTenantId;if(identity!==who){draft=null;drafts.clear();identity=who;}
    box=make('dialog');box.className='iv-refunds';const current=box,header=make('header'),done=make('button','Close'),status=make('p','Loading…');status.setAttribute('role','status');done.type='button';done.onclick=close;header.append(make('h2','Refunds & Corrections'),done);box.append(header,status);d.body.append(box);box.showModal();
    try{
-    const data=await rpc('list');if(ticket!==serial||box!==current)return;const savedKey='iv_refund_draft:'+who,saved=JSON.parse(root.sessionStorage.getItem(savedKey)||'null');if(saved&&data.cases.some(c=>c.id===saved.id)){root.sessionStorage.removeItem(savedKey);if(draft?.id===saved.id)draft=null;}status.textContent='';const nav=make('nav'),content=make('section');box.append(nav,content);
+    const data=await rpc('list');if(ticket!==serial||box!==current)return;
+    function selectDraft(id=''){const key=who+'|'+id;let value=drafts.get(key);if(!value){value={key,member_id:id,source_key:'',action:'cash',amount:'',reason_category:'Incorrect account selected',reason:'',target_member_id:'',id:null,reference:null,storageKey:'iv_refund_draft:'+who+':'+id};drafts.set(key,value);}draft=value;}
+    for(const id of ['',...data.members.map(m=>m.id)]){const key='iv_refund_draft:'+who+':'+id,saved=JSON.parse(root.sessionStorage.getItem(key)||'null');if(saved&&data.cases.some(c=>c.id===saved.id)){root.sessionStorage.removeItem(key);const completed=drafts.get(who+'|'+id);drafts.delete(who+'|'+id);if(draft===completed)draft=null;}}
+    if(memberId!==undefined)selectDraft(memberId);status.textContent='';const nav=make('nav'),content=make('section');box.append(nav,content);
     function action(parent,label,fn,feedback=status){const b=make('button',label);b.type='button';b.onclick=async()=>{if(b.disabled)return;b.disabled=true;feedback.textContent='Processing…';try{await fn();if(b.isConnected)feedback.textContent='Completed.';}catch(error){if(b.isConnected)feedback.textContent=error.message;}finally{if(b.isConnected)b.disabled=false;}};parent.append(b);return b;}
     const memberName=id=>{const m=data.members.find(m=>m.id===id);return m?m.name+' · '+(m.display_code||m.id):id;};
     const sorted=[...(data.sources||[])].sort((a,b)=>(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0)||String(a.key).localeCompare(String(b.key)));
@@ -47,28 +50,28 @@
     }
     function newCase(){
      content.textContent='';content.append(make('p','Choose a member or recent transaction. Review the destination and balances before confirming.'));
-     if(!draft)draft={member_id:memberId||'',source_key:'',action:'cash',amount:'',reason_category:'Incorrect account selected',reason:'',target_member_id:'',id:null,reference:null,storageKey:null};
-     const recent=make('details');recent.append(make('summary','Recent transactions · latest 10'));for(const s of sorted.slice(0,10))action(recent,memberName(s.member_id)+' · '+sourceText(s),()=>{save();draft.member_id=s.member_id;draft.source_key=s.key;newCase();});content.append(recent);
+     if(!draft)selectDraft(memberId||'');
+     const recent=make('details');recent.append(make('summary','Recent transactions · latest 10'));for(const s of sorted.slice(0,10))action(recent,memberName(s.member_id)+' · '+sourceText(s),()=>{save();selectDraft(s.member_id);draft.source_key=s.key;newCase();});content.append(recent);
      const form=make('form');content.append(form);const member=chooser(form,'Member',data.members,'Select member'),source=make('select'),type=make('select'),amount=make('input'),category=make('select'),reason=make('textarea'),targetWrap=make('div');
      member.select.value=draft.member_id;member.select.required=true;source.required=true;field(form,'Original transaction',source);for(const [key,label] of Object.entries(labels))option(type,key,key==='correct_credit'?'Correct incorrect wallet credit':label);field(form,'Action',type);type.value=draft.action;amount.type='number';amount.required=true;amount.step='.01';amount.min='.01';field(form,'Amount',amount);amount.value=draft.amount;
      for(const value of ['Incorrect account selected','Incorrect amount entered','Duplicate payment','Membership cancellation','Remaining balance before member removal','Other'])option(category,value,value);field(form,'Reason preset',category);category.value=draft.reason_category;reason.maxLength=1000;reason.value=draft.reason;const reasonWrap=field(form,'Specify reason',reason);
      form.append(targetWrap);const target=chooser(targetWrap,'Corrected recipient',data.members.filter(m=>m.status==='ACTIVE'&&m.id!==member.select.value),'No transfer to another member');target.select.value=draft.target_member_id;
      const warning=make('p');warning.setAttribute('role','status');form.append(warning);
-     function save(){Object.assign(draft,{member_id:member.select.value,source_key:source.value,action:type.value,amount:amount.value,reason_category:category.value,reason:reason.value,target_member_id:target.select.value});}
+     function save(){Object.assign(draft,{source_key:source.value,action:type.value,amount:amount.value,reason_category:category.value,reason:reason.value,target_member_id:target.select.value});}
      function syncSources(){source.textContent='';option(source,'','Select original transaction');for(const s of sorted)if(s.member_id===member.select.value)option(source,s.key,sourceText(s));source.value=draft.source_key;}
      function conditional(){const correction=type.value==='correct_credit',wrong=correction&&category.value==='Incorrect account selected';targetWrap.hidden=!correction;reasonWrap.hidden=category.value!=='Other';reason.required=category.value==='Other';target.select.required=wrong;amount.readOnly=wrong;warning.textContent='';
       if(!correction){target.select.value='';draft.target_member_id='';}
       if(wrong){const s=sorted.find(s=>s.key===source.value);amount.value=s?String(remaining(s)):'';if(s&&(remaining(s)!==Number(s.amount)||Number(data.members.find(m=>m.id===member.select.value)?.wallet)<remaining(s)))warning.textContent='This credit was spent or previously adjusted. Owner resolution is required; a smaller transfer will not be made automatically.';}
      }
-     member.select.onchange=()=>{save();draft.source_key='';draft.target_member_id='';newCase();};source.onchange=()=>{conditional();save();};type.onchange=()=>{conditional();save();};category.onchange=()=>{conditional();save();};form.addEventListener('input',save);syncSources();conditional();
+     member.select.onchange=()=>{save();selectDraft(member.select.value);newCase();};source.onchange=()=>{conditional();save();};type.onchange=()=>{conditional();save();};category.onchange=()=>{conditional();save();};form.addEventListener('input',save);syncSources();conditional();
      action(form,'Review request',async()=>{
-      save();if(!form.reportValidity())return;if(draft.reason_category==='Other'&&draft.reason.trim().length<3)throw Error('Specify a reason of at least three characters.');
-      if(!draft.id){draft.storageKey='iv_refund_draft:'+who;let saved=JSON.parse(root.sessionStorage.getItem(draft.storageKey)||'null');draft.id=saved?.id||root.crypto.randomUUID();root.sessionStorage.setItem(draft.storageKey,JSON.stringify({id:draft.id}));}
-      if(!draft.reference){const allocated=await rpc('reserve_reference',{p_id:draft.id});if(ticket!==serial)return;draft.reference=allocated.reference;}
+      save();if(!form.reportValidity())return;const reviewedDraft=draft;if(draft.reason_category==='Other'&&draft.reason.trim().length<3)throw Error('Specify a reason of at least three characters.');
+      if(!draft.id){let saved=JSON.parse(root.sessionStorage.getItem(draft.storageKey)||'null');draft.id=saved?.id||root.crypto.randomUUID();root.sessionStorage.setItem(draft.storageKey,JSON.stringify({id:draft.id}));}
+      if(!draft.reference){const allocated=await rpc('reserve_reference',{p_id:draft.id});reviewedDraft.reference=allocated.reference;if(ticket!==serial||draft!==reviewedDraft)return;}
       const payload={member_id:draft.member_id,source_key:draft.source_key,action:draft.action,amount:draft.amount,reason_category:draft.reason_category,reason:draft.reason_category==='Other'?draft.reason.trim():draft.reason_category,target_member_id:draft.action==='correct_credit'?draft.target_member_id:'',reference:draft.reference};
-      const result=await rpc('preview',{p_id:draft.id,p_payload:payload});if(ticket!==serial)return;
+      const result=await rpc('preview',{p_id:reviewedDraft.id,p_payload:payload});if(ticket!==serial||draft!==reviewedDraft)return;
       review(result,'new',(dialog,controls,feedback,add)=>add(controls,'Confirm refund request',async()=>{
-       await rpc('request',{p_id:draft.id,p_payload:payload,p_review:result.review_hash});root.sessionStorage.removeItem(draft.storageKey);draft=null;closeReview();await open(undefined,'pending');
+       await rpc('request',{p_id:reviewedDraft.id,p_payload:payload,p_review:result.review_hash});root.sessionStorage.removeItem(reviewedDraft.storageKey);drafts.delete(reviewedDraft.key);drafts.delete(who+'|');if(draft===reviewedDraft)draft=null;closeReview();await open(undefined,'pending');
       },feedback));
      });form.onsubmit=e=>e.preventDefault();
     }
@@ -86,7 +89,7 @@
   }
   menu.onclick=()=>open();app.openRefunds=open;
   const originalDelete=app.deleteMember;if(typeof originalDelete==='function')app.deleteMember=async function(id){const member=(this.members||[]).find(m=>m.id===id);if(member&&Number(member.walletBalance??member.wallet_balance)>0){await open(id);return;}return originalDelete.apply(this,arguments);};
-  client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||identity&&session?.user?.id&&identity.split('|')[0]!==session.user.id){epoch++;draft=null;identity=null;close();menu.hidden=true;}});
+  client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||identity&&session?.user?.id&&identity.split('|')[0]!==session.user.id){epoch++;draft=null;drafts.clear();identity=null;close();menu.hidden=true;}});
  }
  root.IronVaultRefunds={install};
 })(globalThis);

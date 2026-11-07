@@ -15,14 +15,16 @@
   try{
    const payload=JSON.stringify({p_operation:input.p_operation,p_member_id:input.p_member_id,p_plan:input.p_plan??null,p_amount:input.p_amount,p_cash_amount:input.p_cash_amount});
    let pending=JSON.parse(storage.getItem(key)||'null');
+   const wasUnresolved=!!pending;
    if(pending&&pending.payload!==payload)throw new Error('Retry the unresolved payment before starting a different payment.');
    if(!pending){pending={payload,requestId:root.crypto.randomUUID()};storage.setItem(key,JSON.stringify(pending));}
    const {data,error}=await client.rpc('iv_financial_transaction',{...JSON.parse(payload),p_request_id:pending.requestId});
    if(error){
-    // PostgreSQL validation/constraint exceptions roll back the entire RPC.
-    // Transport/unknown errors retain the key: the server may have committed.
-    if(/^(P0001|22\w{3}|23\w{3}|IV002|IV003|42501)$/.test(error.code||''))storage.removeItem(key);
-    throw new Error(error.message||'Payment not confirmed. Retry the same payment.');
+    // Only a first-attempt definitive rejection proves this request never committed.
+    // A later rejection cannot resolve an earlier unknown outcome.
+    const definitive=/^(P0001|22\w{3}|23\w{3}|IV002|IV003|42501)$/.test(error.code||'');
+    if(definitive&&!wasUnresolved)storage.removeItem(key);
+    throw new Error((error.message||'Payment not confirmed.')+(wasUnresolved?' The earlier transaction outcome remains unresolved. Keep this request and retry the same payment after access is restored; do not create a replacement.':''));
    }
    if(!data||data.request_id!==pending.requestId)throw new Error('Payment response not confirmed. Retry the same payment.');
    const {data:identity,error:identityError}=await client.auth.getUser();

@@ -66,3 +66,17 @@ test('rolled-back agreement rejection permits a fresh purchase after reviewing t
 test('definite subscription and authorization rollback clears the retry lock, allowing a different payment after access is restored',async()=>{
  for(const code of ['IV003','42501']){const f=fixture(),ok=f.client.rpc;f.client.rpc=async()=>({error:{code,message:'Access unavailable'}});await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),/Access unavailable/);assert.equal(await finance.pending(f.client,f.storage,'gym'),null);f.client.rpc=ok;await finance.execute(f.client,f.storage,'gym',{...f.input,p_amount:200});assert.equal(f.calls.length,1);assert.equal(f.calls[0].p_amount,200);}
 });
+
+test('a committed but unconfirmed top-up keeps its ID through later rejections and is credited once',async()=>{
+ for(const code of ['P0001','IV002','IV003','42501','23505','22003']){
+  const f=fixture(),ledger=new Map();let attempt=0;f.client.rpc=async(name,args)=>{f.calls.push(args);attempt++;if(attempt===2)return {error:{code,message:'Temporarily rejected'}};if(!ledger.has(args.p_request_id))ledger.set(args.p_request_id,args.p_amount);if(attempt===1)throw Error('Confirmation lost after commit');return {data:{request_id:args.p_request_id,wallet_balance:[...ledger.values()].reduce((a,b)=>a+b,0)}};};
+  await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),/Confirmation lost/);
+  await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),/earlier transaction outcome remains unresolved/);
+  assert.equal((await finance.pending(f.client,f.storage,'gym')).p_amount,100);
+  await assert.rejects(finance.execute(f.client,f.storage,'gym',{...f.input,p_amount:200}),/unresolved/);
+  const receipt=await finance.execute(f.client,f.storage,'gym',f.input);assert.equal(new Set(f.calls.map(c=>c.p_request_id)).size,1);assert.equal(ledger.size,1);assert.equal(receipt.wallet_balance,100);assert.equal(await finance.pending(f.client,f.storage,'gym'),null);
+ }
+});
+test('a saved legacy unresolved request is never discarded solely because the next attempt is rejected',async()=>{
+ const f=fixture(),payload=JSON.stringify(f.input);f.storage.setItem('ironvault_financial_request:operator:gym',JSON.stringify({payload,requestId:'legacy-id'}));f.client.rpc=async()=>({error:{code:'P0001',message:'Not authorized'}});await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),/remains unresolved/);assert.equal(JSON.parse(f.storage.getItem('ironvault_financial_request:operator:gym')).requestId,'legacy-id');
+});
