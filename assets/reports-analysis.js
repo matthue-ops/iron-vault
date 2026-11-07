@@ -34,6 +34,18 @@
   const roles={owner:'Gym Admin',staff:'Staff',member:'Member',super_admin:'Super Admin',unknown:'Unknown role'};
   return actor.name+' — '+(roles[actor.role]||'Unknown role');
  }
+ function refundActivity(row,tenant){
+  const refund=auditSnapshot(row,tenant)?.refund;if(!refund)return null;
+  const operation=String(row.event||'').split(' ').at(-1),action={cash:'Cash refund',wallet:'Wallet refund',correct_credit:'Wallet credit correction'}[refund.action]||'Refund';
+  const title=operation==='request'?'Refund requested':operation==='approve'?(refund.action==='correct_credit'?'Wallet credit corrected':action+' approved'):operation==='reject'?'Refund rejected':operation==='cancel'?'Refund cancelled':action;
+  const member=refund.member||{},lines=['Member: '+(member.name||'Member unavailable')+(member.display_code?' · '+member.display_code:''),'Amount: '+money(refund.amount),'Reason: '+(refund.reason||'Not recorded'),'Reference: '+(refund.reference||refund.id)];
+  if(operation==='request')lines.push('Pending approval—no balance change yet.');
+  if(operation==='approve'&&refund.wallet_before!=null&&refund.wallet_after!=null)lines.push('Wallet: '+money(refund.wallet_before)+' → '+money(refund.wallet_after));
+  if(refund.target?.id){lines.push('Corrected recipient: '+(refund.target.name||refund.target.id)+(refund.target.display_code?' · '+refund.target.display_code:''));if(operation==='approve'&&refund.target_wallet_before!=null)lines.push('Recipient wallet: '+money(refund.target_wallet_before)+' → '+money(refund.target_wallet_after));}
+  if(refund.payout_reference)lines.push('Cash payout receipt: '+refund.payout_reference);
+  lines.push('Technical details: Request '+refund.id+' · Original transaction '+refund.source_key);
+  return {title,details:lines.join('\n')};
+ }
  function analyze(snapshot,start,end,today=date(new Date())){
   if(!validDate(start)||!validDate(end)||end<start)throw Error('Choose a valid start and end date.');
   const within=row=>{const day=date(row.created_at);return day&&day>=start&&day<=end;};
@@ -59,5 +71,5 @@
    otherAdmissions:attendance.length-qr-manual,peakHours:peak?hours.flatMap((n,h)=>n===peak?[h]:[]):[],peakVisits:peak,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day))};
  }
  function csv(rows){return '\uFEFF'+rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[\t\r\n]|^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');}
- const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,attendanceDetails,auditSnapshot,auditActor,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api=Object.freeze({cents,money,date,validDate,analyze,expiryLabel,attendanceDetails,auditSnapshot,auditActor,refundActivity,csv,kinds,walletAfter});root.IronVaultReports=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(globalThis);
