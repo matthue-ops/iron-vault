@@ -639,12 +639,12 @@
                 </div>
 
                 <div id="modal-cash-topup-section" class="space-y-2 pt-1 border-t border-slate-800/80">
-                    <label class="block text-[11px] font-medium text-slate-300">Quick Counter Cash Top Up</label>
+                    <label class="block text-[11px] font-medium text-slate-300">Quick Counter Cash Top Up · select amount, then Add Funds</label>
                     <p id="modal-topup-approval-notice" class="hidden text-[11px] font-semibold text-amber-300">Approve this member first before accepting a cash top-up.</p>
                     <div class="grid grid-cols-3 gap-2">
-                        <button onclick="adminApp.addModalCredits(100)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱100</button>
-                        <button onclick="adminApp.addModalCredits(500)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱500</button>
-                        <button onclick="adminApp.addModalCredits(1000)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱1,000</button>
+                        <button type="button" onclick="adminApp.selectModalTopUp(100)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱100</button>
+                        <button type="button" onclick="adminApp.selectModalTopUp(500)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱500</button>
+                        <button type="button" onclick="adminApp.selectModalTopUp(1000)" class="py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 font-bold text-xs transition">+₱1,000</button>
                     </div>
 
                     <div class="flex gap-2 pt-1">
@@ -2423,15 +2423,34 @@
                 alert(`Successfully added ₱${amount.toLocaleString()} to account credits!`);
             },
 
-            handleCustomModalTopUp: function() {
+            selectModalTopUp: function(amount) {
+                if (this.modalTopUpBusy) return;
+                document.getElementById('modal-topup-input').value = String(amount);
+            },
+
+            handleCustomModalTopUp: async function() {
+                if (this.modalTopUpBusy) return;
                 const input = document.getElementById('modal-topup-input');
-                const val = parseFloat(input.value);
-                if (isNaN(val) || val <= 0) {
-                    alert("Please enter a valid top-up amount.");
+                const val = Number(input.value);
+                if (!Number.isFinite(val) || val <= 0) {
+                    this.notifyAdmin('Please enter a valid top-up amount.', false);
                     return;
                 }
-                this.addModalCredits(val);
-                input.value = '';
+                const id = this.activeModalMemberId, tenant = this.currentTenantId, user = this.authenticatedRole?.user_id;
+                const section = document.getElementById('modal-cash-topup-section');
+                const controls = [...section.querySelectorAll('button, input')].map(node => [node, node.disabled]);
+                this.modalTopUpBusy = true;
+                section.setAttribute('aria-busy', 'true');
+                controls.forEach(([node]) => { node.disabled = true; });
+                try {
+                    const recorded = await this.addModalCredits(val);
+                    if (recorded && this.activeModalMemberId === id && this.currentTenantId === tenant && this.authenticatedRole?.user_id === user) input.value = '';
+                } finally {
+                    this.modalTopUpBusy = false;
+                    section.removeAttribute('aria-busy');
+                    const allowed = this.activeModalMemberId === id && this.currentTenantId === tenant && this.authenticatedRole?.user_id === user && this.members.find(m => m.id === id)?.status === 'ACTIVE';
+                    controls.forEach(([node, disabled]) => { node.disabled = disabled || !allowed; });
+                }
             },
 
             toggleRosterFilter: function(filterType) {
@@ -2527,7 +2546,7 @@ adminApp.addModalCredits=async function(amount){
  if(!await this.confirmAdmin({title:'Confirm wallet top-up',rows:[['Member',m.name],['Amount to add',ivMoney(amount)]],confirmLabel:'Confirm top-up'}))return;
  const data=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{p_operation:'topup',p_member_id:id,p_plan:null,p_amount:+amount,p_cash_amount:0});
  m.walletBalance=+data.wallet_balance;this.notifyAdmin('Top-up recorded: '+ivMoney(amount)+(data.reference?' · Reference: '+data.reference:''),true);
- try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){this.notifyAdmin('Top-up is recorded; refresh the roster to see the updated balance.',false);}}
+ try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){this.notifyAdmin('Top-up is recorded; refresh the roster to see the updated balance.',false);}return true;}
  catch(e){this.notifyAdmin('Top-up not confirmed: '+e.message,false);}
 };
 adminApp.finalizeDeskCheckIn=async function(id,plan){

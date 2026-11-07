@@ -1,6 +1,6 @@
 /* Network-only app navigation. Cache only the public, self-contained warning page. */
 'use strict';
-const CACHE_PREFIX='iron-vault-offline-',CACHE_NAME=CACHE_PREFIX+'v1',OFFLINE_URL='/offline.html';
+const CACHE_PREFIX='iron-vault-offline-',CACHE_NAME=CACHE_PREFIX+'v2',OFFLINE_URL='/offline.html';
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
   const response=await fetch(OFFLINE_URL,{cache:'reload',credentials:'omit'});
