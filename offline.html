@@ -23,17 +23,17 @@
 <li>Record the member ID or name, time, amount/reference where relevant, and staff name. Keep the log secure.</li>
 <li>After recovery, compare the log with existing records before adding anything, to avoid duplicates.</li>
 </ul>
-<div class="actions"><button id="retry-page" type="button">Retry this page</button><a href="/">Open project launcher</a></div>
+<div class="actions"><button id="retry-page" type="button">Retry this page</button></div>
 <p class="note">This fallback cannot verify memberships, record attendance, process payments or save member information. It does not confirm that the app’s services have recovered.</p>
 <noscript><p>JavaScript is unavailable. Use your browser’s Reload button to retry.</p></noscript>
 </main>
 <script>
 (function(){
  'use strict';
- const status=document.getElementById('connection-status');
+ const status=document.getElementById('connection-status'),destination=window.location.href;
  function update(){status.textContent=navigator.onLine===false?'Internet offline — this device reports no connection.':'Service unavailable — this page did not load. Being online does not confirm that the service is working.';}
  window.addEventListener('offline',update);window.addEventListener('online',()=>{status.textContent='Your device reports a connection. Retry to check whether the page is available.';});
- document.getElementById('retry-page').addEventListener('click',()=>{status.textContent='Retrying this page…';window.location.reload();});
+ document.getElementById('retry-page').addEventListener('click',()=>{status.textContent='Retrying this page…';if(window.location.href===destination)window.location.reload();else window.location.replace(destination);});
  update();
 })();
 </script>
