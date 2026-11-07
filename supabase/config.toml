@@ -18,3 +18,7 @@ verify_jwt = true
 
 [functions.iv-cleanup-test-pdfs]
 verify_jwt = true
+
+# Scheduled worker checks its own private secret and rejects browser origins.
+[functions.iv-provider-reminders]
+verify_jwt = false

@@ -52,3 +52,5 @@ test('Wallet after uses only the saved transaction value, including zero',()=>{
  for(const value of [null,undefined,'',true,false,{},[],NaN,Infinity,-1,'-1.00','1.234'])assert.equal(R.walletAfter({wallet_after:value}), 'Unavailable');
  assert.equal(R.walletAfter({wallet_balance:999}), 'Unavailable');
 });
+
+test('wallet refunds and credit corrections do not invent cash receipts or rewrite gross sales',()=>{const model=R.analyze({financial:[['topup',100],['plan_wallet',60],['refund_wallet',20],['wallet_correction',10],['wallet_correction_in',10],['refund_cash',5]].map(([kind,amount])=>({kind,amount,created_at:at})),members:[{wallet_balance:55}]},'2026-11-01','2026-11-01');assert.equal(model.grossSales,6000n);assert.equal(model.cashIn,9500n);assert.equal(model.totals.refund_wallet,2000n);assert.equal(model.totals.wallet_correction,1000n);assert.equal(model.totals.wallet_correction_in,1000n);assert.equal(model.other,0);});

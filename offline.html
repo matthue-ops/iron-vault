@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-iron-vault-offline>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Connection interrupted · Iron Vault</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:#0c111b;color:#e2e8f0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}main{width:100%;max-width:560px;padding:28px;border:1px solid #344156;border-radius:20px;background:#131c29;box-shadow:0 20px 60px #0003}.brand{margin:0 0 22px;color:#6ee7b7;font-size:12px;font-weight:750;letter-spacing:.14em}.icon{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#42321b;color:#fbbf24;font-size:24px}h1{font-size:26px;line-height:1.25;margin:18px 0 12px}p,li{font-size:14px;color:#b8c6d9}.warning{padding:14px 16px;border:1px solid #70562b;border-radius:12px;background:#2a2319;color:#fde68a}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}button,a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 16px;border:1px solid #475569;border-radius:10px;font:650 14px system-ui;text-decoration:none;cursor:pointer;background:#1e293b;color:#e2e8f0}button{background:#10b981;color:#052e24;border-color:#10b981}button:focus-visible,a:focus-visible{outline:2px solid #6ee7b7;outline-offset:4px}.note{font-size:12px;margin-bottom:0}ul{padding-left:20px}#connection-status{min-height:23px;font-size:13px;color:#a7f3d0}@media(max-width:380px){main{padding:20px}h1{font-size:23px}.actions>*{width:100%}}
+</style>
+</head>
+<body>
+<main aria-labelledby="offline-title">
+<p class="brand">IRON VAULT</p>
+<div class="icon" aria-hidden="true">!</div>
+<h1 id="offline-title">Connection interrupted</h1>
+<p>This page could not be loaded. Your device may be offline, or the website may be temporarily unavailable.</p>
+<p id="connection-status" role="status" aria-live="polite">Check your connection, then retry.</p>
+<p class="warning"><strong>A payment or check-in already submitted may have been recorded.</strong> Do not collect payment again or assume an entry failed. Check the original record when communication returns.</p>
+<ul>
+<li>Use your gym’s manual outage log for entries and payments that cannot be confirmed.</li>
+<li>Record the member ID or name, time, amount/reference where relevant, and staff name. Keep the log secure.</li>
+<li>After recovery, compare the log with existing records before adding anything, to avoid duplicates.</li>
+</ul>
+<div class="actions"><button id="retry-page" type="button">Retry this page</button><a href="/">Open project launcher</a></div>
+<p class="note">This fallback cannot verify memberships, record attendance, process payments or save member information. It does not confirm that the app’s services have recovered.</p>
+<noscript><p>JavaScript is unavailable. Use your browser’s Reload button to retry.</p></noscript>
+</main>
+<script>
+(function(){
+ 'use strict';
+ const status=document.getElementById('connection-status');
+ function update(){status.textContent=navigator.onLine===false?'Internet offline — this device reports no connection.':'Service unavailable — this page did not load. Being online does not confirm that the service is working.';}
+ window.addEventListener('offline',update);window.addEventListener('online',()=>{status.textContent='Your device reports a connection. Retry to check whether the page is available.';});
+ document.getElementById('retry-page').addEventListener('click',()=>{status.textContent='Retrying this page…';window.location.reload();});
+ update();
+})();
+</script>
+</body>
+</html>

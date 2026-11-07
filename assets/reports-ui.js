@@ -61,7 +61,7 @@
     ['Visits',String(model.visits),'Selected period'],
     ['Valid passes',String(model.currentPasses),'Current']])box.appendChild(card(label,value,note));
    const money=node('report-money-summary');money.textContent='';
-   for(const [label,value] of [['Membership sales',model.grossSales],['Wallet top-ups',model.totals.topup],['Wallet spending',model.totals.plan_wallet],['Cash refunds',model.totals.refund_cash],['Net cash received',model.cashIn]])money.appendChild(card(label,R.money(value),'Selected period'));
+   for(const [label,value] of [['Membership sales',model.grossSales],['Wallet top-ups',model.totals.topup],['Wallet spending',model.totals.plan_wallet],['Cash refunds',model.totals.refund_cash],['Refunds to wallet',model.totals.refund_wallet],['Credit corrections out',model.totals.wallet_correction],['Credit corrections in',model.totals.wallet_correction_in],['Net cash received',model.cashIn]])money.appendChild(card(label,R.money(value),'Selected period'));
    node('report-sales-details').textContent='Recorded pass purchases: '+model.purchaseCount+' · Repeat purchases: '+model.renewals+' · New registrations: '+model.newMembers+'. Receipts count one purchase even when payment is split; older sales without receipts are excluded from purchase counts.';
    const attendance=node('report-attendance-summary');attendance.textContent='';
    for(const [label,value,note] of [['Visits / unique visitors',model.visits+' / '+model.uniqueVisitors,'Selected period'],['Entry methods',model.qr+' QR · '+model.manual+' manual · '+model.otherAdmissions+' other','Selected period'],['Valid passes',String(model.currentPasses),'Current membership validity']])attendance.appendChild(card(label,value,note));
@@ -119,6 +119,9 @@
      ['Wallet top-ups',excelMoney(loaded.totals.topup),'Prepaid credit collected'],
      ['Wallet spending',excelMoney(loaded.totals.plan_wallet),'Credit spent on passes'],
      ['Cash refunds',excelMoney(loaded.totals.refund_cash),'Recorded cash refunds only'],
+     ['Refunds to wallet',excelMoney(loaded.totals.refund_wallet),'Wallet credit, no cash payout'],
+     ['Credit corrections out',excelMoney(loaded.totals.wallet_correction),'Erroneous credit reversed, no cash payout'],
+     ['Credit corrections in',excelMoney(loaded.totals.wallet_correction_in),'Incoming corrected credit, no cash receipt'],
      ['Net cash received',excelMoney(loaded.cashIn),'Top-ups + cash pass payments − cash refunds. Do not add to membership sales.'],[],
      ['Attendance summary','Count','Scope'],['Unique visitors',loaded.uniqueVisitors,'Selected period'],['QR entries',loaded.qr,'Selected period'],['Manual entries',loaded.manual,'Selected period'],['Other entries',loaded.otherAdmissions,'Selected period'],[],
      ['Other report counts','Count','Scope'],['Recorded pass purchases',loaded.purchaseCount,'Selected-period receipts; split payment counts as one purchase.'],['Repeat purchases',loaded.renewals,'Selected-period receipts with an earlier recorded purchase.'],['New registrations',loaded.newMembers,'Selected period'],['Pending approvals',loaded.pending,'Current snapshot'],[],

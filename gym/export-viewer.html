@@ -12,4 +12,5 @@
 <p>This is a snapshot of the file’s contents, not current account data. These exports do not contain the full transaction or attendance ledger, or recoverable account passwords. Viewing an export cannot restore a deleted tenant.</p>
 <div class="controls"><div><label for="viewer-kind">Records</label><select id="viewer-kind"><option value="members">Members</option><option value="gyms">Gyms and pricing</option><option value="staff">Staff entries</option><option value="activity">Included activity entries</option></select></div><div><label for="viewer-tenant">Gym</label><select id="viewer-tenant"></select></div><div><label for="viewer-search">Search displayed fields</label><input id="viewer-search" type="search" placeholder="Name, email, ID…"></div></div>
 <div class="scroll"><table aria-label="Exported records"><thead id="viewer-head"></thead><tbody id="viewer-body"></tbody></table></div><footer><span id="viewer-page" aria-live="polite"></span><div><button id="viewer-prev" type="button">Previous</button> <button id="viewer-next" type="button">Next</button></div></footer>
-</section></main></body></html>
+</section></main><script defer src="/assets/offline-fallback.js"></script>
+</body></html>

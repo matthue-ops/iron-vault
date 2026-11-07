@@ -560,9 +560,10 @@
                     <i class="fa-solid fa-qrcode text-xl"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white">Door Access QR Scanner</h3>
-                <p class="text-xs text-slate-400">Point camera at member's daily QR code pass or upload image</p>
+                <p class="text-xs text-slate-400">Scan the QR displayed directly on the member’s profile.</p>
             </div>
 
+            <p id="scanner-presentation-notice" class="text-xs text-amber-300">Present your QR directly from your member profile. Screenshots and forwarded QR images are not accepted.</p>
             <!-- LIVE CAMERA VIEW -->
             <div class="relative overflow-hidden rounded-2xl bg-slate-950 border border-slate-800 aspect-video flex items-center justify-center">
                 <video id="qr-video" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
@@ -2581,7 +2582,11 @@ adminApp.logoutAdmin=async function(){
 <script src="../assets/subscriptions.js"></script>
 <script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');IronVaultPhoneRevenue.install(adminApp,supabaseClient);</script>
 <link rel="stylesheet" href="../assets/staff-access.css">
+<link rel="stylesheet" href="../assets/refunds.css">
+<script src="../assets/refunds.js"></script>
+<script>IronVaultRefunds.install(adminApp,supabaseClient);</script>
 <script src="../assets/staff-access.js"></script>
 <script>IronVaultStaffAccess.installAdmin(adminApp,supabaseClient);</script>
+<script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>
