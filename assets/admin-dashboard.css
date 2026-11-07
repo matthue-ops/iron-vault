@@ -156,3 +156,10 @@ body[data-subscription-operations=false] #btn-membership-pricing {display:none!i
  .phone-members-content{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}.phone-members-content>#member-roster-card{padding:0 14px 14px;border:0;border-radius:0;box-shadow:none}.phone-members-content #member-roster-card>div:first-child{position:sticky;top:0;z-index:2;background:#131c29;padding:12px 0;gap:8px}.phone-members-content .mobile-member-row{padding:9px 2px}.phone-members-content .mobile-member-meta{margin-top:2px}.phone-members-content .mobile-member-bottom{margin-top:2px}.phone-members-content .mobile-member-active{display:none}.phone-members-content #roster-expansion{display:none!important}.mobile-roster-pagination{position:sticky;bottom:0;background:#131c29;padding:10px 0}.mobile-roster-pagination button{padding:8px;font-size:11px}#mobile-roster-page{font-size:10px;text-align:center}
 }
 @media(min-width:640px){#phone-members-view{display:none!important}}
+/* One menu rhythm for owner and permitted staff actions, including injected entries. */
+#admin-account-menu .admin-menu-panel>button{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;margin:0;padding:10px 12px!important;font-family:inherit;font-size:14px!important;font-weight:600!important;line-height:1.4;text-align:left;border:0;border-radius:9px;background:transparent;color:#cbd5e1}
+#admin-account-menu .admin-menu-panel>button[hidden]{display:none!important}
+#admin-account-menu .admin-menu-panel>button>i{width:20px;min-width:20px;font-size:14px!important;text-align:center;margin:0!important}
+#admin-account-menu .admin-menu-panel>button:hover,#admin-account-menu .admin-menu-panel>button:focus-visible{background:#233348;color:#fff}
+#admin-account-menu .admin-menu-panel>button:focus-visible{outline:2px solid #34d399;outline-offset:-2px}
+#admin-account-menu .admin-menu-panel>button:last-child{border-top:1px solid #334155;border-radius:0 0 9px 9px;margin-top:8px;padding-top:14px!important}

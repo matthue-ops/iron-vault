@@ -2526,7 +2526,7 @@ adminApp.addModalCredits=async function(amount){
  if(String(record.status || '').toUpperCase() !== 'ACTIVE')throw new Error('Approve this member first before adding wallet credits.');
  if(!await this.confirmAdmin({title:'Confirm wallet top-up',rows:[['Member',m.name],['Amount to add',ivMoney(amount)]],confirmLabel:'Confirm top-up'}))return;
  const data=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{p_operation:'topup',p_member_id:id,p_plan:null,p_amount:+amount,p_cash_amount:0});
- m.walletBalance=+data.wallet_balance;this.notifyAdmin('Top-up recorded: '+ivMoney(amount),true);
+ m.walletBalance=+data.wallet_balance;this.notifyAdmin('Top-up recorded: '+ivMoney(amount)+(data.reference?' · Reference: '+data.reference:''),true);
  try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){this.notifyAdmin('Top-up is recorded; refresh the roster to see the updated balance.',false);}}
  catch(e){this.notifyAdmin('Top-up not confirmed: '+e.message,false);}
 };

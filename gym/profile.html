@@ -499,6 +499,7 @@
                             amount: m.amount,
                             scansUsed: m.scans_used,
                             lastScannedDate: m.last_scanned_date,
+                            lastEntry: m.last_entry || null,
                             expirationDate: m.expiration_date,
                             status: m.status,
                             dateJoined: m.date_joined,
@@ -1091,8 +1092,8 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 <div id="qr-accepted-window" hidden style="position:fixed;inset:0;z-index:80;background:rgba(2,6,23,.75);padding:24px;place-content:center;pointer-events:none">
  <div role="status" aria-live="polite" class="glass-card rounded-2xl p-8 text-center" style="background:var(--bg-base);border:1px solid var(--brand-primary);box-shadow:0 0 32px var(--brand-primary-glow);max-width:360px;margin:auto">
   <i class="fa-solid fa-circle-check text-4xl" style="color:var(--brand-primary)" aria-hidden="true"></i>
-  <h2 class="text-xl font-black mt-4" style="color:var(--brand-primary)">QR ACCEPTED</h2>
-  <p class="text-sm text-slate-300 mt-2">Your entry has been recorded.</p>
+  <h2 id="entry-success-title" class="text-xl font-black mt-4" style="color:var(--brand-primary)">Entry Granted</h2>
+  <p id="entry-success-detail" class="text-sm text-slate-300 mt-2">Your entry has been recorded.</p>
  </div>
 </div>
 <script src="../assets/member-qr-feedback.js"></script>

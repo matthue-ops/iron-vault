@@ -39,12 +39,12 @@
     const sessions=(app.ivSessions||[]).map(s=>{const actor=(app.ivActors||[]).find(a=>a.user_id===s.actor_id);return {...s,event:(roleNames[actor?.role]||'Account')+' '+s.event,details:s.event};});
     const rows=(mode==='sessions'?sessions:mode==='activity'?(app.ivActivity||[]):[...(app.ivActivity||[]),...sessions]).filter(within).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
     const details=activityDetailsFormatter();
-    return rows.map(a=>[stamp(a.created_at),R.auditActor(a,app.currentTenant?.id)||actorLabel(a.actor_id),a.event,R.auditSnapshot(a,app.currentTenant?.id)?String(a.details||''):details(a.details)]);
+    return rows.map(a=>{const refund=R.refundActivity(a,app.currentTenant?.id);return [stamp(a.created_at),R.auditActor(a,app.currentTenant?.id)||actorLabel(a.actor_id),refund?.title||a.event,refund?.details||(R.auditSnapshot(a,app.currentTenant?.id)?String(a.details||''):details(a.details))];});
    }
    return model.financial.map(t=>[code(members.get(t.member_id),t.member_id),members.get(t.member_id)?.name||'—',members.get(t.member_id)?.classification||'—',R.kinds[t.kind]||t.kind,R.money(t.amount),R.walletAfter(t),stamp(t.created_at),t.description||'—']);
   }
   function matches(){const query=node('report-search').value.trim().toLowerCase();return tableRows().filter(row=>!query||row.some(cell=>String(cell).toLowerCase().includes(query)));}
-  function rowsInto(id,rows){const body=node(id);body.textContent='';for(const cells of rows){const row=root.document.createElement('tr');for(const value of cells){const cell=root.document.createElement('td');cell.className='p-3';cell.textContent=value;row.appendChild(cell);}body.appendChild(row);}}
+  function rowsInto(id,rows){const body=node(id);body.textContent='';for(const cells of rows){const row=root.document.createElement('tr');for(const value of cells){const cell=root.document.createElement('td');cell.className='p-3';if(id==='audit-tbody'&&String(value).includes('Technical details: ')){const [summary,technical]=String(value).split('Technical details: ');cell.textContent=summary;cell.style.whiteSpace='pre-line';const more=root.document.createElement('details'),label=root.document.createElement('summary'),text=root.document.createElement('p');label.textContent='Technical details';text.textContent=technical;more.appendChild(label);more.appendChild(text);cell.appendChild(more);}else cell.textContent=value;row.appendChild(cell);}body.appendChild(row);}}
   const pageSize=()=>root.matchMedia?.('(max-width:639px)').matches?10:100;
   function renderDetails(){if(!model||app.currentTab==='overview')return;const rows=matches();page=Math.min(page,Math.max(0,Math.ceil(rows.length/pageSize())-1));const kind=app.currentTab==='attendance'?'attendance':app.currentTab==='audit'?'audit':'financial';
    if(kind==='audit')node('metric-audit-count').textContent=rows.length+' records';
