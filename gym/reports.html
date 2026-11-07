@@ -633,7 +633,7 @@ reportsApp.ivDeny=function(error){
  this.ivRequest=(this.ivRequest||0)+1;
  this.ivClear();document.body?.classList.add('iv-auth-pending');
  IronVaultAuth.clearState(sessionStorage,localStorage);
- alert('Reporting access: '+error.message);
+ alert(error.code==='AUTH_REQUIRED'?'Your session has ended. Please sign in again.':'Access unavailable: '+error.message);
  const token=this.currentTenant?.token||new URLSearchParams(location.search).get('key');
  location.replace('login.html'+(token?'?key='+encodeURIComponent(token):''));
 };

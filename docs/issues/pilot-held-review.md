@@ -12,6 +12,8 @@ Deployed function definitions supplied by the user confirmed payment receipt rep
 
 The public live offline trace reproduced the navigation sequence: Retry alone kept the gym URL; opening the launcher while offline moved the URL to `/`, and a later Retry loaded Command Center. Both deployed fallback assets matched source. No Super Admin authentication bypass occurred.
 
+The user then instructed continuing and implementing the next batch. Active Passes, signed-in own password changes and clearer authentication warnings are implemented for review. Generated cash payout references, cash member notices and rejected-refund member notices are prepared behind migration 045 capability detection; the agent has not executed it. The user must manually apply 045 before those database features are active. See [second-batch rollout](../pilot-second-fixes.md). Remaining UI proposals (discard confirmation, reason ordering, recipient search, date highlighting, unread/read views and Revenue Today permission) remain held.
+
 ## Staff email delivery and password recovery failure
 
 User-reported TEST GYM results:
