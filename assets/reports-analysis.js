@@ -1,6 +1,6 @@
 (function(root){
  'use strict';
- const kinds={topup:'Wallet top-up',plan_cash:'Pass paid in cash',plan_wallet:'Pass paid from wallet',refund_cash:'Cash refund'};
+ const kinds={topup:'Wallet top-up',plan_cash:'Pass paid in cash',plan_wallet:'Pass paid from wallet',refund_cash:'Cash refund',refund_wallet:'Refund to wallet',wallet_correction:'Wallet correction out',wallet_correction_in:'Wallet correction in'};
  function cents(value){const match=/^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(value??0));if(!match)return null;return (match[1]?-1n:1n)*(BigInt(match[2])*100n+BigInt((match[3]||'').padEnd(2,'0')));}
  function money(value){if(value===null)return 'Unavailable';const n=typeof value==='bigint'?value:cents(value);if(n===null)return 'Unavailable';const absolute=n<0n?-n:n;return (n<0n?'-':'')+'₱'+(absolute/100n).toLocaleString('en-PH')+'.'+String(absolute%100n).padStart(2,'0');}
  function walletAfter(row){const value=row?.wallet_after;if(value===null||value===undefined||!['number','string'].includes(typeof value))return 'Unavailable';const amount=cents(value);return amount===null||amount<0n?'Unavailable':money(amount);}
@@ -38,7 +38,7 @@
   if(!validDate(start)||!validDate(end)||end<start)throw Error('Choose a valid start and end date.');
   const within=row=>{const day=date(row.created_at);return day&&day>=start&&day<=end;};
   const financial=(snapshot.financial||[]).filter(within),attendance=(snapshot.attendance||[]).filter(within),purchases=(snapshot.purchases||[]).filter(within),members=snapshot.members||[];
-  const totals={topup:0n,plan_cash:0n,plan_wallet:0n,refund_cash:0n};let invalid=0,other=0;const daily=new Map();
+  const totals={topup:0n,plan_cash:0n,plan_wallet:0n,refund_cash:0n,refund_wallet:0n,wallet_correction:0n,wallet_correction_in:0n};let invalid=0,other=0;const daily=new Map();
   const dayFor=day=>{if(!daily.has(day))daily.set(day,{day,cash:0n,sales:0n,visits:0});return daily.get(day);};
   for(const row of financial){const amount=cents(row.amount);if(amount===null||amount<0n){invalid++;continue;}
    if(!Object.hasOwn(totals,row.kind)){other++;continue;}totals[row.kind]+=amount;const day=dayFor(date(row.created_at));

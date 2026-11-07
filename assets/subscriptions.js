@@ -13,7 +13,7 @@
   ).format(new Date(value))+' · Philippine time';
   const planName=p=>p==='portal'?'Dashboard + Member Portal':'Dashboard Only';
   const statusText=s=>({
-    setup:'Setup — awaiting pilot activation',pilot:'Free pilot',paid:'Paid subscription',grace:'Overdue — dashboard-only grace',suspended:'Operational access suspended'
+    setup:'Setup — awaiting pilot activation',pilot:'Free pilot',paid:'Paid subscription',grace:'Overdue — dashboard-only grace',suspended:'Operational access suspended',verification:'Payment verification pending'
   }
   [s]||'Subscription status unavailable');
   const helpText={
@@ -217,6 +217,7 @@
     function summary(target,data){
       const state=data.state||data;
       target.appendChild(element('p',statusText(state.status),'iv-sub-banner'));
+      if(state.verification)target.appendChild(element('p','Payment verification: '+state.verification.status+' · submitted '+dateTime(state.verification.submitted_at)+(state.verification.correction_deadline?' · correction deadline '+dateTime(state.verification.correction_deadline):'')+'\n'+(state.verification.mode==='timely'?'Existing features continue pending review.': 'Dashboard-only provisional access; unapproved features remain unavailable.'),'iv-sub-notice'));
       target.appendChild(element('p',[state.plan?planName(state.plan):'Complete setup before pilot activation',state.start_date?'Counted period: '+state.start_date+' through '+state.end_date+' · Philippine time':'',state.status==='pilot'?pilotRemaining(state):'',state.status==='grace'?'Grace ends '+state.grace_end:'',['suspended','inactive'].includes(state.status)&&state.retention_review_date?'Retention review date: '+state.retention_review_date:''].filter(Boolean).join('\n'),'iv-sub-summary'));
     }
     function gate(value){
@@ -352,8 +353,11 @@
         section.append(element('h3',pending.reference_submitted_at?'Awaiting Provider payment approval':'Request confirmed — arrange payment','iv-sub-heading'),element('p',planName(pending.quote.plan)+' · '+money(pending.quote.amount)+' · '+pending.quote.start_date+' – '+pending.quote.end_date,'iv-sub-summary'));
         if(pending.kind==='downgrade'){section.appendChild(element('p','The plan change awaits approval. Renewal payment will still be required.'));return;}
         contacts();
+        const verification=data.verifications?.find(v=>v.request_id===pending.id);
+        section.appendChild(element('p','Payment date policy: submit before expiry to keep existing features during review. During paid grace, dashboard-only access continues and renewal starts at the original due date; eligible Provider-review days beyond grace are automatically added. Owner-correction time is excluded. Timely or post-suspension payments receive a full period after approval, preserving existing approved days. Submissions after suspension do not restore operations until approval.','iv-sub-muted'));
+        if(verification){section.appendChild(element('p','Original submission: '+dateTime(verification.submitted_at)+' · '+verification.status,'iv-sub-notice'));if(verification.status==='correction'){const correction=element('input'),wrap=element('label',null,'iv-sub-field');correction.maxLength=180;wrap.append(element('span','Corrected payment reference'),correction);section.append(element('p',verification.reason+' · Correct by '+dateTime(verification.correction_deadline)+'. Correction time is excluded from delay extensions. Missing the deadline ends provisional access; resubmission does not automatically restore it.'),wrap,button('Resubmit corrected reference',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:selected,p_action:'resubmit_verification',p_data:{request_id:pending.id,reference:correction.value.trim()}});await openBilling(selected);}), 'primary'));return;}}
         if(pending.payment_reference)section.appendChild(element('p','Submitted reference: '+pending.payment_reference));
-        else {const wrap=element('label',null,'iv-sub-field'),input=element('input');input.maxLength=180;wrap.append(element('span','Payment reference / cash receipt'),input);section.append(wrap,button('Submit payment reference',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:selected,p_action:'submit_reference',p_data:{request_id:pending.id,reference:input.value.trim()}});await openBilling(selected);}), 'primary'),button('Cancel unpaid request',()=>run(async()=>{if(!root.confirm('Cancel this unpaid request? Do not cancel if payment has already been made.'))return;await call('iv_subscription_portal',{p_tenant:selected,p_action:'cancel_request',p_data:{request_id:pending.id}});await openBilling(selected);})) );}
+        else {const wrap=element('label',null,'iv-sub-field'),input=element('input');input.maxLength=180;wrap.append(element('span','Payment reference / cash receipt'),input);section.append(wrap,button('Submit payment reference',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:selected,p_action:'submit_reference',p_data:{request_id:pending.id,reference:input.value.trim(),verification_policy:'pending-review-v1'}});await openBilling(selected);}), 'primary'),button('Cancel unpaid request',()=>run(async()=>{if(!root.confirm('Cancel this unpaid request? Do not cancel if payment has already been made.'))return;await call('iv_subscription_portal',{p_tenant:selected,p_action:'cancel_request',p_data:{request_id:pending.id}});await openBilling(selected);})) );}
         return;
       }
       if(!current){section.appendChild(element('p','The Provider must publish service documents first.'));return;}
@@ -421,21 +425,23 @@
       activation.input.addEventListener('change',()=>{activate.disabled=!activation.input.checked||!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready;});
       if(!data.pilot_used){section.append(activation.wrap,activate);section.appendChild(element('p',!data.accepted?'Waiting for the owner to accept the applicable agreement.':!data.gym_documents_ready||!data.platform_documents_ready?'Publish the required gym and platform documents before activation.':'Confirm eligibility above to activate the pilot.','iv-sub-muted'));}
       for(const r of data.requests.filter(r=>!r.approved_at&&!r.cancelled_at)){
+        const verification=data.verifications?.find(v=>v.request_id===r.id);
         const card=element('article',null,'iv-sub-notice');
         card.appendChild(element('p',r.kind+' · '+planName(r.quote.plan)+' · '+money(r.quote.amount)+' · '+r.quote.start_date+' through '+r.quote.end_date+'\nOwner confirmation: '+dateTime(r.confirmed_at)+'\n'+(r.cancelled_at?'Cancelled':r.approved_at?'Approved '+dateTime(r.approved_at):'Awaiting approval'),'iv-sub-summary'));
         if(!r.approved_at&&!r.cancelled_at){
           const label=element('label',null,'iv-sub-field'),input=element('input');
           label.append(element('span','Verified payment reference / receipt'),input);input.value=r.payment_reference||'';
           card.append(label,button(r.kind==='downgrade'?'Approve scheduled downgrade':'Approve verified payment',()=>run(async()=>{
-            if(!root.confirm('Approve this exact request? Confirm that the payment is verified before proceeding.'))return;
+            let review=null;if(verification){review=await call('iv_subscription_portal',{p_tenant:selected,p_action:'review_verification',p_data:{request_id:r.id}});if(!root.confirm('Verified payment: '+money(review.amount)+' · '+planName(review.plan)+'\nCounted period: '+review.start_date+' through '+review.end_date+'\nAutomatic delayed-approval extension: '+review.delay_days+' days.\nApprove this payment and these dates?'))return;}else if(!root.confirm('Approve this exact request? Confirm that the payment is verified before proceeding.'))return;
             await adminAction(r.kind==='downgrade'?'approve_downgrade':'approve_payment',{
-              request_id:r.id,reference:input.value.trim()
+              request_id:r.id,reference:input.value.trim(),...(review?{review_hash:review.review_hash}:{})
             }
             );
           }
           ),'primary'));
         }
-        if(!r.approved_at&&!r.cancelled_at){const returning=element('details',null,'iv-sub-return'),reason=element('textarea'),label=element('label',null,'iv-sub-field');returning.appendChild(element('summary','Return for review'));reason.placeholder='Explain what the owner needs to correct';label.append(element('span','Required reason'),reason);returning.append(label,button('Confirm return',()=>run(async()=>{if(!reason.value.trim())throw Error('Enter a reason for returning this request.');if(!root.confirm('Return this request for a fresh owner quote? Payment records remain; resolve any money received separately.'))return;await adminAction('cancel_request',{request_id:r.id,reason:reason.value.trim()});})));card.appendChild(returning);}
+        if(!r.approved_at&&!r.cancelled_at){const returning=element('details',null,'iv-sub-return'),reason=element('textarea'),label=element('label',null,'iv-sub-field');returning.appendChild(element('summary','Return for review'));reason.placeholder='Explain what the owner needs to correct';label.append(element('span','Required reason'),reason);returning.append(label,button('Confirm return',()=>run(async()=>{if(!reason.value.trim())throw Error('Enter a reason for returning this request.');if(!root.confirm(verification?'Return for correction? The owner has 48 hours of provisional dashboard access. Owner-correction time is excluded from compensation.':'Return this request for a fresh owner quote? Payment records remain; resolve any money received separately.'))return;await adminAction(verification?'return_verification':'cancel_request',{request_id:r.id,reason:reason.value.trim()});})));card.appendChild(returning);}
+        if(verification){card.appendChild(element('p','Verification '+verification.status+' · originally submitted '+dateTime(verification.submitted_at),'iv-sub-muted'));const rejection=element('textarea');rejection.placeholder='Reason payment is rejected';const label=element('label',null,'iv-sub-field');label.append(element('span','Reject payment · ends provisional access'),rejection);card.append(label,button('Reject verification',()=>run(async()=>{if(!root.confirm('Reject this payment? Provisional access ends. Settle any money received separately.'))return;await adminAction('reject_verification',{request_id:r.id,reason:rejection.value.trim()});})));}
         section.appendChild(card);
       }
       const days=element('input'),reason=element('textarea');
