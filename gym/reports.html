@@ -100,6 +100,7 @@
 <script src="../assets/reports-ui.js"></script>
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
+<style>.report-range-button{padding:10px 14px;min-height:44px;border-radius:12px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;font-size:12px;font-weight:600}.report-range-button[aria-pressed=true]{background:#065f46;color:white;border-color:#34d399}</style>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -118,9 +119,9 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <button id="btn-back-portal" onclick="reportsApp.goBack()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
+                <button id="btn-back-portal" aria-label="Back to dashboard" title="Back to dashboard" style="min-width:44px;min-height:44px;justify-content:center" onclick="reportsApp.goBack()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left text-emerald-400"></i>
-                    <span id="back-btn-label">Back to Admin Portal</span>
+                    <span id="back-btn-label" class="sr-only">Back to Admin Portal</span>
                 </button>
             </div>
         </div>
@@ -142,10 +143,10 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="reportsApp.setQuickRange('today')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow">Today</button>
-                <button onclick="reportsApp.setQuickRange('week')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shadow">Last 7 Days</button>
-                <button onclick="reportsApp.setQuickRange('month')" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs">This month</button>
-<button onclick="reportsApp.setQuickRange('all')" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition shadow">All-Time View</button>
+                <button data-report-range="today" aria-pressed="false" onclick="reportsApp.setQuickRange('today')" class="report-range-button">Today</button>
+                <button data-report-range="week" aria-pressed="false" onclick="reportsApp.setQuickRange('week')" class="report-range-button">Last 7 Days</button>
+                <button data-report-range="month" aria-pressed="false" onclick="reportsApp.setQuickRange('month')" class="report-range-button">This month</button>
+<button data-report-range="all" aria-pressed="false" onclick="reportsApp.setQuickRange('all')" class="report-range-button">All-Time View</button>
             </div>
         </div>
 
@@ -706,6 +707,8 @@ reportsApp.ivCredits=async function(){
 <script>IronVaultPhoneReports.prepare();IronVaultReportsUI.install(reportsApp,supabaseClient);IronVaultPhoneReports.install(reportsApp);</script>
 <script src="../assets/staff-access.js"></script>
 <script>IronVaultStaffAccess.installReports(reportsApp,supabaseClient);</script>
+<script src="../assets/report-controls.js"></script>
+<script>IronVaultReportControls.install(reportsApp);</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

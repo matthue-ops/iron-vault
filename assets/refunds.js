@@ -30,6 +30,7 @@
   }
   function closeReview(){closeError();reviewDialog?.close();reviewDialog?.remove();reviewDialog=null;}
   function close(){serial++;closeReview();box?.close();box?.remove();box=null;}
+  function requestClose(){const unfinished=[...drafts.values()].some(v=>v.member_id||v.source_key||v.amount||v.reason);if(unfinished&&!root.confirm('Discard unfinished request? Unsubmitted form drafts will be cleared. Submitted or unconfirmed requests are retained.'))return;for(const [key,value] of drafts)if(!value.submitted)drafts.delete(key);if(draft&&!draft.submitted)draft=null;close();}
   function field(parent,label,input){const wrap=make('label');input.setAttribute('aria-label',label);wrap.append(make('span',label),input);parent.append(wrap);return wrap;}
   function option(parent,value,label){const n=make('option',label);n.value=value;parent.append(n);}
   function chooser(parent,label,rows,placeholder){
@@ -42,7 +43,7 @@
   }
   async function open(memberId,initial='new'){
    close();const ticket=serial,who=role()?.user_id+'|'+app.currentTenantId;if(identity!==who){draft=null;drafts.clear();identity=who;}
-   box=make('dialog');box.className='iv-refunds';const current=box,header=make('header'),done=make('button','Close'),status=make('p','Loading…');status.setAttribute('role','status');done.type='button';done.onclick=close;header.append(make('h2','Refunds & Corrections'),done);box.append(header,status);d.body.append(box);box.showModal();
+   box=make('dialog');box.className='iv-refunds';box.oncancel=e=>{e.preventDefault();requestClose();};const current=box,header=make('header'),done=make('button','Close'),status=make('p','Loading…');status.setAttribute('role','status');done.type='button';done.onclick=requestClose;header.append(make('h2','Refunds & Corrections'),done);box.append(header,status);d.body.append(box);box.showModal();
    try{
     const data=await rpc('list');if(ticket!==serial||box!==current)return;
     function selectDraft(id=''){const key=who+'|'+id;let value=drafts.get(key);if(!value){value={key,member_id:id,source_key:'',action:'cash',amount:'',reason_category:'Incorrect account selected',reason:'',target_member_id:'',id:null,reference:null,storageKey:'iv_refund_draft:'+who+':'+id};drafts.set(key,value);}draft=value;}
@@ -52,7 +53,8 @@
     const memberName=id=>{const m=data.members.find(m=>m.id===id);return m?m.name+' · '+(m.display_code||m.id):id;};
     const sorted=[...(data.sources||[])].sort((a,b)=>(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0)||String(a.key).localeCompare(String(b.key)));
     const remaining=s=>Number(s.amount)-(data.cases||[]).filter(c=>c.status==='approved'&&c.source_key===s.key).reduce((sum,c)=>sum+Number(c.amount),0);
-    const sourceText=s=>date(s.created_at)+' · '+(sourceLabels[s.kind]||s.kind)+' · '+money(remaining(s))+' remaining'+(s.reference?' · '+s.reference:'');
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    function sourceText(s){let history='';if(['plan_cash','plan_wallet'].includes(s.kind)){const expiry=s.purchased_expiry,valid=/^\d{4}-\d{2}-\d{2}$/.test(expiry||'')&&!Number.isNaN(Date.parse(expiry))&&new Date(expiry+'T00:00:00Z').toISOString().slice(0,10)===expiry;history=' · '+(s.purchased_plan||'Historical pass')+' · '+(valid?(expiry<today?'Expired ':'Purchased expiry ')+expiry:'Historical expiry unavailable');}return date(s.created_at)+' · '+(sourceLabels[s.kind]||s.kind)+history+' · '+money(remaining(s))+' remaining'+(s.reference?' · '+s.reference:'');}
     function pendingText(source,id){const count=data.cases.filter(c=>c.status==='pending'&&c.source_key===source&&c.id!==id).length;return count?count+' other pending request(s) use this transaction. Pending requests do not reserve funds. Check Pending review before creating another; approval will recheck eligibility.':'';}
     function review(result,kind,onConfirm){
      closeReview();const dialog=make('dialog');reviewDialog=dialog;dialog.className='iv-refunds iv-refund-review';dialog.setAttribute('aria-label',kind==='new'?'Review refund request':'Review refund approval');const feedback=make('p');feedback.setAttribute('role','status');dialog.append(make('h2',kind==='new'?'Confirm refund request':'Confirm approval'),feedback);
@@ -67,14 +69,15 @@
     function newCase(){
      content.textContent='';content.append(make('p','Choose a member or recent transaction. Review the destination and balances before confirming.'));
      if(!draft)selectDraft(memberId||'');
-     const recent=make('details');recent.append(make('summary','Recent transactions · latest 10'));for(const s of sorted.slice(0,10))action(recent,memberName(s.member_id)+' · '+sourceText(s),()=>{save();selectDraft(s.member_id);draft.source_key=s.key;newCase();});content.append(recent);
-     const form=make('form');content.append(form);const member=chooser(form,'Member',data.members,'Select member'),source=make('select'),type=make('select'),amount=make('input'),category=make('select'),reason=make('textarea'),targetWrap=make('div');
+     const recent=make('details');content.append(recent);function renderRecent(includeExhausted=false){recent.textContent='';recent.append(make('summary','Recent transactions · latest 10'));for(const s of sorted.filter(s=>includeExhausted||remaining(s)>0).slice(0,10))action(recent,memberName(s.member_id)+' · '+sourceText(s),()=>{save();selectDraft(s.member_id);draft.source_key=s.key;newCase();});}renderRecent();
+     const form=make('form');content.append(form);const member=chooser(form,'Member',data.members,'Select member'),source=make('select'),showAll=make('input'),type=make('select'),amount=make('input'),category=make('select'),reason=make('textarea'),targetWrap=make('div');showAll.type='checkbox';
      member.select.value=draft.member_id;member.select.required=true;source.required=true;field(form,'Original transaction',source);for(const [key,label] of Object.entries(labels))option(type,key,key==='correct_credit'?'Correct incorrect wallet credit':label);field(form,'Action',type);type.value=draft.action;amount.type='number';amount.required=true;amount.step='.01';amount.min='.01';field(form,'Amount',amount);amount.value=draft.amount;
-     for(const value of ['Incorrect account selected','Incorrect amount entered','Duplicate payment','Membership cancellation','Remaining balance before member removal','Other'])option(category,value,value);field(form,'Reason preset',category);category.value=draft.reason_category;reason.maxLength=1000;reason.value=draft.reason;const reasonWrap=field(form,'Specify reason',reason);
+     field(form,'Show fully refunded transactions',showAll);for(const value of ['Incorrect account selected','Incorrect amount entered','Duplicate payment','Membership cancellation','Remaining balance before member removal','Other'])option(category,value,value);const categoryWrap=field(form,'Reason preset',category);category.value=draft.reason_category;reason.maxLength=1000;reason.value=draft.reason;const reasonWrap=field(form,'Specify reason',reason);const amountWrap=amount.closest('label');form.insertBefore(categoryWrap,amountWrap);form.insertBefore(reasonWrap,amountWrap);
      form.append(targetWrap);const target=chooser(targetWrap,'Corrected recipient',data.members.filter(m=>m.status==='ACTIVE'&&m.id!==member.select.value),'No transfer to another member');target.select.value=draft.target_member_id;
      const warning=make('p');warning.setAttribute('role','status');form.append(warning);
      function save(){Object.assign(draft,{source_key:source.value,action:type.value,amount:amount.value,reason_category:category.value,reason:reason.value,target_member_id:target.select.value});}
-     function syncSources(){source.textContent='';option(source,'','Select original transaction');for(const s of sorted)if(s.member_id===member.select.value)option(source,s.key,sourceText(s));source.value=draft.source_key;}
+     function syncSources(){const selected=source.value||draft.source_key;source.textContent='';option(source,'','Select original transaction');for(const s of sorted)if(s.member_id===member.select.value&&(showAll.checked||remaining(s)>0||s.key===selected))option(source,s.key,sourceText(s));source.value=selected;}
+     showAll.onchange=()=>{renderRecent(showAll.checked);syncSources();conditional();save();};
      function conditional(){const correction=type.value==='correct_credit',wrong=correction&&category.value==='Incorrect account selected';targetWrap.hidden=!correction;reasonWrap.hidden=category.value!=='Other';reason.required=category.value==='Other';target.select.required=wrong;amount.readOnly=wrong;warning.textContent=pendingText(source.value,draft.id);
       if(!correction){target.select.value='';draft.target_member_id='';}
       if(wrong){const s=sorted.find(s=>s.key===source.value);amount.value=s?String(remaining(s)):'';if(s&&(remaining(s)!==Number(s.amount)||Number(data.members.find(m=>m.id===member.select.value)?.wallet)<remaining(s)))warning.textContent+=' This credit was spent or previously adjusted. Owner resolution is required; a smaller transfer will not be made automatically.';}
@@ -87,7 +90,7 @@
       const payload={member_id:draft.member_id,source_key:draft.source_key,action:draft.action,amount:draft.amount,reason_category:draft.reason_category,reason:draft.reason_category==='Other'?draft.reason.trim():draft.reason_category,target_member_id:draft.action==='correct_credit'?draft.target_member_id:'',reference:draft.reference};
       const result=await rpc('preview',{p_id:reviewedDraft.id,p_payload:payload});if(ticket!==serial||draft!==reviewedDraft)return;
       review(result,'new',(dialog,controls,feedback,add)=>add(controls,'Confirm refund request',async()=>{
-       await rpc('request',{p_id:reviewedDraft.id,p_payload:payload,p_review:result.review_hash});root.sessionStorage.removeItem(reviewedDraft.storageKey);drafts.delete(reviewedDraft.key);drafts.delete(who+'|');if(draft===reviewedDraft)draft=null;closeReview();await open(undefined,'pending');
+       reviewedDraft.submitted=true;try{await rpc('request',{p_id:reviewedDraft.id,p_payload:payload,p_review:result.review_hash});}catch(error){if(!error.uncertain)reviewedDraft.submitted=false;throw error;}root.sessionStorage.removeItem(reviewedDraft.storageKey);drafts.delete(reviewedDraft.key);drafts.delete(who+'|');if(draft===reviewedDraft)draft=null;closeReview();await open(undefined,'pending');
       },feedback));
      });form.onsubmit=e=>e.preventDefault();
     }

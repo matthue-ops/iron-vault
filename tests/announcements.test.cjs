@@ -3,7 +3,7 @@ const A=require('../assets/announcements.js');
 function fixture(role='owner'){
  const elements=new Map(),events={},auth=[],calls=[],alerts=[];let account={user_id:'owner-id',tenant_id:'gym-a',role},notices=[];
  function element(tag='div'){
-  const children=[],classes=new Set();let text='';return {tag,children,value:'',checked:false,hidden:false,disabled:false,dataset:{},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),toggle(x,force){if(force===undefined? !classes.has(x):force)classes.add(x);else classes.delete(x)}},appendChild(child){children.push(child)},focus(){},get textContent(){return text},set textContent(value){text=value;children.length=0}};
+  const children=[],classes=new Set();let text='';return {tag,children,setAttribute(){},before(){},value:'',checked:false,hidden:false,disabled:false,dataset:{},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),toggle(x,force){if(force===undefined? !classes.has(x):force)classes.add(x);else classes.delete(x)}},appendChild(child){children.push(child)},focus(){},get textContent(){return text},set textContent(value){text=value;children.length=0}};
  }
  const document={getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id)},createElement:element};
  const app={currentTenantId:'gym-a',authenticatedRole:{user_id:'owner-id'},applyUIRoleVisibility(){}};
