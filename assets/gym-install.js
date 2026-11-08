@@ -7,6 +7,8 @@
   if(!gym||!valid(gym.id)||!valid(gym.token)||gym.status==='PROVISIONING')return null;
   const name=String(gym.gymName||'Gym').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,100)||'Gym';
   const query=new URLSearchParams({gym:gym.id,key:gym.token,name});
+  const image=/^https:\/\/uarvhalocgyrikjbrloh\.supabase\.co\/storage\/v1\/object\/public\/iv-gym-images\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/logo$/.exec(gym.logo||'');
+  if(image)query.set('image',image[1]);
   return {id:gym.id,name,manifest:'/gym-app.webmanifest?'+query,storageKey:PREFIX+gym.id};
  }
  function standalone(){return !!(root.navigator?.standalone||root.matchMedia?.('(display-mode: standalone)').matches||root.matchMedia?.('(display-mode: fullscreen)').matches);}

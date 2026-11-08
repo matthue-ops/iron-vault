@@ -147,31 +147,33 @@
     if(!root.confirm('Revoke this staff account’s access?'))return;
     try{await root.IronVaultData.call(client,'iv_revoke_staff',{p_tenant:gym.id,p_user:staff.auth_user_id});await this.loadData();this.renderInspectStaffList(this.owners.find(x=>x.id===gym.id));}catch(error){root.alert(error.message);}
    };
-   app.handleRegisterOwner=async function(event){event.preventDefault();const button=event.target.querySelector('button[type="submit"]');button.disabled=true;
+   app.handleRegisterOwner=async function(event){event.preventDefault();if(this.gymRegistrationBusy)return;this.gymRegistrationBusy=true;const button=event.target.querySelector('button[type="submit"]');button.disabled=true;
     try{
-     const file=root.document.getElementById('reg-gym-logo').files?.[0];let logo='';
-     if(file){if(file.size>500000)throw Error('Logo must be smaller than 500 KB.');logo=await new Promise((resolve,reject)=>{const reader=new root.FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});}
+     const file=root.document.getElementById('reg-gym-logo').files?.[0];const logo='';
+     const prepared=file?await root.IronVaultProfileImages.prepare(file,'gym'):null;
      const staff={name:value('reg-staff-name').trim(),email:value('reg-staff-email').trim(),password:value('reg-staff-pass')};
      if((staff.name||staff.email||staff.password)&&!(staff.name&&staff.email&&staff.password))throw Error('Complete all staff fields or leave them blank.');
      const result=await provision('provision-gym-tenant',{mode:'create',gymName:value('reg-gym-name').trim(),ownerName:value('reg-owner-name').trim(),email:value('reg-owner-email').trim(),password:value('reg-owner-pass'),logo,
       pricing:{day:Number(value('reg-price-day')),week:Number(value('reg-price-week')),month:Number(value('reg-price-month')),studentDiscount:Number(value('reg-discount-student')),seniorDiscount:Number(value('reg-discount-senior'))}});
      let note='';
+     if(prepared){try{const image=await root.IronVaultProfileImages.save(client,{kind:'gym',tenantId:result.tenantId,expected:'',prepared});if(image.cleanupPending)note+=' Previous image cleanup will retry later.';}catch(error){note+=' Gym created; logo setup needs a retry from Edit gym. '+error.message;}}
      // Successful owner provisioning activates the gym before optional staff creation.
      // A staff failure leaves the completed gym intact for a separate retry.
-     if(staff.name){try{await provision('provision-gym-tenant',{mode:'staff',tenantId:result.tenantId,...staff});}catch(error){note=' Gym created; staff setup needs a retry from View Branch. '+error.message;}}
+     if(staff.name){try{await provision('provision-gym-tenant',{mode:'staff',tenantId:result.tenantId,...staff});}catch(error){note+=' Gym created; staff setup needs a retry from View Branch. '+error.message;}}
      await this.loadData();this.renderDashboard();event.target.reset();root.alert(result.message+note);
-    }catch(error){root.alert(error.message);}finally{button.disabled=false;}
+    }catch(error){root.alert(error.message);}finally{button.disabled=false;this.gymRegistrationBusy=false;}
    };
-   app.handleUpdateOwner=async function(event){event.preventDefault();const id=value('edit-owner-id'),gym=this.owners.find(g=>g.id===id);if(!gym)return;
+   app.handleUpdateOwner=async function(event){event.preventDefault();if(this.gymSettingsBusy)return;const id=value('edit-owner-id'),gym=this.owners.find(g=>g.id===id);if(!gym)return;this.gymSettingsBusy=true;const button=event.target.querySelector('button[type="submit"]');if(button)button.disabled=true;
     try{
-     let logo=gym.logo||'';const file=root.document.getElementById('edit-gym-logo').files?.[0];
-     if(file){if(file.size>500000)throw Error('Logo must be smaller than 500 KB.');logo=await new Promise((resolve,reject)=>{const reader=new root.FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});}
+     const logo=gym.logo||'',file=root.document.getElementById('edit-gym-logo').files?.[0];
+     const prepared=file?await root.IronVaultProfileImages.prepare(file,'gym'):null;
      const email=value('edit-owner-email').trim().toLowerCase();let pending=false;
      if(email!==gym.email.toLowerCase()){await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'admin_email_change',tenant_id:id,new_email:email});pending=true;}
      await root.IronVaultData.saveGyms(client,[{id,gymName:value('edit-gym-name').trim(),ownerName:value('edit-owner-name').trim(),logo,
       pricing:{day:Number(value('edit-price-day')),week:Number(value('edit-price-week')),month:Number(value('edit-price-month')),studentDiscount:Number(value('edit-discount-student')),seniorDiscount:Number(value('edit-discount-senior'))}}]);
-     await this.loadData();this.renderDashboard();this.closeEditModal();root.alert(pending?'Gym saved. Confirm both addresses to finish the owner email change.':'Gym settings saved.');
-    }catch(error){root.alert(error.message);}
+     let note='';if(prepared){try{const image=await root.IronVaultProfileImages.save(client,{kind:'gym',tenantId:id,expected:logo,prepared});if(image.cleanupPending)note=' Previous image cleanup will retry later.';}catch(error){note=' Settings saved, but the logo was not confirmed. Refresh and retry the logo if needed. '+error.message;}}
+     await this.loadData();this.renderDashboard();this.closeEditModal();root.alert((pending?'Gym saved. Confirm both addresses to finish the owner email change.':'Gym settings saved.')+note);
+    }catch(error){root.alert(error.message);}finally{this.gymSettingsBusy=false;if(button)button.disabled=false;}
    };
    app.handleInspectAddStaff=async function(event){event.preventDefault();try{
     const result=await provision('provision-gym-tenant',{mode:'staff',tenantId:this.currentInspectOwnerId,name:value('inspect-new-staff-name').trim(),email:value('inspect-new-staff-email').trim(),password:value('inspect-new-staff-pass')});
@@ -266,11 +268,11 @@
      root.document.getElementById('qr-wrapper').classList.remove('hidden');root.document.getElementById('qr-wrapper').classList.add('flex');
     }catch(error){this.showAlert(error.message,false);}
    };
-   app.handleAvatarUpload=async function(event){const file=event.target.files?.[0];if(!file||!this.currentMember)return;
-    try{if(file.size>500000||!/^image\/(png|jpeg|webp|gif)$/.test(file.type))throw Error('Choose a PNG, JPEG, WebP or GIF smaller than 500 KB.');
-     const image=await new Promise((resolve,reject)=>{const reader=new root.FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
-     this.currentMember.avatar=image;await this.saveData();this.renderProfile();this.showAlert('Profile photo saved.',true);
-    }catch(error){this.showAlert(error.message,false);}
+   app.handleAvatarUpload=async function(event){const file=event.target.files?.[0],member=this.currentMember;if(!file||!member||this.profileImageBusy)return;
+    this.profileImageBusy=true;event.target.disabled=true;
+    try{const result=await root.IronVaultProfileImages.save(client,{kind:'member',tenantId:member.tenantId,memberId:member.id,expected:member.avatar||'',file});
+     if(this.currentMember?.id===member.id){this.currentMember.avatar=result.reference;this.renderProfile();this.showAlert('Profile photo saved.'+(result.cleanupPending?' Previous photo cleanup will retry later.':''),true);}
+    }catch(error){this.showAlert(error.message,false);}finally{this.profileImageBusy=false;event.target.disabled=false;event.target.value='';}
    };
    app.saveData=async function(){
     if(!this.currentMember)return;
