@@ -564,11 +564,13 @@ test('sign-in from a readable URL navigates into gym pages and retains scoped au
   p.client.functions={invoke:async(_,args)=>{payload=args.body;return {data:{session:{access_token:'test-token',refresh_token:'test-refresh'}}}}};p.client.auth.setSession=async()=>({error:null});
   p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';p.element('admin-login-email').value='owner@example.invalid';p.element('admin-login-password').value='test-password';
   await (role==='member'?app.handleSignInSubmit({preventDefault(){}}):app.handleAdminLoginSubmit({preventDefault(){}}));
-  assert.equal(payload.gym_token,'token-a');if(role==='member')assert.equal(p.context.location.href,'/gym/profile.html');else assert.equal(p.redirects.at(-1),'/gym/admin.html?key=token-a');
+  assert.equal(payload,undefined);assert.equal(p.redirects.at(-1),'/g/gym-a/login?key=token-a');
+  p.context.location.pathname='/g/gym-a/login';await (role==='member'?app.handleSignInSubmit({preventDefault(){}}):app.handleAdminLoginSubmit({preventDefault(){}}));
+  assert.equal(payload.gym_token,'token-a');if(role==='member')assert.equal(p.context.location.href,'/g/gym-a/profile.html');else assert.equal(p.redirects.at(-1),'/g/gym-a/admin.html?key=token-a');
  }
 });
 test('a different gym membership cannot sign in through a friendly URL',async()=>{
- const p=portal('gym/login.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-b',member_id:'member-b'}],owners:[{id:'gym-a',token:'token-a',portal_slug:'fitness-gym',gym_name:'Fitness Gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym';const app=p.get('app');await app.init();p.client.auth.setSession=async()=>({error:null});p.client.functions={invoke:async()=>({data:{session:{access_token:'test',refresh_token:'test-refresh'}}})};p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';const original=p.context.location.href;await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.context.location.href,original);assert.match(p.element('form-alert-msg').innerText,/cannot access/i);
+ const p=portal('gym/login.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-b',member_id:'member-b'}],owners:[{id:'gym-a',token:'token-a',portal_slug:'fitness-gym',gym_name:'Fitness Gym',status:'ACTIVE'}],search:''});p.context.location.pathname='/fitness-gym';const app=p.get('app');await app.init();p.client.auth.setSession=async()=>({error:null});p.client.functions={invoke:async()=>({data:{session:{access_token:'test',refresh_token:'test-refresh'}}})};p.element('signin-identifier').value='member@example.invalid';p.element('signin-password').value='test-password';const original=p.context.location.href;await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.redirects.at(-1),'/g/gym-a/login?key=token-a');p.context.location.pathname='/g/gym-a/login';await app.handleSignInSubmit({preventDefault(){}});assert.equal(p.storage.getItem('ironvault_active_member'),null);assert.equal(p.context.location.href,original);assert.match(p.element('form-alert-msg').innerText,/cannot access/i);
 });
 
 test('attendance table CSV Print and Excel share frozen history after renewal and mark legacy rows unavailable',async()=>{
@@ -611,4 +613,8 @@ test('scoped public login rejects a different gym key without enabling sign-in',
 });
 test('scoped member page refuses an account from another gym before loading its private profile',async()=>{
  const p=portal('gym/profile.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-a',member_id:'m-a'}]});p.context.location.pathname='/g/gym-b/profile';await p.get('profileApp').init();assert.equal(p.calls.some(c=>c.table==='members'),false);assert.equal(p.redirects.length,1);assert(p.alerts.some(m=>m.includes('different gym')));
+});
+test('a signed-out provider report returns to its own login rather than a gym portal',async()=>{
+ const p=portal('gym/reports.html',{search:'?key=token-a&from=index'});await p.get('reportsApp').init();assert.equal(p.redirects[0],'/gym/index.html');
+ const scoped=portal('gym/reports.html',{search:'?key=token-a&from=index'});scoped.context.location.pathname='/_provider/reports';await scoped.get('reportsApp').init();assert.equal(scoped.redirects[0],'index.html');
 });
