@@ -111,6 +111,7 @@
 <link rel="stylesheet" href="/assets/gym-install.css">
 <script src="/assets/gym-install.js"></script>
 <script src="/assets/profile-images.js"></script>
+<script src="/assets/gym-portals.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -1044,6 +1045,7 @@ profileApp.init=async function(...args){
  document.body?.classList.add('iv-auth-pending');
  try{
   const role=await ivRequireRole(['member'],this.authenticatedRole?.tenant_id);
+  window.IronVaultGymPortals?.assertScope(role.tenant_id);
   this.authenticatedRole=role;
   sessionStorage.setItem(SESSION_KEY,role.member_id);
   await ivProfileInit.apply(this,args);

@@ -402,6 +402,7 @@
                     matched = loadedOwners.find(o => o.id === gymParam.toUpperCase());
                 }
 
+                if (matched && window.IronVaultGymPortals?.scope()?.id && window.IronVaultGymPortals.scope().id !== matched.id) matched = null;
                 if (matched) {
                     this.currentTenantId = matched.id;
                     this.matchedOwnerRecord = matched;

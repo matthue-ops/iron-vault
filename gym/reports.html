@@ -101,6 +101,7 @@
 <link rel="stylesheet" href="../assets/mobile-ui.css">
 <script defer src="../assets/mobile-ui.js"></script>
 <style>.report-range-button{padding:10px 14px;min-height:44px;border-radius:12px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;font-size:12px;font-weight:600}.report-range-button[aria-pressed=true]{background:#065f46;color:white;border-color:#34d399}</style>
+<script src="/assets/gym-portals.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -392,6 +393,7 @@
                 const {data,error}=await query;
                 if(error||data?.length!==1)throw new Error('This gym is unavailable or unauthorized.');
                 const gym=data[0];
+                window.IronVaultGymPortals?.assertScope(gym.id);
                 this.currentTenant={id:gym.id,gymName:gym.gym_name,token:gym.token,logo:gym.logo};
                 await this.ivRequireReport();
                 for(const id of ['header-gym-title','report-gym-name','page-title'])

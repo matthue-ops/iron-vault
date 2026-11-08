@@ -606,3 +606,9 @@ test('Activity spreadsheet preserves at-event operator and details when the curr
  const zip=await captured.zip(),xml=await zip.file('xl/worksheets/sheet4.xml').async('string');
  assert.match(xml,/Original Operator — Staff/);assert.match(xml,/Original Member \(MEM-0001\)/);assert.match(xml,/Entry recorded manually/);
 });
+test('scoped public login rejects a different gym key without enabling sign-in',async()=>{
+ const p=portal('gym/login.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status:'ACTIVE'}]});p.context.location.pathname='/g/gym-b/login';await p.get('app').init();assert.equal(p.get('app').currentTenantId,null);assert.equal(p.element('signin-identifier').disabled,true);assert.equal(p.calls.some(c=>c.table==='members'),false);
+});
+test('scoped member page refuses an account from another gym before loading its private profile',async()=>{
+ const p=portal('gym/profile.html',{user:{id:'member-user'},roles:[{user_id:'member-user',role:'member',tenant_id:'gym-a',member_id:'m-a'}]});p.context.location.pathname='/g/gym-b/profile';await p.get('profileApp').init();assert.equal(p.calls.some(c=>c.table==='members'),false);assert.equal(p.redirects.length,1);assert(p.alerts.some(m=>m.includes('different gym')));
+});

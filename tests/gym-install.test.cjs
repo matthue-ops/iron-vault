@@ -11,7 +11,7 @@ test('install metadata requires a resolved gym and encodes public branding witho
 test('manifest identity is gym-specific and stable across rename or token rotation',async()=>{
  const {onRequest}=await handler();const get=async query=>{const response=await onRequest({request:new Request('https://demo.test/gym-app.webmanifest?'+new URLSearchParams(query)),env:{}});assert.equal(response.status,200);assert.match(response.headers.get('Content-Type'),/manifest\+json/);assert.equal(response.headers.get('Cache-Control'),'no-store');return response.json();};
  const first=await get({gym:'gym-a',key:'public-key',name:'A Gym'}),renamed=await get({gym:'gym-a',key:'new-key',name:'Renamed Gym'}),other=await get({gym:'gym-b',key:'other-key',name:'B Gym'});
- assert.equal(first.id,renamed.id);assert.notEqual(first.id,other.id);assert.equal(renamed.name,'Renamed Gym');assert.equal(renamed.start_url,'/gym/login?key=new-key');assert.equal(first.scope,'/gym/');assert.equal(first.display,'standalone');
+ assert.equal(first.id,renamed.id);assert.notEqual(first.id,other.id);assert.equal(renamed.name,'Renamed Gym');assert.equal(renamed.start_url,'/g/gym-a/login?key=new-key');assert.equal(first.scope,'/g/gym-a/');assert.equal(first.display,'standalone');
  for(const icon of first.icons)assert(fs.existsSync('.'+icon.src));assert.deepEqual(first.icons.map(i=>i.sizes),['192x192','512x512']);
 });
 test('manifest endpoint rejects invalid identifiers and writes without touching database or assets',async()=>{
