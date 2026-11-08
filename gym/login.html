@@ -82,6 +82,7 @@
 <link rel="stylesheet" href="../assets/legal-documents.css">
 <link rel="stylesheet" href="/assets/gym-install.css">
 <script src="/assets/gym-install.js"></script>
+<script src="/assets/session-scopes.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -291,7 +292,8 @@
     <script>
         const SUPABASE_URL = 'https://uarvhalocgyrikjbrloh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcnZoYWxvY2d5cmlramJybG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjU0MTEsImV4cCI6MjEwODY0MTQxMX0.PSPxbpMV2ZwBobalxd4SkxgqbgQHbUhR1nlESXLb5hk';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = IronVaultSessionScopes.createClient(window.supabase, SUPABASE_URL, SUPABASE_ANON_KEY);
+
         IronVaultData.install(supabaseClient);
 
         const MEMBERS_STORAGE_KEY = 'ironvault_members_db';
@@ -406,6 +408,7 @@
                 if (matched) {
                     this.currentTenantId = matched.id;
                     this.matchedOwnerRecord = matched;
+                    window.IronVaultSessionScopes.rememberGym(matched);
                     window.IronVaultGymInstall?.configure(matched, {offer:true});
                     for(const id of ['signin-identifier','signin-password','btn-submit-signin','admin-login-email','admin-login-password','btn-submit-admin','signup-name','signup-email','signup-phone','signup-password','btn-submit-signup']){
                         const control=document.getElementById(id);control.disabled=false;control.classList.remove('opacity-50','cursor-not-allowed');
@@ -529,8 +532,18 @@
 
         };
 
+        let ivLoginPreparation;
+        const ivHasAccountCallback = /(?:iv_verify|iv_recovery|access_token|type=recovery)/.test(location.hash);
+        async function ivPrepareLogin() {
+            if (!ivLoginPreparation) ivLoginPreparation = (async () => {
+                await app.init();
+                if (!app.matchedOwnerRecord) return false;
+                return !IronVaultSessionScopes.handoff(app.matchedOwnerRecord);
+            })();
+            return ivLoginPreparation;
+        }
         window.onload = async function() {
-            await app.init();
+            if (await ivPrepareLogin() && !ivHasAccountCallback) await app.resumeSession?.();
         };
     </script>
 <script>
@@ -552,7 +565,7 @@ app.handleSignInSubmit=async function(e){e.preventDefault();
  try{const role=await ivRequireRole(['member'],this.currentTenantId);
  if(!role.member_id)throw Error('Your Auth account is not linked to a member record.');
  sessionStorage.setItem(SESSION_KEY,role.member_id);window.location.href='/gym/profile.html';}
- catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
+ catch(err){await supabaseClient.auth.signOut({scope:'local'});this.showAlert(err.message);}
 };
 app.handleAdminLoginSubmit=async function(e){e.preventDefault();
  const email=document.getElementById('admin-login-email').value.trim();
@@ -564,7 +577,7 @@ app.handleAdminLoginSubmit=async function(e){e.preventDefault();
  sessionStorage.setItem(LOGGED_USER_KEY,email);
  await supabaseClient.rpc('iv_staff_event',{p_tenant:role.tenant_id,p_event:'login'});
  window.location.href='/gym/admin.html?key='+encodeURIComponent(this.matchedOwnerRecord?.token||'');}
- catch(err){await supabaseClient.auth.signOut();this.showAlert(err.message);}
+ catch(err){await supabaseClient.auth.signOut({scope:'local'});this.showAlert(err.message);}
 };
 
 </script>
@@ -609,12 +622,13 @@ async function ivResendEmailConfirmation() {
   const {error} = await supabaseClient.auth.resend({type:'signup',email});
   app.showAlert(error ? error.message : 'If this email is awaiting confirmation, a new verification email will arrive shortly.',!error);
 }
-// Only a Supabase PASSWORD_RECOVERY event authorizes changing the password here.
-let ivRecoveryAuthorized = false;
-supabaseClient.auth.onAuthStateChange((event) => {
-  if (event !== 'PASSWORD_RECOVERY') return;
-  ivRecoveryAuthorized = true;
-  document.getElementById('iv-recovery-panel').classList.remove('hidden');
+// Authorize recovery only after its proof and gym/account binding have been verified below.
+let ivRecoveryAuthorized = false, ivRecoveryUser = null;
+supabaseClient.auth.onAuthStateChange((event,session) => {
+  if (event==='SIGNED_OUT'||(event==='SIGNED_IN'&&ivRecoveryUser&&session?.user?.id!==ivRecoveryUser)) {
+    ivRecoveryAuthorized=false;ivRecoveryUser=null;
+    document.getElementById('iv-recovery-panel').classList.add('hidden');
+  }
 });
 async function ivCompleteRecovery(event) {
   event.preventDefault();
@@ -624,13 +638,18 @@ async function ivCompleteRecovery(event) {
   if (password.length < 8 || password !== document.getElementById('iv-recovery-confirm').value) {
     feedback.textContent = 'At least 8 characters. Passwords must match.'; return;
   }
+  try {
+    if (!app.currentTenantId) throw Error('Open a valid gym recovery link.');
+    const role=await IronVaultAuth.requireRole(supabaseClient,{roles:['member','owner','staff'],tenantId:app.currentTenantId});
+    if(role.user_id!==ivRecoveryUser)throw Error('The recovery account changed. Open a new recovery link.');
+  } catch(error) { feedback.textContent=error.message; return; }
   const {error} = await supabaseClient.auth.updateUser({password});
   if (error) { feedback.textContent = error.message; return; }
   ivRecoveryAuthorized = false;
   document.getElementById('iv-recovery-panel').classList.add('hidden');
   document.getElementById('iv-recovery-password').value = '';
   document.getElementById('iv-recovery-confirm').value = '';
-  await supabaseClient.auth.signOut();
+  await supabaseClient.auth.signOut({scope:'local'});
   app.showAlert('Password changed. Please sign in with your new password.',true);
 }
 </script>
@@ -645,18 +664,20 @@ ivResendEmailConfirmation=async function(){
 };
 (async function(){
  const params=new URLSearchParams(location.hash.slice(1));const verify=params.get('iv_verify'),recovery=params.get('iv_recovery');
- if(!verify&&!recovery)return;
+ const nativeRecovery=params.get('type')==='recovery'&&params.get('access_token')&&params.get('refresh_token');
+ if(!verify&&!recovery&&!nativeRecovery)return;
+ if(!await ivPrepareLogin())return;
  history.replaceState(null,'',location.pathname+location.search);
  try{
   if(verify){const result=await IronVaultBranchAuth.invoke(supabaseClient,'iv-branch-auth',{action:'confirm',token:verify});await app.init();app.showAlert(result.message,true);}
-  else{const {data,error}=await supabaseClient.auth.verifyOtp({token_hash:recovery,type:'recovery'});
+  else{const {data,error}=recovery?await supabaseClient.auth.verifyOtp({token_hash:recovery,type:'recovery'}):await supabaseClient.auth.setSession({access_token:params.get('access_token'),refresh_token:params.get('refresh_token')});
    if(error||!data.session)throw Error('Recovery link is invalid or expired.');
    const role=await IronVaultAuth.requireRole(supabaseClient,{roles:['member','owner','staff']});
    const key=new URLSearchParams(location.search).get('key');
    const recoverySlug=IronVaultGymPortals.slugFromPath(location.pathname);
    const {data:gyms,error:gymError}=await supabaseClient.from('owners').select('id').eq(recoverySlug?'portal_slug':'token',recoverySlug||key);
-   if(gymError||gyms?.length!==1||role.tenant_id!==gyms[0].id){await supabaseClient.auth.signOut();throw Error('Recovery link does not match this gym.');}
-   ivRecoveryAuthorized=true;document.getElementById('iv-recovery-panel').classList.remove('hidden');
+   if(gymError||gyms?.length!==1||role.tenant_id!==gyms[0].id){await supabaseClient.auth.signOut({scope:'local'});throw Error('Recovery link does not match this gym.');}
+   ivRecoveryUser=role.user_id;ivRecoveryAuthorized=true;document.getElementById('iv-recovery-panel').classList.remove('hidden');
   }
  }catch(error){app.showAlert(error.message);}
 })();

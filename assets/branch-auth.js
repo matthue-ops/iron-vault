@@ -32,11 +32,13 @@
  }
  function install(app,client){
   app.handleSignInSubmit=async function(event){event.preventDefault();try{
+   if(root.IronVaultSessionScopes?.handoff(this.matchedOwnerRecord))return;
    await signIn(client,{gym_token:this.matchedOwnerRecord?.token,portal:'member',email:root.document.getElementById('signin-identifier').value,password:root.document.getElementById('signin-password').value});
    const role=await root.IronVaultAuth.requireRole(client,{roles:['member'],tenantId:this.currentTenantId});
    root.sessionStorage.setItem('ironvault_active_member',role.member_id);root.location.href=root.IronVaultGymPortals?root.IronVaultGymPortals.page('profile.html'):'profile.html';
   }catch(error){this.showAlert(error.message);}};
   app.handleAdminLoginSubmit=async function(event){event.preventDefault();try{
+   if(root.IronVaultSessionScopes?.handoff(this.matchedOwnerRecord))return;
    await signIn(client,{gym_token:this.matchedOwnerRecord?.token,portal:'admin',email:root.document.getElementById('admin-login-email').value,password:root.document.getElementById('admin-login-password').value});
    const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff'],tenantId:this.currentTenantId});
    root.sessionStorage.setItem('ironvault_logged_user',root.document.getElementById('admin-login-email').value.trim().toLowerCase());
@@ -46,6 +48,22 @@
    // Replace the submitted login entry; Back must not return to a stale sign-in screen.
    root.location.replace(root.IronVaultGymPortals?root.IronVaultGymPortals.page(destination):destination);
   }catch(error){this.showAlert(error.message==='Invalid request.'?'Unable to sign in. Check your gym link and credentials, or ask the owner to confirm your account access.':error.message);}};
+  app.resumeSession=async function(){
+   if(!this.matchedOwnerRecord||this.matchedOwnerRecord.status==='PROVISIONING'||typeof client.auth.getSession!=='function'||root.IronVaultSessionScopes?.metadata(client)?.kind==='bootstrap')return false;
+   try{
+    const {data,error}=await client.auth.getSession();if(error||!data?.session)return false;
+    const role=await root.IronVaultAuth.requireRole(client,{roles:['member','owner','staff'],tenantId:this.currentTenantId});
+    if(this.ivCanResumeRole&&!this.ivCanResumeRole(role))return false;
+    const latest=await client.auth.getUser();
+    if(latest.error||latest.data?.user?.id!==role.user_id||data.session.user?.id!==role.user_id)throw Error('The signed-in account changed. Please try again.');
+    root.sessionStorage.setItem('ironvault_active_tenant_id',role.tenant_id);
+    root.sessionStorage.setItem('ironvault_active_token',this.matchedOwnerRecord.token);
+    let destination;
+    if(role.role==='member'){root.sessionStorage.setItem('ironvault_active_member',role.member_id);destination='profile.html';}
+    else{root.sessionStorage.setItem('ironvault_active_role',role.role==='owner'?'admin':'staff');root.sessionStorage.setItem('ironvault_logged_user',data.session.user?.user_metadata?.name||role.role);destination='admin.html?key='+encodeURIComponent(this.matchedOwnerRecord.token);}
+    root.location.replace(root.IronVaultGymPortals?root.IronVaultGymPortals.page(destination):destination);return true;
+   }catch(error){this.showAlert('Your saved sign-in could not be verified. '+error.message);return false;}
+  };
   app.handleSignUpSubmit=async function(event){event.preventDefault();const button=root.document.getElementById('btn-submit-signup');button.disabled=true;try{
    const val=id=>root.document.getElementById(id).value;
    const result=await provision(client,root.sessionStorage,'iv-branch-auth',{action:'signup',gym_token:this.matchedOwnerRecord?.token,
