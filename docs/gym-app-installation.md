@@ -1,46 +1,65 @@
-# Optional gym app installation
+# Gym and Super Admin app installation
 
-This change adds installation metadata and an optional install choice to the existing gym portal. It does not change authentication, gym permissions, database queries or writes, transactions, QR validation, service-worker caching, or Super Admin/Command pages. No SQL is required.
+## Purpose and scope
 
-## How it works
+Android Chrome reported a second gym as already installed while both gyms used the same `/gym/` scope and login path. Each gym now has its own manifest URL, path-based app ID, launch URL and scope. Super Admin has a separate installation as well. This is installation/routing support, not a change to authentication methods, database permissions, transactions, QR validation or offline capabilities. No additional SQL is required. The held Authenticator/recovery proposal is not implemented.
 
-After the login page has resolved a valid gym using its existing lookup, it attaches a gym-specific manifest and offers **Install app** or **Continue in browser**. The existing friendly URLs, printed QR codes, legacy key links, and member-login redirects still work. No QR replacement is required. Existing links cannot distinguish a QR visit from an ordinary link visit, so the same first-visit choice appears for either.
+## Separate app paths
 
-The choice is saved under the gym ID in browser local storage. Continuing, attempting installation, or dismissing the choice with Escape suppresses the automatic choice on later visits in that browser. The login page retains an installation button. A successful installation event hides the button; a new browser installation event can reveal it again after uninstalling. Installed display mode always hides the choice and button. Browser storage events synchronize the choice between tabs. If storage is blocked, the app remains usable but the choice may reappear on another visit.
+| Installation | Manifest | Scope / ID | Start |
+| --- | --- | --- | --- |
+| Gym A | `/g/GYM-A/manifest.webmanifest?...` | `/g/GYM-A/` | `/g/GYM-A/login?key=...` |
+| Gym B | `/g/GYM-B/manifest.webmanifest?...` | `/g/GYM-B/` | `/g/GYM-B/login?key=...` |
+| Super Admin | `/_provider/manifest.webmanifest` | `/_provider/` | `/_provider/index` |
 
-Installation detection is best effort, not device-wide. Clearing site data, incognito, another browser profile, or another gym may offer the choice again. iOS does not provide the same installation events as Chromium; an installation made elsewhere may not be detectable in the ordinary browser. Scanning a QR may continue opening the browser rather than automatically launching an installed app.
+The original `/gym-app.webmanifest` endpoint remains compatible, but now returns the new gym-specific scope/ID/start. `/provider-app.webmanifest` is also accepted. Gym identity remains stable across display-name/key changes. Public branding parameters are not credentials; normal live-gym resolution and server-side authorization still apply. A scoped manifest rejects a conflicting gym ID in its query.
 
-Chrome/Edge can show a captured native install prompt after a user clicks Install. If no native prompt is available, the dialog explains how to use the browser menu. iPhone/iPad instructions direct the user to Safari, Share, Add to Home Screen, with Open as Web App enabled when shown. The chooser never automatically opens a native prompt. Verification/reset callbacks are excluded even when the original callback hash is subsequently removed by existing code.
+Cloudflare Pages serves the existing gym pages internally under these aliases. HTML gets a same-gym/provider base URL, and asset references are rooted at `/assets/`. Member/admin sign-in, relative Reports links, Back and logout therefore remain in the installation's own path. Only the explicit gym page allowlist is mapped; a gym scope cannot map the Super Admin index. Invalid pages return 404. Super Admin uses the existing master page and email/password gates. The provider prefix starts with an underscore so it cannot collide with an existing friendly gym slug.
 
-## Manifest and deployment
+Existing friendly URLs, printed QRs, legacy key links, email verification/recovery links and member-login redirects remain valid. They are not automatically redirected during ordinary use. If installation is requested before the browser supplies a native prompt, the Install action can open that same portal's scoped start URL with `install=1`. The one-time `install=1` flag is removed from browser history after it is consumed, so refresh does not repeatedly reopen the chooser. This explicit request opens installation help; a ready native event updates it to ask for another user click. Native prompts are never opened automatically.
 
-The existing Cloudflare Pages Function serves `/gym-app.webmanifest`. Public query parameters contain the resolved gym ID, its public portal key, and gym display name; these are branding/navigation hints, not credentials or access grants. The endpoint makes no database calls. Do not add user credentials, access tokens, member records, or private data to this URL.
+Scoped public login rejects a different gym's key. Member/report contexts are checked against the path using already-resolved account/gym information before rendering private content. These UI routing checks supplement, not replace, the existing server permissions.
 
-Each manifest has a stable app ID derived from the gym ID, a `/gym/` scope, and a start URL of `/gym/login?key=<public gym key>`. Rename or portal-key rotation does not change the app ID. A key already stored in an installed manifest can become obsolete after key rotation, so provide the current gym link for reinstallation if needed. Start-up uses the existing login portal and existing sign-in behavior; no new automatic sign-in or role selection is introduced.
+## Install menu and choices
 
-The gym name is personalized. With image-storage migration 047 and the matching frontend, a new/replacement gym logo generates transparent 192px/512px PNG icons and a separate padded maskable icon. Legacy or missing logos use the shared fitness icon until re-uploaded. Existing installed icons may update later according to the browser; reinstall if necessary. The root Pages Function already receives this manifest path; the existing `/gym/*` and `/assets/*` static exclusions and build asset rules remain unchanged. This dynamic endpoint is for the current Cloudflare Pages deployment; a different hosting platform would need an equivalent handler.
+The login page has a top-right three-dot **Portal options** menu with **Install app**, outside the login form. Super Admin has the same menu on its existing login/dashboard page. Its logout control stays available alongside the menu. Summary controls support normal keyboard navigation, Escape and click-outside closing. No tutorial is added yet.
 
-Installation is a web-app window, not an App Store or Play Store package. Separate app IDs do not isolate authentication/storage by gym: the existing account, server permissions and shared origin still control access. All launches resolve the live gym normally. A purged/invalid link follows the existing unavailable/invalid-gym behavior, rather than granting access from stored metadata. An installed icon may retain public branding and cannot be remotely uninstalled. No private gym/member data is cached by this feature.
+A gym's first-visit **Install app / Continue in browser** choice remains optional. Remembered choices are per gym and browser, not device-wide. A successful new installation is remembered as `installed-scoped`; old `installed` flags do not hide the upgrade option. The chooser/menu is suppressed in standalone mode only when the actual page path is inside the current app's scope, so opening another gym inside an old app does not falsely mark it installed. Browser storage changes synchronize choices across tabs.
 
-The unchanged service worker caches only the public offline warning, never account records or transactions. Installing does not enable offline check-ins or payments. No endpoint or capability for offline writes has been added.
+The dialog shows waiting status while Chrome responds. A stalled native request times out after ten seconds and gives explicit help rather than remaining indefinitely disabled. If no native event is available, help explains Chrome's **Install and create shortcut** menu and distinguishes a shortcut from an installed app. iPhone/iPad instructions use Safari → Share → Add to Home Screen. Browser-specific behavior and installation detection remain best effort.
 
-## Verification
+Recovery/verification callbacks do not show an automatic installation chooser, including callbacks whose fragment was removed by existing code. Clearing site data, incognito or another browser can show the first choice again. Scanning a QR may open Chrome rather than the installed app; installation cannot force the operating system to launch a particular app.
 
-- `npm test`: unit/regression checks, including manifest identity, validation and HTTP methods.
-- `npm run build:pages`: static asset packaging.
-- `node tests/browser/gym-install.cjs`: first choice, remembered choice, per-gym separation, native prompt acceptance/cancellation handling, standalone mode, callback exclusion, blocked storage, iOS instructions, real Chrome manifest retrieval and icon requests, and offline retry/public-only caches at 320/390/1280px. Native prompt interactions are simulated; actual phone installation still needs manual verification.
-- Existing `tests/browser/offline-fallback.cjs` and `tests/browser/saved-issues.cjs`: offline navigation and login/registration/navigation regressions.
+## Icons and storage
 
-## Preview acceptance before production
+Gym name and public portal key come from existing gym resolution. With migration 047 and the matching photo frontend, newly uploaded gym logos generate transparent 192/512px PNG icons and a padded maskable icon. Legacy/missing logos use the shared fitness icon until re-uploaded. iOS touch icons use the gym image when available. Super Admin uses its own gold-crown icons. Installed icon updates depend on the browser and may require reinstallation.
 
-1. Open a real gym link in Android Chrome. Choose Continue; reopen the QR/link and confirm no automatic chooser. Confirm installation remains available from login.
-2. Tap Install and complete the actual browser prompt. Launch the gym icon and verify the gym destination, name, standalone window and absence of the choice. Sign in with a dummy member; test one normal entry. Separately test admin/staff permissions and logout.
-3. Install a second dummy gym and check that its icon and destination remain distinct. Do not assume these icons support simultaneous different accounts in shared-origin storage.
-4. On iPhone Safari, complete Add to Home Screen and verify standalone launch. Check QR scanner embedded-browser guidance when applicable.
-5. Check verification/password-reset links, existing reports, wallet/payment confirmation and camera QR scanning in the installed window. Confirm no login or transaction policy changed.
-6. Go offline, retry, reconnect and retry. Confirm the gym destination is retained and no private data or pending write is cached.
-7. Use only a disposable gym to verify unavailable/purged-gym behavior through normal authorized tools. This implementation does not alter purge policy or delete anything.
+Separate paths and app IDs are **not separate browser accounts**: the current apps still share their website origin and Supabase login storage. Signing into another account may replace the session across installations. Existing role/tenant enforcement remains essential; this change does not introduce independent simultaneous sessions or change Super Admin recovery.
+
+The unchanged root service worker caches only the public offline warning. Offline retry keeps the scoped URL. No private records or transactions are cached, and offline payment/check-in writes are not introduced. Purged/invalid gyms retain the existing unavailable behavior; installed icons cannot be remotely removed.
+
+## Deployment and migration
+
+Deploy this frontend and Pages Function together. No new SQL or Edge Function deployment is required for these installation repairs. Existing photo storage requirements are unchanged.
+
+The prior shared-scope installation has a different identity from the repaired scoped app. It is not silently migrated or removed. Test the new icon first, then remove an old duplicate icon/app if replacing it. An old first gym app can remain installed while testing a second gym's new installation. A browser-controlled update or uninstall cannot be guaranteed by page JavaScript.
+
+## Validation
+
+- `npm test`: manifests, allowlisted rewrites, path isolation and existing app/controller regressions.
+- `node tests/browser/app-scopes.cjs`: actual Pages handler rewrites in local fixtures, distinct gym/provider manifests, mobile header menus, scoped sign-in/Reports/Back/logout routes and offline retry at 320/390/1280px.
+- `node tests/browser/gym-install.cjs`: chooser persistence, prompt acceptance/cancellation, callback exclusion, installed mode, iOS instructions, blocked storage and Chrome manifest/icon retrieval.
+- Existing `tests/browser/saved-issues.cjs`, `tests/browser/offline-fallback.cjs` and image browser checks cover working flows.
+
+Native prompt outcomes and standalone mode are simulated in the automated tests. Local Chrome's native OS installation API is disabled, so the tests do not prove two completed Android installations. These physical-device checks are still required after preview/deployment:
+
+1. Keep the original first-gym app installed. In Android Chrome, open the second gym, use the top-right menu and install. Confirm Chrome offers a fresh installation rather than only opening the first app.
+2. Open both icons and verify each gym name, destination, standalone window and normal sign-in. Check account switching explicitly because storage is shared.
+3. Install Super Admin separately from its own menu. Confirm the master email/password login is still required and ordinary gym accounts cannot enter. Test Super Admin Reports and logout.
+4. Reopen QR links after choosing Continue in browser; confirm no repeated automatic choice and that the menu remains available. Check iPhone Safari Add to Home Screen separately.
+5. Test member/admin/staff login and logout, Reports/Back, password recovery/verification callbacks, camera QR scanning and normal wallet/refund flows.
+6. Test offline retry/reconnect and unavailable gym links. No route should redirect a gym to the provider login.
 
 ## Rollback
 
-Deploy the previous successful Cloudflare Pages version or revert this PR and redeploy. There is no database migration to undo. Already-installed icons remain on devices and may need removal; rollback of web assets cannot remotely uninstall them. Keep the prior production deployment available.
+Keep the prior production deployment. Reverting this routing change makes newly installed scoped URLs unavailable; it cannot remove their icons. Prefer retaining the small alias handler while reverting UI changes if a rollback is needed, or tell users to use their existing gym links/reinstall after recovery. No database rollback is needed for this installation update. Image-storage rollback limitations in `optimized-profile-images.md` remain separate and unchanged.

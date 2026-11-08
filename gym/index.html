@@ -80,6 +80,8 @@
 <link rel="stylesheet" href="../assets/tenant-tools.css">
 <link rel="stylesheet" href="../assets/gym-profile.css">
 <script src="/assets/profile-images.js"></script>
+<link rel="stylesheet" href="/assets/gym-install.css">
+<script src="/assets/gym-install.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -1478,6 +1480,7 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script src="../assets/gym-profile.js"></script>
 <script>IronVaultGymProfile.install(indexApp,supabaseClient);</script>
 <script>IronVaultProfileImages.install(indexApp,supabaseClient,'master');</script>
+<script>IronVaultGymInstall.configureProvider();</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

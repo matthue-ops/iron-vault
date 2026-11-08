@@ -7,8 +7,17 @@
 #gym-install-dialog button,#gym-install-open{font:600 14px/1.4 system-ui,sans-serif;cursor:pointer;border-radius:10px;padding:12px 16px;min-height:44px}
 #gym-install-confirm{background:#10b981;color:#022c22;border:1px solid #10b981}
 #gym-install-continue{background:#1e293b;color:#e2e8f0;border:1px solid #475569}
-#gym-install-dialog button:focus-visible,#gym-install-open:focus-visible{outline:3px solid #6ee7b7;outline-offset:3px}
-#gym-install-open{display:block;margin:20px auto;background:transparent;color:#6ee7b7;border:1px solid #334155}
-#gym-install-open[hidden],#gym-install-guidance[hidden]{display:none}
+#gym-install-dialog button:focus-visible,#gym-install-open:focus-visible,#gym-install-toggle:focus-visible{outline:3px solid #6ee7b7;outline-offset:3px}
+#gym-install-menu{position:relative;flex-shrink:0;color:#e2e8f0;font-family:system-ui,sans-serif}
+#gym-install-toggle{display:flex;align-items:center;justify-content:center;list-style:none;cursor:pointer;font-size:26px;width:44px;height:44px;border:1px solid #334155;border-radius:12px;background:#172332}
+#gym-install-toggle::-webkit-details-marker{display:none}
+.gym-install-menu-panel{position:absolute;right:0;top:calc(100% + 8px);min-width:160px;border:1px solid #334155;border-radius:12px;background:#121d2b;padding:6px;box-shadow:0 12px 30px #0006;z-index:90}
+#gym-install-open{display:block;width:100%;text-align:left;color:#6ee7b7;background:transparent;border:0}
+#gym-install-open:hover{background:#1e293b}
+.iv-install-header{gap:12px}
+.iv-install-header>div:first-child{min-width:0;flex:1}
+.iv-install-header>div:first-child>div:last-child{min-width:0;overflow-wrap:anywhere}
+#iv-install-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.gym-install-menu-floating{position:fixed!important;right:16px;top:16px;z-index:95}
+#gym-install-menu[hidden],#gym-install-guidance[hidden]{display:none}
 #gym-install-dialog button:disabled{opacity:.5;cursor:wait}
-@media(display-mode:standalone),(display-mode:fullscreen){#gym-install-open{display:none}}
