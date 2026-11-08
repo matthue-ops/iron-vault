@@ -8,9 +8,7 @@
   const active=row=>Date.parse(row.starts_at)<=now()&&Date.parse(row.ends_at)>now();
   function clear(){epoch++;serial++;busy=false;items=[];identity=null;visible=false;bell.hidden=true;bell.setAttribute('data-unread','false');panel.hidden=true;el('member-notices-list').textContent='';el('member-notices-count').textContent='';if(timer)root.clearTimeout(timer);timer=null;}
   function text(tag,value,cls){const n=root.document.createElement(tag);n.textContent=value;n.className=cls||'';return n;}
-  function cards(target,rows){target.textContent='';if(!rows.length)target.appendChild(text('p','No notifications.','text-slate-400'));
-   for(const row of [...rows].sort((a,b)=>Number(b.kind==='status'&&!b.resolved_at)-Number(a.kind==='status'&&!a.resolved_at))){const card=text('article','','rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-2');card.appendChild(text('h3',row.title,'font-bold text-white break-words'));card.appendChild(text('p',row.body,'whitespace-pre-wrap break-words text-slate-200 text-sm'));card.appendChild(text('p',(row.kind?(row.kind==='status'?(row.resolved_at?'Resolved · ':'Current status · '):'Account activity · '):(row.pinned?'Pinned · ':'')+'Until ')+new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(row.kind?row.starts_at:row.ends_at))+' · Manila time','text-xs text-slate-400'));target.appendChild(card);}
-  }
+  function cards(target,rows){root.IronVaultNoticeViews.render(target,rows,{onRead:async row=>{const result=await fetchFeed('read',[{id:row.id,revision:row.revision}]);if(!result)throw Error('Account changed.');}});}
   function render(){items=items.filter(active);const unread=items.filter(r=>r.unread).length;el('member-notices-count').textContent=unread?String(unread):'';bell.setAttribute('data-unread',String(unread>0));bell.setAttribute('aria-label','Announcements'+(unread?', '+unread+' unread':''));
    app.renderLegalNotice?.(unread);
    if(visible)cards(el('member-notices-list'),items);
@@ -25,12 +23,12 @@
    if(!data||!Array.isArray(data.items)||!Number.isFinite(Date.parse(data.server_now))||data.items.some(r=>r.tenant_id!==role.tenant_id||typeof r.id!=='string'||typeof r.revision!=='string'||typeof r.title!=='string'||typeof r.body!=='string'||typeof r.unread!=='boolean'||typeof r.popup!=='boolean'||!Number.isFinite(Date.parse(r.starts_at))||!Number.isFinite(Date.parse(r.ends_at))))throw Error('Invalid announcement response.');
    el('member-notices-status').textContent='';identity=role.user_id+'|'+role.tenant_id+'|'+role.member_id;offset=Date.parse(data.server_now)-Date.now();items=data.items.filter(active);bell.hidden=false;render();return items;
   }
-  function show(rows){lastFocus=root.document.activeElement;visible=true;panel.hidden=false;cards(el('member-notices-list'),rows);el('member-notices-close').focus();}
+  function show(rows){lastFocus=root.document.activeElement;visible=true;panel.hidden=false;el('member-notices-list').dataset.noticeView='unread';cards(el('member-notices-list'),rows);el('member-notices-close').focus();}
   async function refresh(){if(busy)return;busy=true;const stamp=epoch;try{await fetchFeed('list');
    }catch(error){if(stamp===epoch){clear();bell.hidden=false;bell.setAttribute('aria-label','Announcements unavailable');el('member-notices-status').textContent='Announcements are unavailable. Please try again.';app.renderLegalNotice?.(0);}}
    finally{if(stamp===epoch)busy=false;}
   }
-  app.openMemberAnnouncements=async function(){if(busy)return;busy=true;const stamp=epoch;el('member-notices-status').textContent='';try{const rows=await fetchFeed('list');if(!rows||stamp!==epoch)return;show(rows);const read=rows.map(r=>({id:r.id,revision:r.revision}));await fetchFeed('read',read);}catch(error){if(stamp===epoch){clear();bell.hidden=false;el('member-notices-status').textContent='Announcements are unavailable. Please try again.';if(app.hasLegalNotice?.()){show([]);app.renderLegalNotice?.(0);}}}finally{if(stamp===epoch)busy=false;}};
+  app.openMemberAnnouncements=async function(){if(busy)return;busy=true;const stamp=epoch;el('member-notices-status').textContent='';try{const rows=await fetchFeed('list');if(!rows||stamp!==epoch)return;show(rows);}catch(error){if(stamp===epoch){clear();bell.hidden=false;el('member-notices-status').textContent='Announcements are unavailable. Please try again.';if(app.hasLegalNotice?.()){show([]);app.renderLegalNotice?.(0);}}}finally{if(stamp===epoch)busy=false;}};
   app.closeMemberAnnouncements=function(){visible=false;panel.hidden=true;lastFocus?.focus?.();};
   const init=app.init;app.init=async function(...args){clear();await init.apply(this,args);if(this.currentMember)await refresh();};
   client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(identity&&session?.user?.id&&identity.split('|')[0]!==session.user.id))clear();});

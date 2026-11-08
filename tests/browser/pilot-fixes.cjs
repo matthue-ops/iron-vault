@@ -95,7 +95,7 @@ async function topups(browser,width){
   window.alert=()=>{throw Error('Unexpected native alert');};
   window.calls=[];window.messages=[];window.release=null;
   window.ivRequireRole=async()=>({user_id:'owner'});window.IronVaultAuth={requireRole:ivRequireRole};window.ivMoney=n=>'₱'+n;
-  window.supabaseClient={auth:{getUser:async()=>({data:{user:{id:'owner'}}})},from:()=>({select(){return this;},eq(){return this;},single:async()=>({data:{id:'a',status:'ACTIVE'}})}),rpc:async(_,args)=>{calls.push(args);return {data:{request_id:args.p_request_id,wallet_balance:args.p_amount}};}};
+  window.supabaseClient={auth:{getUser:async()=>({data:{user:{id:'owner'}}})},from:()=>({select(){return this;},eq(){return this;},single:async()=>({data:{id:'a',status:'ACTIVE'}})}),rpc:async(name,args)=>{calls.push(args);return name==='iv_topup_review'?{data:{request_id:args.p_request,member_id:args.p_member,amount:args.p_amount,wallet_before:0,wallet_after:args.p_amount}}:{data:{request_id:args.p_request_id,wallet_balance:args.p_amount}};}};
   window.adminApp={currentTenantId:'gym',authenticatedRole:{user_id:'owner'},activeModalMemberId:'a',members:[{id:'a',name:'Alice',status:'ACTIVE',walletBalance:0}],
    selectModalTopUp:new Function('amount',selection),handleCustomModalTopUp:new AsyncFunction(custom),addModalCredits:new AsyncFunction('amount',writer),
    confirmAdmin:async()=>new Promise(r=>release=r),notifyAdmin:m=>messages.push(m),loadMembers:async()=>{},openProfileModal(){}
@@ -111,16 +111,16 @@ async function topups(browser,width){
  assert.equal(await page.locator('#modal-topup-input').inputValue(),'100');
  await page.evaluate(()=>release(true));
  await page.waitForFunction(()=>!adminApp.modalTopUpBusy);
- assert.equal(await page.evaluate(()=>calls.length),1);
+ assert.equal(await page.evaluate(()=>calls.filter(c=>c.p_operation==='topup').length),1);
  assert.equal(await page.locator('#modal-topup-input').inputValue(),'');
  assert.equal(await page.evaluate(()=>adminApp.members[0].walletBalance),100);
  // Cancel preserves amount, sends nothing and releases controls.
  await page.getByRole('button',{name:'+₱500',exact:true}).click();
  await page.evaluate(()=>release=null);await page.getByRole('button',{name:'Add Funds',exact:true}).click();await page.waitForFunction(()=>!!release);await page.evaluate(()=>release(false));await page.waitForFunction(()=>!adminApp.modalTopUpBusy);
- assert.equal(await page.locator('#modal-topup-input').inputValue(),'500');assert.equal(await page.evaluate(()=>calls.length),1);
+ assert.equal(await page.locator('#modal-topup-input').inputValue(),'500');assert.equal(await page.evaluate(()=>calls.filter(c=>c.p_operation==='topup').length),1);
  assert.equal(await page.getByRole('button',{name:'Add Funds',exact:true}).isDisabled(),false);
  // An uncertain commit preserves amount and request ID; retry credits only once.
- await page.evaluate(()=>{window.ids=[];window.ledger=new Map();window.lose=true;supabaseClient.rpc=async(_,args)=>{ids.push(args.p_request_id);if(!ledger.has(args.p_request_id))ledger.set(args.p_request_id,args.p_amount);if(lose){lose=false;throw Error('Lost response');}return {data:{request_id:args.p_request_id,wallet_balance:600}};};release=null;});
+ await page.evaluate(()=>{window.ids=[];window.ledger=new Map();window.lose=true;supabaseClient.rpc=async(name,args)=>{if(name==='iv_topup_review')return {data:{request_id:args.p_request,member_id:args.p_member,amount:args.p_amount,wallet_before:100,wallet_after:600}};ids.push(args.p_request_id);if(!ledger.has(args.p_request_id))ledger.set(args.p_request_id,args.p_amount);if(lose){lose=false;throw Error('Lost response');}return {data:{request_id:args.p_request_id,wallet_balance:600}};};release=null;});
  await page.getByRole('button',{name:'Add Funds',exact:true}).click();await page.waitForFunction(()=>!!release);await page.evaluate(()=>release(true));await page.waitForFunction(()=>!adminApp.modalTopUpBusy);
  assert.equal(await page.locator('#modal-topup-input').inputValue(),'500');
  await page.evaluate(()=>release=null);await page.getByRole('button',{name:'Add Funds',exact:true}).click();await page.waitForFunction(()=>!!release);await page.evaluate(()=>release(true));await page.waitForFunction(()=>!adminApp.modalTopUpBusy);

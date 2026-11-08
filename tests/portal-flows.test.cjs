@@ -6,7 +6,7 @@ const path=require('node:path');
 function portal(file,{user=null,roles=[],owners=[],members=[],records={},search='?key=token-a'}={}){
  const calls=[],alerts=[],redirects=[],events={},authEvents=[],elements=new Map(),state=new Map();let created=0;
  const storage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
- function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],appendChild(child){this.children.push(child)},addEventListener(name,fn){(this.listeners??={})[name]=fn},click(){},close(){this.open=false;},showModal(){this.open=true;},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
+ function element(id){if(!elements.has(id))elements.set(id,{dataset:{},children:[],before(){},appendChild(child){this.children.push(child)},addEventListener(name,fn){(this.listeners??={})[name]=fn},click(){},close(){this.open=false;},showModal(){this.open=true;},value:'',innerText:'',textContent:'',innerHTML:'',style:{},classList:{add(){},remove(){},contains(){return false},toggle(){}},parentNode:{append(){}},setAttribute(){}});return elements.get(id)}
  const client={rpc:async()=>({data:null,error:null}),auth:{getUser:async()=>({data:{user}}),signOut:async()=>({error:null}),onAuthStateChange:fn=>authEvents.push(fn)},from(table){
   table=({iv_gyms:'owners',iv_members:'members'})[table]||table;
   const entry={table,fields:null,filters:[]};calls.push(entry);
@@ -244,8 +244,8 @@ test('top-up uses verified active member state and stable transaction RPC after 
  const p=portal('gym/admin.html',{user:{id:'staff'},roles:[{user_id:'staff',role:'staff',tenant_id:'gym-a'}],members:[{id:'member',tenant_id:'gym-a',status:'ACTIVE'}]});
  const app=p.get('adminApp');app.currentTenantId='gym-a';app.confirmAdmin=async()=>true;app.notifyAdmin=message=>p.alerts.push(message);app.activeModalMemberId='member';app.members=[{id:'member',name:'Member'}];p.context.confirm=()=>true;
  app.loadMembers=async()=>{};app.openProfileModal=()=>{};const calls=[];
- p.client.rpc=async(name,args)=>{calls.push({name,args});return{data:{request_id:args.p_request_id,wallet_balance:100}}};
- await app.addModalCredits(100);assert.equal(calls[0].name,'iv_financial_transaction');assert.equal(calls[0].args.p_operation,'topup');assert.equal(app.members[0].walletBalance,100);
+ p.client.rpc=async(name,args)=>{calls.push({name,args});return name==='iv_topup_review'?{data:{request_id:args.p_request,member_id:args.p_member,amount:args.p_amount,wallet_before:0,wallet_after:100}}:{data:{request_id:args.p_request_id,wallet_balance:100}}};
+ await app.addModalCredits(100);assert.equal(calls[0].name,'iv_topup_review');assert.equal(calls[1].name,'iv_financial_transaction');assert.equal(calls[1].args.p_operation,'topup');assert.equal(app.members[0].walletBalance,100);
 });
 
 test('deactivation removes a member from the active roster after refresh while retaining their record',async()=>{

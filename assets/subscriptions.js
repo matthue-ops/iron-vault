@@ -476,18 +476,9 @@
     async function openOwnerNotifications(){
       const data=await call('iv_subscription_portal',{p_tenant:app.currentTenantId,p_action:'notifications'});
       if(!data.is_owner)throw Error('Registered owner required.');
-      const target=modal('Notifications'),active=data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at);
-      if(!active.length)target.appendChild(element('p','You’re all caught up.'));
-      for(const n of active){
-        const row=element('article',null,'iv-sub-notice'),open=button(n.title,()=>run(async()=>{
-          await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});
-          documentPreview(body,n.message);body.hidden=false;row.dataset.read='true';open.disabled=true;await refresh();
-        }));const body=element('p',n.message,'iv-sub-summary');body.hidden=true;
-        row.append(open,element('small',dateTime(n.available_at)),body);
-        if(n.destination!=='announcement')row.appendChild(button(n.notice_key.startsWith('documents')?'Review agreements':'View subscription',()=>run(async()=>{await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();await openBilling(data.tenant_id,n.notice_key.startsWith('documents')?'documents':'overview');})));
-        target.appendChild(row);
-      }
-      const readAnnouncements=data.notifications.filter(n=>n.destination==='announcement'&&n.read_at);if(readAnnouncements.length){const archive=element('details');archive.appendChild(element('summary','Read announcements'));for(const n of readAnnouncements){const row=element('article',null,'iv-sub-notice');row.append(element('h3',n.title),element('p',n.message),element('small',dateTime(n.available_at)));archive.appendChild(row);}target.appendChild(archive);}
+      const target=modal('Notifications'),content=element('section');target.append(content);
+      const rows=data.notifications.filter(n=>!n.superseded_at).map(n=>({...n,body:n.message,unread:!n.read_at&&!n.resolved_at}));
+      root.IronVaultNoticeViews.render(content,rows,{onRead:async n=>{await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();},onOpen:n=>run(async()=>{await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();await openBilling(data.tenant_id,n.notice_key.startsWith('documents')?'documents':'overview');})});
     }
     async function openBilling(tenant,initial='overview'){
       const serial=++viewSerial;

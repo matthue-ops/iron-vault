@@ -2543,7 +2543,11 @@ adminApp.addModalCredits=async function(amount){
  const {data:record,error:memberError}=await supabaseClient.from('members').select('id,tenant_id,status').eq('id',id).eq('tenant_id',this.currentTenantId).single();
  if(memberError || !record)throw new Error('Unable to verify this member’s approval status. No top-up was made.');
  if(String(record.status || '').toUpperCase() !== 'ACTIVE')throw new Error('Approve this member first before adding wallet credits.');
- if(!await this.confirmAdmin({title:'Confirm wallet top-up',rows:[['Member',m.name],['Amount to add',ivMoney(amount)]],confirmLabel:'Confirm top-up'}))return;
+ const review=await IronVaultFinance.reviewTopup(supabaseClient,sessionStorage,this.currentTenantId,id,+amount);
+ const rows=[['Member',m.name],['Amount to add',ivMoney(amount)]];
+ if(review.retry)rows.push(['Unconfirmed payment','Retry the original request; do not collect cash again.']);
+ else {rows.push(['Wallet',ivMoney(review.wallet_before)+' → '+ivMoney(review.wallet_after)]);if(review.latest_topup)rows.push(['Recent top-up',ivMoney(review.latest_topup.amount)+' · '+(review.latest_topup.actor||'Authorized operator')+' · '+new Date(review.latest_topup.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'})]);}
+ if(!await this.confirmAdmin({title:review.retry?'Confirm original payment status':'Confirm wallet top-up',rows,confirmLabel:review.retry?'Retry same payment':'Confirm top-up'})){IronVaultFinance.cancelReview(sessionStorage,review);return;}
  const data=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{p_operation:'topup',p_member_id:id,p_plan:null,p_amount:+amount,p_cash_amount:0});
  m.walletBalance=+data.wallet_balance;this.notifyAdmin('Top-up recorded: '+ivMoney(amount)+(data.reference?' · Reference: '+data.reference:''),true);
  try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){this.notifyAdmin('Top-up is recorded; refresh the roster to see the updated balance.',false);}return true;}
@@ -2598,6 +2602,8 @@ adminApp.logoutAdmin=async function(){
 <dialog id="admin-feedback-dialog" aria-labelledby="admin-feedback-title" aria-describedby="admin-feedback-message"><i id="admin-feedback-icon" aria-hidden="true"></i><h2 id="admin-feedback-title"></h2><p id="admin-feedback-message"></p><dl id="admin-feedback-rows"></dl><div class="admin-feedback-actions"><button id="admin-feedback-cancel" type="button">Cancel</button><button id="admin-feedback-confirm" type="button">Confirm</button></div></dialog>
 <script src="../assets/service-policy.js"></script>
 
+<link rel="stylesheet" href="../assets/notice-views.css">
+<script src="../assets/notice-views.js"></script>
 <script src="../assets/subscriptions.js"></script>
 <script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');IronVaultPhoneRevenue.install(adminApp,supabaseClient);</script>
 <link rel="stylesheet" href="../assets/staff-access.css">

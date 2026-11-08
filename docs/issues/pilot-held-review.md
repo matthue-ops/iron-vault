@@ -4,6 +4,28 @@ Recorded: 2026-11-07 (Asia/Manila). Hold these items for a combined review. Reco
 
 ## Current disposition — 2026-11-08 (Asia/Manila)
 
+### Current execution-review shortlist
+
+This shortlist supersedes the historical proposals below. It is a review, not execution authorization.
+
+Subsequent status: the user explicitly authorized implementing all nine together. They are implemented on `fix/pilot-held-ui-topup`, with manual 046 prepared but not executed. See [coordinated rollout and acceptance](../pilot-held-batch-rollout.md). The historical holds below are retained for traceability, not a claim that the implemented items are still unstarted. The pilot-notice concern remains excluded.
+
+1. Simultaneous top-up safeguard: server-validated reviews tied to current member financial state; block outdated confirmations with intervening payment details; permit deliberate fresh review for a separate payment; replay committed request receipts before stale-review checks. Highest priority. Prepare manual SQL only after designing its interaction with existing APIs/clients.
+2. Historical pass sources in refunds: keep eligible expired purchases, label purchased pass validity from historical evidence, show purchase/expiry details where known, and hide exhausted sources by default with a show-all control. Never infer historical expiry from current membership. Schema needs depend on available historical data.
+3. Notification layout: Unread first, separate Pinned/Status and Read views suitable for phones; retain relevant read status notices and preserve per-user read state. Merge this with the earlier read/unread proposal rather than implementing twice.
+4. Refund draft discard confirmation: cancel closing preserves work; confirmed closing clears unfinished form drafts only, never pending/history or unresolved financial request identities needed for safe retries.
+5. Reason preset above Amount; custom reason appears only for Other.
+6. Announcement recipient search preserving checked selections across searches, with selection count/review.
+7. Report preset highlighting; clear preset highlights after manual calendar edits.
+8. Reports icon-only Back button with accessible label and phone touch target.
+9. Separate Revenue Today permission: review server enforcement and a scoped aggregate response; granting only this metric must not expose full financial reports or transaction rows. Manual SQL likely needed.
+
+The user confirmed manual 045 succeeded and reported live passes for the implemented count/refund/account fixes. Treat earlier failure descriptions as history, not automatically outstanding work. Email reset entry-point coverage remains a testing clarification, not a new confirmed defect. No automatic change to Reports history or owner/staff session lifetime is approved by accepting observed navigation behavior.
+
+### Excluded pilot-notice concern
+
+The user confirmed TEST GYM's counted period remained November 8–21 after Provider activation on November 7. The bell stopped swinging after the owner confirmed the notice. Source inspection shows access begins on activation day, counted pilot days begin the following day, and reading the notice does not reset entitlement dates. At the user's request, exclude this from implementation: no demonstrated indefinite-pilot bypass and no countdown or notification change for this concern.
+
 The user subsequently authorized proceeding with the other fixes. The announced first batch is limited to quick-cash interaction, visible refund search results, refund error dialogs, an overlapping-pending-request warning, and gym-specific offline recovery. These frontend changes are implemented on the review branch; merge/manual deployment still requires user review. See [first batch details](../pilot-first-fixes.md). Other proposals below remain held.
 
 Email delivery was traced to Brevo API authentication (401), followed by insufficient Transactional email permissions (403). The user corrected the API configuration and confirmed member and staff recovery worked, including password change/sign-in. No application change or SQL was needed for that resolution. The earlier observations below are retained as history, not outstanding delivery failures.
@@ -97,3 +119,21 @@ Held for review only; no code, financial policy or database changes authorized.
 5. Finally: discard-draft warning, reason ordering, recipient search, date highlighting, unread/read views and separate Revenue Today permission.
 
 These priorities do not authorize implementation or change financial policies. Inspect actual code and schema first; separately explain and obtain approval for any database-affecting change. Do not execute SQL. Keep unrelated deferred ideas outside this batch.
+
+## Later mock-trial additions — held before implementation
+
+The user's latest instruction is to save the following changes first and review simultaneous top-ups before implementing anything further. Earlier inline “implement this” annotations are subject to this explicit hold.
+
+- Expired-pass refund display: retain eligible historical purchases for owner-reviewed refunds, label expired pass purchases using the purchased pass's historical validity (not the member's current pass), show purchase/expiry details where available, and mark missing historical expiry as unavailable rather than inventing it. Hide fully refunded sources by default with an explicit show-all option; preserve history and server eligibility checks. Inspect available historical purchase data before designing any database changes.
+- Notification organization: Unread first, with separate Pinned/Status and Read tabs or collapsible sections suitable for phones. Reading relevant membership-status notices clears unread state without removing current status. Keep new unread notices immediately visible. Preserve per-recipient read-state isolation.
+- Reports Back button: icon-only back arrow with accessible “Back to dashboard” label and adequate phone touch target; held with the interface batch.
+- Top-up cancellation clarification: the member/amount confirmation with Cancel and Confirm top-up does appear. Cancel returns to the member top-up form, preserves the amount, and requires no separate cancellation notification. User confirmed pass.
+- Rejection clarification: rejection is blocked when the internal reason is blank, as intended. User did not report failure with a populated valid reason.
+
+### Simultaneous top-up review (not implemented)
+
+User reported that an owner and staff member each independently confirmed a top-up to the same member at approximately the same time; both credited. These are distinct transaction requests, not demonstrated duplicate replay of one request. Existing member-row locking serializes writes but does not establish that two operators received only one cash payment.
+
+User proposed a 20-second block. Review a stronger confirmation check: bind a server-validated review to the member's current financial state, and invalidate a second operator's old review when a top-up is committed. Return the intervening payment's amount/time/operator and require fresh review before a separate payment. Keep completed-request receipt replay ahead of stale-review checks so retries remain safe. An in-progress lock alone is insufficient if the second payment runs after the first commits. No arbitrary delay or automatic deduplication of equal amounts is approved. A second legitimate payment must remain possible after deliberate fresh review. Investigate exact implementation and migration needs before seeking execution approval.
+
+The user subsequently accepted the plain-language workflow and instructed adding it to the implementation plan before raising another inquiry. Planned behavior: first confirmed top-up succeeds; a second outdated confirmation is blocked with the intervening transaction details; a genuine additional payment needs a fresh review; an exact committed-request retry returns its receipt without another credit. This is accepted plan scope, not authorization to execute now. No code or SQL for this safeguard has been prepared or executed.
