@@ -14,6 +14,12 @@ export async function onRequest(context){
    start_url:'/gym/login?key='+encodeURIComponent(key),scope:'/gym/',display:'standalone',
    background_color:'#090d16',theme_color:'#10b981',lang:'en',
    icons:[192,512].map(size=>({src:'/assets/app-icons/gym-'+size+'.png',sizes:size+'x'+size,type:'image/png',purpose:'any maskable'}))};
+  const image=incoming.searchParams.get('image');
+  if(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(image||'')){
+   const base='https://uarvhalocgyrikjbrloh.supabase.co/storage/v1/object/public/iv-gym-images/'+image+'/';
+   manifest.icons=[192,512].map(size=>({src:base+'icon-'+size+'.png',sizes:size+'x'+size,type:'image/png',purpose:'any'}));
+   manifest.icons.push({src:base+'maskable-512.png',sizes:'512x512',type:'image/png',purpose:'maskable'});
+  }
   return new Response(request.method==='HEAD'?null:JSON.stringify(manifest),{headers});
  }
  const response=await env.ASSETS.fetch(request);

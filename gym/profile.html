@@ -110,6 +110,7 @@
 <link rel="stylesheet" href="../assets/member-account-menu.css">
 <link rel="stylesheet" href="/assets/gym-install.css">
 <script src="/assets/gym-install.js"></script>
+<script src="/assets/profile-images.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -192,9 +193,9 @@
                         </div>
                         
                         <!-- UPLOAD OVERLAY BUTTON -->
-                        <label class="absolute bottom-0 right-0 w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-lg hover:opacity-90 transition" title="Upload Profile Picture">
+                        <label class="absolute bottom-0 right-0 w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-lg hover:opacity-90 transition" title="Upload Profile Picture (up to 8 MB; resized automatically)">
                             <i class="fa-solid fa-camera text-xs"></i>
-                            <input type="file" accept="image/*" onchange="profileApp.handleAvatarUpload(event)" class="hidden">
+                            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="profileApp.handleAvatarUpload(event)" class="hidden">
                         </label>
                     </div>
 
@@ -1110,6 +1111,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 <script src="../assets/live-updates.js"></script>
 <script src="../assets/dashboard-live.js"></script>
 <script>IronVaultDashboardLive.install(profileApp,supabaseClient,'member');</script>
+<script>IronVaultProfileImages.install(profileApp,supabaseClient,'member');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

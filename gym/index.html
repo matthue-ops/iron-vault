@@ -79,6 +79,7 @@
 <link rel="stylesheet" href="../assets/subscriptions.css">
 <link rel="stylesheet" href="../assets/tenant-tools.css">
 <link rel="stylesheet" href="../assets/gym-profile.css">
+<script src="/assets/profile-images.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -261,7 +262,7 @@
                         <!-- GYM LOGO UPLOAD FIELD -->
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-1.5">Gym Logo Image (Optional)</label>
-                            <input type="file" id="reg-gym-logo" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
+                            <input type="file" id="reg-gym-logo" accept="image/png,image/jpeg,image/webp,image/gif" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
                         </div>
 
                         <div class="flex justify-end pt-1">
@@ -588,9 +589,10 @@
 
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1.5">Update Gym Logo Image (Optional)</label>
+                    <p class="text-xs text-slate-400 mb-2">Images are resized automatically. Upload a transparent PNG or WebP to keep the logo background clear. Up to 8 MB.</p>
                     <div class="flex items-center gap-3">
                         <img id="edit-logo-preview" src="" alt="Logo Preview" class="w-10 h-10 rounded-xl object-cover border border-slate-700 hidden">
-                        <input type="file" id="edit-gym-logo" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
+                        <input type="file" id="edit-gym-logo" accept="image/png,image/jpeg,image/webp,image/gif" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
                     </div>
                 </div>
 
@@ -1475,6 +1477,7 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script>IronVaultSubscriptions.install(indexApp,supabaseClient,'master');</script>
 <script src="../assets/gym-profile.js"></script>
 <script>IronVaultGymProfile.install(indexApp,supabaseClient);</script>
+<script>IronVaultProfileImages.install(indexApp,supabaseClient,'master');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>
