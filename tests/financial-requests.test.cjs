@@ -8,6 +8,11 @@ function fixture(){
  const input={p_operation:'topup',p_member_id:'member',p_plan:null,p_amount:100,p_cash_amount:0};
  return {client,storage,calls,input,actor:value=>{actor=value}};
 }
+test('financial error metadata distinguishes a first rejected stale request from unknown outcomes',async()=>{
+ const f=fixture();f.client.rpc=async()=>({error:{code:'IV004',message:'Review out of date'}});await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),e=>e.code==='IV004'&&e.uncertain===false);assert.equal(await finance.pending(f.client,f.storage,'gym'),null);
+ f.client.rpc=async()=>{throw Error('Network failure');};await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),e=>e.uncertain===true);assert.equal((await finance.pending(f.client,f.storage,'gym')).p_amount,100);
+ f.client.rpc=async()=>({error:{code:'IV004',message:'Later rejection'}});await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),e=>e.code==='IV004'&&e.uncertain===true);assert.equal((await finance.pending(f.client,f.storage,'gym')).p_amount,100);
+});
 test('transport failure preserves request and exact payload across retry',async()=>{
  const f=fixture();const ok=f.client.rpc;f.client.rpc=async(name,args)=>{f.calls.push(args);throw Error('Lost response')};
  await assert.rejects(finance.execute(f.client,f.storage,'gym',f.input),/Lost/);

@@ -6,7 +6,7 @@
   const role=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff','super_admin'],tenantId,allowGlobalSuperAdmin:true}),key='ironvault_financial_request:'+role.user_id+':'+tenantId;
   const payload=JSON.stringify({p_operation:'topup',p_member_id:memberId,p_plan:null,p_amount:Number(amount),p_cash_amount:0});
   let saved=JSON.parse(storage.getItem(key)||'null');
-  if(saved&&saved.payload!==payload){if(saved.stage!=='review')throw Error('Retry the unresolved payment before starting a different payment.');storage.removeItem(key);saved=null;}
+  if(saved&&saved.payload!==payload){if(saved.stage!=='review')throw Object.assign(Error('Retry the unresolved payment before starting a different payment.'),{uncertain:true});storage.removeItem(key);saved=null;}
   if(saved&&saved.stage!=='review')return {retry:true,request_id:saved.requestId};
   if(!saved){saved={payload,requestId:root.crypto.randomUUID(),stage:'review'};storage.setItem(key,JSON.stringify(saved));}
   try{
@@ -34,20 +34,23 @@
    // An abandoned review has never submitted a payment and may be replaced.
    if(pending?.stage==='review'&&pending.payload!==payload){storage.removeItem(key);pending=null;}
    const wasUnresolved=!!pending&&pending.stage!=='review';
-   if(pending&&pending.payload!==payload)throw new Error('Retry the unresolved payment before starting a different payment.');
+   if(pending&&pending.payload!==payload)throw Object.assign(new Error('Retry the unresolved payment before starting a different payment.'),{uncertain:true});
    if(!pending){pending={payload,requestId:root.crypto.randomUUID()};storage.setItem(key,JSON.stringify(pending));}
    pending.stage='submitted';storage.setItem(key,JSON.stringify(pending));
-   const {data,error}=await client.rpc('iv_financial_transaction',{...JSON.parse(payload),p_request_id:pending.requestId});
+   let response;
+   try{response=await client.rpc('iv_financial_transaction',{...JSON.parse(payload),p_request_id:pending.requestId});}
+   catch(error){throw Object.assign(new Error(error?.message||'Payment response not confirmed.'),{uncertain:true});}
+   const {data,error}=response||{};
    if(error){
     // Only a first-attempt definitive rejection proves this request never committed.
     // A later rejection cannot resolve an earlier unknown outcome.
     const definitive=/^(P0001|22\w{3}|23\w{3}|IV002|IV003|IV004|42501)$/.test(error.code||'');
     if(definitive&&!wasUnresolved)storage.removeItem(key);
-    throw new Error((error.message||'Payment not confirmed.')+(wasUnresolved?' The earlier transaction outcome remains unresolved. Keep this request and retry the same payment after access is restored; do not create a replacement.':''));
+    throw Object.assign(new Error((error.message||'Payment not confirmed.')+(wasUnresolved?' The earlier transaction outcome remains unresolved. Keep this request and retry the same payment after access is restored; do not create a replacement.':'')),{code:error.code,uncertain:wasUnresolved||!definitive});
    }
-   if(!data||data.request_id!==pending.requestId)throw new Error('Payment response not confirmed. Retry the same payment.');
-   const {data:identity,error:identityError}=await client.auth.getUser();
-   if(identityError||identity?.user?.id!==role.user_id)throw new Error('Account changed. Reopen the original account to confirm this payment.');
+   if(!data||data.request_id!==pending.requestId)throw Object.assign(new Error('Payment response not confirmed. Retry the same payment.'),{uncertain:true});
+   try{const {data:identity,error:identityError}=await client.auth.getUser();if(identityError||identity?.user?.id!==role.user_id)throw Error('Account changed. Reopen the original account to confirm this payment.');}
+   catch(error){throw Object.assign(new Error(error?.message||'Payment identity not confirmed.'),{uncertain:true});}
    storage.removeItem(key);return data;
   }finally{inflight.delete(key);}
  }

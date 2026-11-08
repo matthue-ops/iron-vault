@@ -98,7 +98,7 @@ async function topups(browser,width){
   window.supabaseClient={auth:{getUser:async()=>({data:{user:{id:'owner'}}})},from:()=>({select(){return this;},eq(){return this;},single:async()=>({data:{id:'a',status:'ACTIVE'}})}),rpc:async(name,args)=>{calls.push(args);return name==='iv_topup_review'?{data:{request_id:args.p_request,member_id:args.p_member,amount:args.p_amount,wallet_before:0,wallet_after:args.p_amount}}:{data:{request_id:args.p_request_id,wallet_balance:args.p_amount}};}};
   window.adminApp={currentTenantId:'gym',authenticatedRole:{user_id:'owner'},activeModalMemberId:'a',members:[{id:'a',name:'Alice',status:'ACTIVE',walletBalance:0}],
    selectModalTopUp:new Function('amount',selection),handleCustomModalTopUp:new AsyncFunction(custom),addModalCredits:new AsyncFunction('amount',writer),
-   confirmAdmin:async()=>new Promise(r=>release=r),notifyAdmin:m=>messages.push(m),loadMembers:async()=>{},openProfileModal(){}
+   confirmAdmin:async()=>new Promise(r=>release=r),notifyFinancialError:e=>messages.push(e.message),notifyAdmin:m=>messages.push(m),loadMembers:async()=>{},openProfileModal(){}
   };
  },{selection,custom,writer});
  await page.getByRole('button',{name:'+₱100',exact:true}).click();
