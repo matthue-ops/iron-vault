@@ -90,6 +90,8 @@
 <link rel="stylesheet" href="../assets/legal-documents.css">
 <link rel="stylesheet" href="../assets/admin-feedback.css">
 <link rel="stylesheet" href="../assets/subscriptions.css">
+<link rel="stylesheet" href="/assets/gym-install.css">
+<script src="/assets/gym-install.js"></script>
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -1024,6 +1026,7 @@
             },
 
             applyBranding: function(owner) {
+                window.IronVaultGymInstall?.configure(owner);
                 document.getElementById('header-gym-title').innerText = owner.gymName;
                 document.getElementById('header-subtitle').innerText = `Admin & Staff Portal`;
                 document.getElementById('page-title').innerText = `${owner.gymName} - Portal`;

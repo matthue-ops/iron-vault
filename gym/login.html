@@ -80,6 +80,8 @@
 <link rel="stylesheet" href="/assets/mobile-ui.css">
 <script defer src="/assets/mobile-ui.js"></script>
 <link rel="stylesheet" href="../assets/legal-documents.css">
+<link rel="stylesheet" href="/assets/gym-install.css">
+<script src="/assets/gym-install.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -403,6 +405,7 @@
                 if (matched) {
                     this.currentTenantId = matched.id;
                     this.matchedOwnerRecord = matched;
+                    window.IronVaultGymInstall?.configure(matched, {offer:true});
                     for(const id of ['signin-identifier','signin-password','btn-submit-signin','admin-login-email','admin-login-password','btn-submit-admin','signup-name','signup-email','signup-phone','signup-password','btn-submit-signup']){
                         const control=document.getElementById(id);control.disabled=false;control.classList.remove('opacity-50','cursor-not-allowed');
                     }
