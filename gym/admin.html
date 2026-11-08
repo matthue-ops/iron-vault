@@ -94,6 +94,7 @@
 <script src="/assets/gym-install.js"></script>
 <script src="/assets/profile-images.js"></script>
 <script src="/assets/session-scopes.js"></script>
+<link rel="stylesheet" href="../assets/scanner-screen.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -553,54 +554,24 @@
     </div>
 
     <!-- QR SCANNER MODAL -->
-    <div id="scanner-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden">
-        <div class="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 space-y-4 border border-slate-800 shadow-2xl relative max-h-[92vh] overflow-y-auto touch-scroll">
-            <button onclick="adminApp.closeScannerModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition text-lg p-2">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="text-center space-y-1">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 mb-1">
-                    <i class="fa-solid fa-qrcode text-xl"></i>
-                </div>
-                <h3 class="text-lg font-bold text-white">Door Access QR Scanner</h3>
-                <p class="text-xs text-slate-400">Scan the QR displayed directly on the member’s profile.</p>
-            </div>
-
-            <p id="scanner-presentation-notice" class="text-xs text-amber-300">Present your QR directly from your member profile. Screenshots and forwarded QR images are not accepted.</p>
-            <!-- LIVE CAMERA VIEW -->
-            <div class="relative overflow-hidden rounded-2xl bg-slate-950 border border-slate-800 aspect-video flex items-center justify-center">
-                <video id="qr-video" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
-                <canvas id="qr-canvas" class="hidden"></canvas>
-                <div id="camera-placeholder" class="p-6 text-center text-slate-500 text-xs">
-                    <i class="fa-solid fa-camera text-slate-600 text-2xl mb-1 block"></i>
-                    Initializing camera stream...
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="border-2 border-dashed border-slate-700 hover:border-purple-500 bg-slate-900/80 p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition text-center">
-                    <i class="fa-solid fa-cloud-arrow-up text-purple-400 text-base"></i>
-                    <span class="text-xs font-bold text-white">Upload QR Pass Image Instead</span>
-                    <input type="file" accept="image/*" onchange="adminApp.handleQRScanUpload(event)" class="hidden">
-                </label>
-            </div>
-
-            <div id="scan-result-container" class="hidden p-3 rounded-xl border text-center space-y-1">
-                <div id="scan-result-icon" class="text-xl"></div>
-                <h4 id="scan-result-title" class="font-bold text-xs"></h4>
-                <p id="scan-result-desc" class="text-[11px]"></p>
-            </div>
-
-            <div class="flex gap-2 pt-1">
-                <button id="scan-next-button" onclick="adminApp.resumeScanner()" class="hidden w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition">
-                    <i class="fa-solid fa-qrcode mr-1"></i> Scan Next Member
-                </button>
-                <button onclick="adminApp.closeScannerModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
-                    Close Scanner
-                </button>
-            </div>
+    <div id="scanner-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
+      <section class="scanner-shell">
+        <header class="scanner-header"><div><h3 id="scanner-title">Door Access QR Scanner</h3><p>Scan the live QR on the member’s profile.</p></div><button type="button" onclick="adminApp.closeScannerModal()" aria-label="Close scanner">✕</button></header>
+        <div class="scanner-camera">
+          <video id="qr-video" class="hidden" autoplay playsinline muted></video><canvas id="qr-canvas" class="hidden"></canvas>
+          <div class="scanner-guide" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div id="camera-placeholder" role="status">Initializing camera stream…</div>
         </div>
+        <div class="scanner-panel">
+          <p id="scanner-presentation-notice">Present the QR directly from your member profile. Screenshots and forwarded QR images are not accepted.</p>
+          <div class="scanner-tools"><button id="scanner-torch" type="button" hidden aria-pressed="false">Flashlight</button><button id="scanner-switch" type="button" hidden>Switch camera</button>
+            <button type="button" class="scanner-upload" onclick="document.getElementById('scanner-upload-input').click()">Upload QR image</button><input id="scanner-upload-input" type="file" accept="image/*" onchange="adminApp.handleQRScanUpload(event)" class="hidden">
+          </div>
+          <p id="scanner-camera-message" role="status"></p>
+          <div id="scan-result-container" class="hidden" role="status" aria-live="polite" aria-atomic="true"><div id="scan-result-icon"></div><h4 id="scan-result-title"></h4><p id="scan-result-desc"></p></div>
+          <div class="scanner-actions"><button id="scan-next-button" type="button" onclick="adminApp.resumeScanner()" class="hidden">Scan Next Member</button><button type="button" onclick="adminApp.closeScannerModal()">Close Scanner</button></div>
+        </div>
+      </section>
     </div>
 
     <!-- MEMBER PROFILE MODAL -->
@@ -2611,6 +2582,8 @@ adminApp.logoutAdmin=async function(){
 
 <link rel="stylesheet" href="../assets/notice-views.css">
 <script src="../assets/notice-views.js"></script>
+<script src="../assets/scanner-screen.js"></script>
+<script>IronVaultScannerScreen.install(adminApp);</script>
 <script src="../assets/subscriptions.js"></script>
 <script>IronVaultSubscriptions.install(adminApp,supabaseClient,'admin');IronVaultPhoneRevenue.install(adminApp,supabaseClient);</script>
 <link rel="stylesheet" href="../assets/staff-access.css">
