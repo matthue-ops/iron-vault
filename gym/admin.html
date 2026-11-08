@@ -1947,7 +1947,7 @@
                     this.activeCheckInMemberId=null;
                     document.getElementById('plan-selection-modal').classList.add('hidden');
                     this.notifyAdmin('Purchase recorded. Remaining wallet: '+ivMoney(result.wallet_balance),true);
-                }catch(error){this.notifyAdmin('Purchase not confirmed: '+error.message,false);return;}
+                }catch(error){this.notifyFinancialError(error,'Purchase not confirmed');return;}
                 // Admission is a separate authorized operation; its failure must not
                 // make a committed sale appear failed or trigger another purchase.
                 await this.finalizeDeskCheckIn(id,selectedPlanName);
@@ -2551,7 +2551,7 @@ adminApp.addModalCredits=async function(amount){
  const data=await IronVaultFinance.execute(supabaseClient,sessionStorage,this.currentTenantId,{p_operation:'topup',p_member_id:id,p_plan:null,p_amount:+amount,p_cash_amount:0});
  m.walletBalance=+data.wallet_balance;this.notifyAdmin('Top-up recorded: '+ivMoney(amount)+(data.reference?' · Reference: '+data.reference:''),true);
  try{await this.loadMembers();this.openProfileModal(id);}catch(refreshError){this.notifyAdmin('Top-up is recorded; refresh the roster to see the updated balance.',false);}return true;}
- catch(e){this.notifyAdmin('Top-up not confirmed: '+e.message,false);}
+ catch(e){this.notifyFinancialError(e,'Top-up not confirmed');}
 };
 adminApp.finalizeDeskCheckIn=async function(id,plan){
  try{await ivRequireRole(['owner','staff'],this.currentTenantId);
