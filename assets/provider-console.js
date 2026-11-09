@@ -2,7 +2,7 @@
 (function(root){
  'use strict';
  function install(app,client,ui){
-  const {call,run,modal,element,button,openBilling,serviceEditor}=ui,d=root.document;
+  const {call,run,modal,element,button,openBilling,serviceEditor,settingsEditor}=ui,d=root.document;
   let state=null,filter='all',timer=null,identity=null;
   const controls=element('div',null,'provider-header-actions');controls.hidden=true;
   const bell=button('',()=>run(notifications));bell.id='provider-notification-bell';bell.title='Notifications';
@@ -10,7 +10,7 @@
   const menu=element('details',null,'provider-menu'),summary=element('summary');summary.setAttribute('aria-label','Provider menu');const bars=element('i');bars.className='fa-solid fa-bars';bars.setAttribute('aria-hidden','true');summary.appendChild(bars);
   const cleanupAction=button('Remove test service PDFs',()=>run(cleanup));
   const choices=element('div',null,'provider-menu-panel');choices.append(button('Platform Legal Details',()=>app.openLegalSettings()),button('Service Agreement Settings',()=>run(serviceEditor)),button('Tenant announcements',()=>run(announcements)),cleanupAction);
-  if(root.IronVaultSubscriptionManagement)choices.append(button('Pending subscriptions',()=>root.IronVaultSubscriptionManagement.queue(client,openBilling)),button('Payment options',()=>root.IronVaultSubscriptionManagement.paymentMethods(client)),button('Subscription reports',()=>root.IronVaultSubscriptionManagement.reports(client)));
+  if(root.IronVaultSubscriptionManagement){const subscription=element('details',null,'provider-subscription-menu'),heading=element('summary','Subscription');subscription.append(heading,button('Plan prices & settings',()=>run(settingsEditor)),button('Pending subscriptions',()=>root.IronVaultSubscriptionManagement.queue(client,openBilling)),button('Payment options',()=>root.IronVaultSubscriptionManagement.paymentMethods(client)),button('Subscription reports',()=>root.IronVaultSubscriptionManagement.reports(client)));choices.append(subscription);}
   const logout=d.getElementById('btn-super-logout');if(logout)choices.appendChild(logout);
   menu.append(summary,choices);controls.append(bell,menu);d.querySelector('body>header>div')?.appendChild(controls);
   d.addEventListener('click',event=>{if(!menu.contains(event.target)||event.target.closest('.provider-menu-panel button'))menu.open=false;});d.addEventListener('keydown',event=>{if(event.key==='Escape')menu.open=false;});
@@ -40,7 +40,7 @@
    try{const result=originalRows.apply(this,args);if(!this.owners.length){const cell=d.getElementById('owners-tbody')?.querySelector('td');if(cell)cell.textContent=filter==='live'?(counts.test?'No Live gyms yet. Select Test to view your test gyms.':'No Live gyms yet.'):filter==='test'?'No Test gyms yet. Select All to view registered gyms.':'No gyms registered yet.';}return result;}finally{this.owners=all;}
   };
   filterRow.append(filterGroup,element('p','Live totals exclude Test gyms.','tenant-filter-help'));d.getElementById('dash-content-tenants')?.prepend(filterRow);
-  async function notifications(){update(await consoleCall());const target=modal('Provider notifications'),active=state.notices.filter(n=>!n.read_at&&!n.resolved_at);if(!active.length)target.appendChild(element('p','You’re all caught up.'));for(const n of active){const row=element('article',null,'iv-sub-notice'),tenant=state.tenants.find(t=>t.tenant_id===n.tenant_id);row.append(button(n.title+(tenant?' — '+tenant.name:''),()=>run(async()=>{update(await consoleCall('read',{key:n.notice_key}));body.hidden=false;row.dataset.read='true';})),element('small',new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(n.available_at))+' · Philippine time'));const body=element('p',n.message,'iv-sub-summary');body.hidden=true;row.appendChild(body);if(tenant)row.appendChild(button('Review gym',()=>run(async()=>{update(await consoleCall('read',{key:n.notice_key}));await openBilling(n.tenant_id);})));target.appendChild(row);}}
+  async function notifications(){update(await consoleCall());const target=modal('Provider notifications'),content=element('section');target.append(content);const rows=state.notices.map(n=>({...n,title:n.title+(state.tenants.find(t=>t.tenant_id===n.tenant_id)?' — '+state.tenants.find(t=>t.tenant_id===n.tenant_id).name:''),id:n.notice_key,body:n.message,unread:!n.read_at&&!n.resolved_at,noticeSource:'provider',detailLabel:n.tenant_id?'Review gym':false}));root.IronVaultNoticeViews.render(content,rows,{onRead:async n=>{update(await consoleCall('read',{key:n.notice_key}));},onOpen:async n=>{if(n.tenant_id)await openBilling(n.tenant_id);}});}
   async function announcements(){
    update(await consoleCall());const target=modal('Tenant announcements');target.appendChild(element('p','Sent only to registered owner accounts. Use Service Agreement Settings for formal price or agreement notices.','iv-sub-muted'));
    const title=element('input'),message=element('textarea'),audience=element('select'),when=element('input');title.maxLength=160;message.maxLength=5000;when.type='datetime-local';
