@@ -61,7 +61,7 @@
     ['Visits',String(model.visits),'Selected period'],
     ['Valid passes',String(model.currentPasses),'Current']])box.appendChild(card(label,value,note));
    const money=node('report-money-summary');money.textContent='';
-   for(const [label,value] of [['Membership sales',model.grossSales],['Wallet top-ups',model.totals.topup],['Wallet spending',model.totals.plan_wallet],['Cash refunds',model.totals.refund_cash],['Refunds to wallet',model.totals.refund_wallet],['Credit corrections out',model.totals.wallet_correction],['Credit corrections in',model.totals.wallet_correction_in],['Net cash received',model.cashIn]])money.appendChild(card(label,R.money(value),'Selected period'));
+   for(const [label,value] of [['Membership sales',model.grossSales],['Net cash received',model.cashIn],['Wallet spending',model.totals.plan_wallet],['Wallet top-ups',model.totals.topup],['Refunds to wallet',model.totals.refund_wallet],['Cash refunds',model.totals.refund_cash],['Credit corrections in',model.totals.wallet_correction_in],['Credit corrections out',model.totals.wallet_correction]])money.appendChild(card(label,R.money(value),'Selected period'));
    node('report-sales-details').textContent='Recorded pass purchases: '+model.purchaseCount+' · Repeat purchases: '+model.renewals+' · New registrations: '+model.newMembers+'. Receipts count one purchase even when payment is split; older sales without receipts are excluded from purchase counts.';
    const attendance=node('report-attendance-summary');attendance.textContent='';
    for(const [label,value,note] of [['Visits / unique visitors',model.visits+' / '+model.uniqueVisitors,'Selected period'],['Entry methods',model.qr+' QR · '+model.manual+' manual · '+model.otherAdmissions+' other','Selected period'],['Valid passes',String(model.currentPasses),'Current membership validity']])attendance.appendChild(card(label,value,note));
@@ -86,7 +86,7 @@
    for(const name of ['overview','financial','attendance','audit']){
     const panel=node(name==='overview'?'section-overview':'section-'+name+'-table');
     panel.hidden=name!==tab;panel.classList.toggle('hidden',name!==tab);
-    const button=node('tab-btn-'+name);button.setAttribute('aria-selected',String(name===tab));button.setAttribute('aria-controls',panel.id);button.classList.toggle('report-tab-active',name===tab);
+    const button=node('tab-btn-'+name);button.setAttribute('aria-selected',String(name===tab));button.setAttribute('aria-controls',panel.id);button.classList.toggle('report-tab-active',name===tab);for(const legacy of ['bg-emerald-500','text-slate-950','shadow-lg'])button.classList.remove(legacy);
    }
    const tools=node('report-table-tools');tools.hidden=tab==='overview';
    if(tab!=='overview'){const panel=node('section-'+tab+'-table'),container=panel.querySelector?.('.phone-report-records')||panel;if(container.insertBefore)container.insertBefore(tools,container.querySelector('.overflow-x-auto'));else container.appendChild(tools);}

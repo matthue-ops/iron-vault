@@ -14,7 +14,7 @@
   const deny=app.ivDeny;app.ivDeny=function(error){if(error.code==='EXPORT_ACCESS_DENIED'){root.alert(error.message);return;}return deny.apply(this,arguments);};
  }
  function installAdmin(app,client,options={}){
-  const d=root.document;if(!d.querySelector)return;const node=id=>d.getElementById(id);let epoch=0,serial=0,grants={},state=null,feed=[],feedSerial=0,feedLoaded=false,feedError='',poll=null,disconnected=false;
+  const d=root.document;if(!d.querySelector)return;const node=id=>d.getElementById(id);let notificationView=null,epoch=0,serial=0,grants={},state=null,feed=[],feedSerial=0,feedLoaded=false,feedError='',poll=null,disconnected=false;
   const owner=()=>!disconnected&&app.authenticatedRole?.role==='owner';
   const actor=()=>disconnected?null:app.authenticatedRole?.user_id;
   async function rpc(name,args){
@@ -70,8 +70,24 @@
   }
   app.renderExistingStaffList=()=>{void renderStaff();};
   const openStaff=app.openStaffSignupModal;app.openStaffSignupModal=async function(){const result=await openStaff.apply(this,arguments);node('staff-report-permissions').textContent='';await renderStaff();return result;};
-  async function refreshFeed(){if(!actor()||!app.currentTenantId||d.hidden)return;const ticket=++feedSerial;try{const data=await rpc('iv_account_announcements',{p_tenant:app.currentTenantId,p_mode:'list'});if(ticket!==feedSerial)return;if(!Array.isArray(data?.items)||data.items.some(n=>n.tenant_id!==app.currentTenantId))throw Error('Invalid announcement feed');feed=data.items;feedLoaded=true;feedError='';}catch(error){if(ticket!==feedSerial)return;feed=[];feedLoaded=false;feedError='Gym announcements are unavailable. Please retry.';}apply();}
-  app.openAccountNotifications=async function(){await refreshFeed();const box=make('dialog',undefined,'staff-account-dialog'),done=make('button','Close'),content=make('section');done.type='button';done.onclick=()=>box.close();box.classList.add('phone-notice-dialog');const header=make('header',undefined,'phone-notice-header');done.textContent='✕';done.setAttribute('aria-label','Close notifications');header.append(make('h2','Notifications'),done);box.append(header);if(owner()){const billing=make('button','Subscription notices');billing.type='button';billing.className='phone-subscription-notices';billing.onclick=()=>{box.close();app.openSubscriptionNotifications?.();};box.appendChild(billing);}box.append(content);if(!feedLoaded)content.textContent=feedError;else root.IronVaultNoticeViews.render(content,feed,{onRead:async notice=>{await rpc('iv_account_announcements',{p_tenant:app.currentTenantId,p_mode:'read',p_read:[{id:notice.id,revision:notice.revision}]});await refreshFeed();}});box.addEventListener('close',()=>box.remove());d.body.appendChild(box);box.showModal();};
+  async function refreshFeed(){if(!actor()||!app.currentTenantId||d.hidden)return;const ticket=++feedSerial;try{const data=await rpc('iv_account_announcements',{p_tenant:app.currentTenantId,p_mode:'list'});if(ticket!==feedSerial)return;if(!Array.isArray(data?.items)||data.items.some(n=>n.tenant_id!==app.currentTenantId))throw Error('Invalid announcement feed');feed=data.items;feedLoaded=true;feedError='';}catch(error){if(ticket!==feedSerial)return;feed=[];feedLoaded=false;feedError='Gym announcements are unavailable. Please retry.';}apply();if(notificationView?.box.open)await drawNotifications(notificationView);}
+
+  async function drawNotifications(view){
+   const ticket=++view.serial,stamp=epoch,tenant=app.currentTenantId,user=actor();let subscriptionRows=[],subscriptionError='';
+   if(owner())try{subscriptionRows=await app.getSubscriptionNotices();}catch(_){subscriptionError='Subscription notices could not be loaded. Please retry.';}
+   if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor()||!view.box.open||ticket!==view.serial)return;
+   const rows=[...(feedLoaded?feed.map(n=>({...n,noticeSource:'announcement'})):[]),...subscriptionRows];apply();view.status.textContent=[!feedLoaded?feedError:'',subscriptionError].filter(Boolean).join(' ');view.retry.hidden=!view.status.textContent;
+   root.IronVaultNoticeViews.render(view.content,rows,{emptyMessage:view.status.textContent?'Some notifications are unavailable. Please retry.':undefined,onRead:async n=>{
+    if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor())throw Error('Account changed.');
+    if(n.noticeSource==='subscription')await app.readSubscriptionNotice(n);else await rpc('iv_account_announcements',{p_tenant:tenant,p_mode:'read',p_read:[{id:n.id,revision:n.revision}]});
+    await refreshFeed();
+   },onOpen:async n=>{if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor())throw Error('Account changed.');if(n.noticeSource==='subscription'){await app.viewSubscriptionNotice(n);view.box.close();}}});
+  }
+  app.openAccountNotifications=async function(){
+   if(notificationView?.box.open)return;
+   const box=make('dialog',undefined,'staff-account-dialog phone-notice-dialog'),done=make('button','✕'),content=make('section'),status=make('p','Loading notifications…'),retry=make('button','Retry notifications'),header=make('header',undefined,'phone-notice-header');done.type=retry.type='button';done.setAttribute('aria-label','Close notifications');done.onclick=()=>box.close();header.append(make('h2','Notifications'),done);status.setAttribute('role','status');retry.hidden=true;box.append(header,status,retry,content);
+   const view={box,content,status,retry,serial:0};notificationView=view;retry.onclick=async()=>{await refreshFeed();};box.addEventListener('close',()=>{view.serial++;if(notificationView===view)notificationView=null;box.remove();});d.body.append(box);box.showModal();await refreshFeed();
+  };
   const init=app.init;app.init=async function(){disconnected=false;resumePolling();const result=await init.apply(this,arguments);await refresh();await refreshFeed();return result;};
   d.addEventListener('visibilitychange',()=>{if(!d.hidden){void refresh();void refreshFeed();}});root.addEventListener('focus',()=>{void refresh();void refreshFeed();});function stopPolling(){if(poll!==null)root.clearInterval(poll);poll=null;}function resumePolling(){if(disconnected||poll!==null)return;poll=root.setInterval(()=>{void refresh();void refreshFeed();},60000);}resumePolling();root.addEventListener('pagehide',stopPolling);root.addEventListener('pageshow',()=>{if(disconnected)return;resumePolling();void refresh();void refreshFeed();});
   client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||actor()&&session?.user?.id&&session.user.id!==actor()){disconnected=true;stopPolling();staffDrafts.clear();draftScope='';epoch++;serial++;feedSerial++;staffSerial++;staffBox.textContent='';node('staff-signup-modal')?.classList.add('hidden');state=null;grants={};feed=[];feedLoaded=false;dialog.close();for(const n of d.querySelectorAll('.staff-account-dialog[open]'))n.close();apply();}});

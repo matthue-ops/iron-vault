@@ -257,8 +257,9 @@
           }
           );
           if(!current())return;
+          const setupData=value.status==='setup'?await savedGymDetails(data):data;if(!current())return;
           record=data;
-          if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,data,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
+          if(value.status==='setup'){panel.textContent='';panel.appendChild(element('h2','Get your gym ready'));setupChecklist(panel,setupData,()=>openBilling(data.tenant_id,'documents'));panel.appendChild(element('p','','iv-sub-error'));}
           const count=(data.unread_count??data.notifications.filter(n=>!n.read_at&&!n.resolved_at&&!n.superseded_at).length)+(app.accountNoticeCount||0);app.ownerNoticeCount=count-(app.accountNoticeCount||0);
           const badge=d.getElementById('owner-notification-count');badge.textContent=String(count);badge.hidden=!count;bell.dataset.unread=String(count>0);
           bell.setAttribute('aria-label','Notifications'+(count?', '+count+' unread':''));
@@ -280,13 +281,26 @@
         showError(e.message);
       }
     }
-    function setupChecklist(target,data,review){
+    const setupViews=new Set();
+    async function savedGymDetails(data){
+      if(data.state?.status!=='setup')return data;
+      const stamp=epoch;try{const legal=await call('iv_legal_manage',{p_action:'get',p_tenant:data.tenant_id});return {...data,gym_details_complete:root.IronVaultLegal.gymDetailsComplete(legal.draft),gym_details_published:!!legal.current_version};}
+      catch(error){if(stamp!==epoch||/Account changed|Sign in again/.test(error.message))throw error;return {...data,gym_details_complete:null};}
+    }
+    app.refreshGymSetupDetails=async tenant=>{
+      for(const entry of [...setupViews]){if(!entry.host.isConnected){setupViews.delete(entry);continue;}if(entry.data.tenant_id!==tenant)continue;
+        const stamp=epoch,data=await savedGymDetails(entry.data);if(stamp!==epoch||!entry.host.isConnected)continue;entry.data=data;entry.host.textContent='';drawSetupChecklist(entry.host,data,entry.review);
+      }
+    };
+    function setupChecklist(target,data,review){for(const entry of setupViews)if(!entry.host.isConnected)setupViews.delete(entry);const host=element('section');target.append(host);setupViews.add({host,data,review});drawSetupChecklist(host,data,review);}
+    function drawSetupChecklist(target,data,review){
+      const published=data.gym_details_published??data.gym_documents_ready;
       const steps=[
-        ['1. Gym Terms & Privacy',data.gym_documents_ready,'Complete and publish your gym details.',()=>{dialog?.close();app.openLegalSettings(data.tenant_id);}],
-        ['2. Service Agreement',data.accepted,!data.current_version?'Awaiting Iron Vault publication.':!data.gym_documents_ready?'Review the documents; complete step 1 before accepting.':'Review the Terms of Use, Privacy Notice, Data Processing Agreement and Free Pilot Conditions.',data.current_version?review:null],
-        ['3. Pilot approval',data.state.status!=='setup',!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready?'Complete the requirements above.':'Awaiting Service Provider approval. Your pilot has not started.',null]
+        ['1. Gym Terms & Privacy',data.gym_details_complete===true,data.gym_details_complete===null?'Saved details could not be verified. Reopen to retry.':'Complete and save the required gym details.',()=>{dialog?.close();app.openLegalSettings(data.tenant_id);}],
+        ['2. Service Agreement',data.accepted,!data.current_version?'Awaiting Iron Vault publication.':!published?'Review and publish your gym documents before accepting.':'Review the Terms of Use, Privacy Notice, Data Processing Agreement and Free Pilot Conditions.',data.current_version?review:null],
+        ['3. Pilot approval',data.state.status!=='setup',!data.accepted||!published||!data.platform_documents_ready?'Complete the requirements above.':'Awaiting Service Provider approval. Your pilot has not started.',null]
       ];
-      const list=element('div',null,'iv-sub-steps');for(const [title,done,description,action] of steps){const card=element('article',null,'iv-sub-step');card.dataset.complete=String(!!done);card.append(element('h3',(done?'✓ ':'')+title),element('p',done?'Complete':description));if(!done&&action&&data.is_owner)card.appendChild(button(title.startsWith('1.')?'Complete gym details':'Review Service Agreement',action,'primary'));list.appendChild(card);}target.appendChild(list);
+      const list=element('div',null,'iv-sub-steps');for(const [title,done,description,action] of steps){const card=element('article',null,'iv-sub-step');card.dataset.complete=String(!!done);card.append(element('h3',(done?'✓ ':'')+title),element('p',done?'Complete':description));if(title.startsWith('1.')&&done&&!published)card.append(element('p','Details saved. Review and publish your gym documents before pilot approval.'));if((!done||title.startsWith('1.')&&!published)&&action&&data.is_owner)card.appendChild(button(title.startsWith('1.')?(done?'Review / publish gym terms':'Complete gym details'):'Review Service Agreement',action,'primary'));list.appendChild(card);}target.appendChild(list);
       if(data.accepted&&data.state.status==='setup'){const pending=element('p','Your agreement acceptance is recorded. Pilot activation still requires manual approval by the Iron Vault Service Provider.','iv-sub-notice');pending.setAttribute('role','status');target.appendChild(pending);}
       if(!data.platform_documents_ready)target.appendChild(element('p','Iron Vault must also publish its platform member documents before activation.','iv-sub-muted'));
     }
@@ -477,16 +491,21 @@
       for(const p of data.periods)target.appendChild(element('p',p.kind+' · '+planName(p.plan)+' · '+p.start_date+' – '+p.end_date+' · '+money(p.amount)+'\nReference: '+(p.reference||'Not applicable')+' · Approved '+dateTime(p.approved_at),'iv-sub-notice'));
       for(const e of data.events)target.appendChild(element('p',({activate_pilot:'Pilot activated',approve_payment:'Payment approved',approve_downgrade:'Downgrade scheduled',extend:'Extension approved'}[e.action]||'Subscription updated')+' · '+dateTime(e.created_at)+' · '+(e.data.reason||e.data.reference||'Recorded by platform administrator'),'iv-sub-summary'));
     }
+    app.getSubscriptionNotices=async function(){
+      const tenant=app.currentTenantId,data=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'notifications'});
+      if(!data.is_owner||data.tenant_id!==tenant||app.currentTenantId!==tenant||!Array.isArray(data.notifications))throw Error('Subscription notices unavailable.');
+      const rows=data.notifications.filter(n=>!n.superseded_at).map(n=>({...n,id:'subscription:'+n.notice_key,noticeSource:'subscription',body:n.message,unread:!n.read_at&&!n.resolved_at}));
+      app.ownerNoticeCount=rows.filter(n=>n.unread).length;return rows;
+    };
+    app.readSubscriptionNotice=async n=>{await call('iv_subscription_portal',{p_tenant:app.currentTenantId,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();};
+    app.viewSubscriptionNotice=n=>openBilling(app.currentTenantId,n.notice_key.startsWith('documents')?'documents':'overview');
     async function openOwnerNotifications(){
-      const data=await call('iv_subscription_portal',{p_tenant:app.currentTenantId,p_action:'notifications'});
-      if(!data.is_owner)throw Error('Registered owner required.');
-      const target=modal('Notifications'),content=element('section');target.append(content);
-      const rows=data.notifications.filter(n=>!n.superseded_at).map(n=>({...n,body:n.message,unread:!n.read_at&&!n.resolved_at}));
-      root.IronVaultNoticeViews.render(content,rows,{onRead:async n=>{await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();},onOpen:n=>run(async()=>{await call('iv_subscription_portal',{p_tenant:data.tenant_id,p_action:'read_notice',p_data:{key:n.notice_key}});await refresh();await openBilling(data.tenant_id,n.notice_key.startsWith('documents')?'documents':'overview');})});
+      const rows=await app.getSubscriptionNotices(),target=modal('Notifications'),content=element('section');target.append(content);
+      root.IronVaultNoticeViews.render(content,rows,{onRead:app.readSubscriptionNotice,onOpen:app.viewSubscriptionNotice});
     }
     async function openBilling(tenant,initial='overview'){
-      const serial=++viewSerial;
-      const data=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'get'});if(serial!==viewSerial)return;
+      const serial=++viewSerial,stamp=epoch;
+      const base=await call('iv_subscription_portal',{p_tenant:tenant,p_action:'get'}),data=await savedGymDetails(base);if(serial!==viewSerial||stamp!==epoch)return;
       selected=tenant;record=data;const target=modal(kind==='master'?'Gym subscription review':data.state.status==='setup'&&!data.accepted&&initial==='documents'?'Service Agreement':'Subscription');
       const view=tabs(target,[['overview','My Plan'],['documents','Agreements'],['history','History']],initial);
       target.querySelector('[role=tablist]').classList.add('iv-plan-tabs');
@@ -668,7 +687,7 @@
     }
     client.auth.onAuthStateChange((event,session)=>{
       if(event==='SIGNED_OUT'||(actor&&session?.user?.id&&session.user.id!==actor)){
-        epoch++;
+        epoch++;setupViews.clear();
         shownWelcome.clear();
         record=access=null;
         actor=null;

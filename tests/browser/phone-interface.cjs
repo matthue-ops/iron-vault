@@ -11,6 +11,7 @@ async function pageFor(browser,file,width,role){const p=await browser.newPage({v
    if(name==='iv_issue_member_pass')return mock.used?{error:{message:'Already admitted today'}}:{data:{payload:'IV1|'+mock.token,business_day:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date()),expires_at:new Date(Date.now()+3600000).toISOString()}};
    if(name==='iv_set_gym_preset'){const colors={emerald:'#10b981',blue:'#60a5fa',violet:'#a78bfa',teal:'#2dd4bf',amber:'#fbbf24'};mock.gym.accentColor=colors[args.p_preset];return {data:mock.gym.accentColor};}
    if(name==='iv_revenue_today')return mock.revenueError?{error:{message:'Test read failure'}}:{data:{tenant_id:'g',day:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date()),amount:'90.00'}};
+   if(name==='iv_subscription_portal')return {data:{tenant_id:'g',is_owner:mock.role==='owner',notifications:[],state:{status:'pilot'},unread_count:0}};
    if(name==='iv_account_announcements')return {data:{items:[]}};
    if(name==='iv_staff_access')return {data:{role:mock.role,state:'active',permissions:mock.role==='owner'?{subscription_read:true,revenue_today:true}:{}}};
    return {data:{items:[],state:{status:'pilot'},removed:[]}};
