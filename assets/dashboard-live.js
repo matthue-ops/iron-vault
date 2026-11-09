@@ -36,7 +36,7 @@
   async function rows(query){const {data,error}=await query;if(error)throw error;if(!Array.isArray(data))throw Error('Live refresh returned invalid records.');return data;}
   async function read(scope,hints){
    if(kind==='member'){
-    const [ms,gs]=await Promise.all([rows(client.from('members').select('*').eq('id',scope.member).eq('tenant_id',scope.tenant)),rows(client.from('owners').select('id,gym_name,token,logo,status,pricing').eq('id',scope.tenant))]);
+    const [ms,gs]=await Promise.all([rows(client.from('members').select('*').eq('id',scope.member).eq('tenant_id',scope.tenant)),rows(client.from('owners').select('id,gym_name,token,logo,status,pricing,accent_color').eq('id',scope.tenant))]);
     if(ms.length!==1||gs.length!==1||ms[0].id!==scope.member||ms[0].tenant_id!==scope.tenant||gs[0].id!==scope.tenant||!['ACTIVE','PENDING'].includes(ms[0].status)||gs[0].status!=='ACTIVE'){const e=Error('Membership access changed.');e.code='ACCESS_DENIED';throw e;}
     return {members:ms.map(member),gyms:gs.map(gym),full:true};
    }

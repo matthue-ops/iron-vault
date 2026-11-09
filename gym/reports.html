@@ -104,6 +104,7 @@
 <script src="/assets/gym-portals.js"></script>
 <script src="/assets/session-scopes.js"></script>
 <link rel="stylesheet" href="../assets/phone-interface.css">
+<link rel="stylesheet" href="../assets/gym-palette.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -388,7 +389,7 @@
 
             loadTenantAndData: async function(keyParam) {
                 const role=this.authenticatedRole;
-                let query=supabaseClient.from('owners').select('id,gym_name,token,logo,status');
+                let query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,accent_color');
                 if(keyParam)query=query.eq('token',keyParam);
                 else if(role.tenant_id)query=query.eq('id',role.tenant_id);
                 else throw new Error('Open a specific gym report link.');
@@ -396,6 +397,7 @@
                 const {data,error}=await query;
                 if(error||data?.length!==1)throw new Error('This gym is unavailable or unauthorized.');
                 const gym=data[0];
+                IronVaultGymAccent.apply(gym.accent_color);
                 window.IronVaultGymPortals?.assertScope(gym.id);
                 this.currentTenant={id:gym.id,gymName:gym.gym_name,token:gym.token,logo:gym.logo};
                 await this.ivRequireReport();
@@ -715,6 +717,7 @@ reportsApp.ivCredits=async function(){
 <script>IronVaultStaffAccess.installReports(reportsApp,supabaseClient);</script>
 <script src="../assets/report-controls.js"></script>
 <script>IronVaultReportControls.install(reportsApp);</script>
+<script src="../assets/gym-accent.js"></script>
 <script src="../assets/phone-interface.js"></script>
 <script>IronVaultPhoneInterface.installReports(reportsApp);</script>
 <script defer src="/assets/offline-fallback.js"></script>

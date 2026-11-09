@@ -1,0 +1,28 @@
+/* Saved gym palette: decorative emerald utilities follow the gym, semantic alerts retain their colors. */
+html[data-gym-palette] [class~="text-emerald-300"]{color:color-mix(in srgb,var(--brand-primary),white 25%)!important}
+html[data-gym-palette] [class~="text-emerald-400"]{color:color-mix(in srgb,var(--brand-primary),white 25%)!important}
+html[data-gym-palette] [class~="hover:bg-emerald-400"]:hover{background-color:color-mix(in srgb,var(--brand-primary),white 25%)!important}
+html[data-gym-palette] [class~="border-emerald-400"]{border-color:color-mix(in srgb,var(--brand-primary),white 25%)!important}
+html[data-gym-palette] [class~="bg-emerald-500"]{background-color:var(--brand-primary)!important}
+html[data-gym-palette] [class~="bg-emerald-500/10"]{background-color:color-mix(in srgb,var(--brand-primary) 10%,transparent)!important}
+html[data-gym-palette] [class~="bg-emerald-500/20"]{background-color:color-mix(in srgb,var(--brand-primary) 20%,transparent)!important}
+html[data-gym-palette] [class~="hover:bg-emerald-500"]:hover{background-color:var(--brand-primary)!important}
+html[data-gym-palette] [class~="border-emerald-500"]{border-color:var(--brand-primary)!important}
+html[data-gym-palette] [class~="border-emerald-500/20"]{border-color:color-mix(in srgb,var(--brand-primary) 20%,transparent)!important}
+html[data-gym-palette] [class~="border-emerald-500/30"]{border-color:color-mix(in srgb,var(--brand-primary) 30%,transparent)!important}
+html[data-gym-palette] [class~="border-emerald-500/40"]{border-color:color-mix(in srgb,var(--brand-primary) 40%,transparent)!important}
+html[data-gym-palette] [class~="border-emerald-500/50"]{border-color:color-mix(in srgb,var(--brand-primary) 50%,transparent)!important}
+html[data-gym-palette] [class~="bg-emerald-600"]{background-color:var(--brand-primary)!important}
+html[data-gym-palette] [class~="bg-emerald-700"]{background-color:var(--brand-primary)!important}
+html[data-gym-palette] .bg-glow-orb{background-color:var(--brand-primary)!important}
+html[data-gym-palette] #profile-card-status{color:#6ee7b7!important;background-color:#064e3b66!important;border-color:#10b98166!important}
+html[data-gym-palette] .phone-primary,html[data-gym-palette] button.bg-emerald-500{color:var(--brand-ink)!important}
+html[data-gym-palette] #stat-revenue[data-error]{font-size:12px!important;text-decoration:underline;cursor:pointer}
+html[data-gym-palette] .report-tabs button.report-tab-active{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--brand-ink)}
+html[data-gym-palette] #scanner-modal #scan-next-button{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--brand-ink)}
+html[data-gym-palette] button.bg-emerald-600,html[data-gym-palette] button.bg-emerald-700{color:var(--brand-ink)!important}
+html[data-gym-palette] [class~="hover:bg-emerald-500/20"]:hover{background-color:color-mix(in srgb,var(--brand-primary) 20%,transparent)!important}
+html[data-gym-palette] [class~="hover:bg-emerald-500/30"]:hover{background-color:color-mix(in srgb,var(--brand-primary) 30%,transparent)!important}
+html[data-gym-palette] [class~="hover:border-emerald-500"]:hover{border-color:var(--brand-primary)!important}
+html[data-gym-palette] [class~="hover:border-emerald-500/40"]:hover{border-color:color-mix(in srgb,var(--brand-primary) 40%,transparent)!important}
+html[data-gym-palette] [class~="hover:text-emerald-300"]:hover,html[data-gym-palette] [class~="hover:text-emerald-400"]:hover{color:color-mix(in srgb,var(--brand-primary),white 25%)!important}

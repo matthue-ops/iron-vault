@@ -30,3 +30,11 @@ No live SQL has been executed by this implementation. No new Edge Function deplo
 - `npm run build:pages` and `git diff --check`.
 
 Browser tests isolate external services: they do not validate a deployed Supabase instance or make real purchases. After deployment, smoke-test owner/staff permissions, one dummy top-up/refund, QR/manual attendance, report export and backup controls. Verify the same unused QR reopens, successful scanning replaces it, and both gym and member pages use the saved preset.
+
+## Palette/revenue follow-up
+
+The first release omitted `accent_color` from the member live-refresh projection and the report branding query. The former reset the member palette during background refresh. Fixed Emerald utilities and the selected report tab also retained green. The follow-up reads the saved value on these paths and applies a scoped palette stylesheet, including translucent borders/glows, text, buttons, selected report tabs and browser theme color. The membership Active status remains a semantic green badge. Owners access Appearance from their own menu; staff do not gain this control.
+
+Revenue refresh now runs immediately after authenticated initialization, independently of the full Reports permission result. Service/validation failures display Retry; activating it shows the returned reason and retries the same aggregate-only API. Errors are never replaced with an invented zero. Report amounts, financial writes and server permissions are unchanged.
+
+This follow-up needs no additional SQL. Existing migration 049 remains required for saving presets; do not rerun it if already installed. Regression checks include the actual member live-refresh adapter, owner menu access, all five rendered palettes, report branding and failed/successful revenue reads. The temporary Tailwind test configuration now matches the deployed `brand` configuration instead of replacing the `emerald` palette, which previously masked fixed-green styles.
