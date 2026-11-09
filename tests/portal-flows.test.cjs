@@ -48,7 +48,7 @@ test('public login initialization requests only selected branding and never a me
  const p=portal('gym/login.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Gym A',status:'ACTIVE'}]});
  await p.get('app').init();assert.equal(p.calls.length,1);
  assert.equal(p.calls[0].table,'owners');assert.deepEqual(p.calls[0].filters,[['token','token-a']]);
- assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing');
+ assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing,accent_color');
  assert.equal(p.get('app').currentTenantId,'gym-a');
 });
 test('public login does not restore a deleted or denied gym from cache',async()=>{
@@ -552,7 +552,7 @@ test('repeated Excel clicks cannot start duplicate downloads',async()=>{
 test('friendly gym login requests only exact slug branding, including a trailing slash',async()=>{
  for(const pathname of ['/fitness-gym','/fitness-gym/']){
   const p=portal('gym/login.html',{owners:[{id:'gym-a',token:'token-a',gym_name:'Fitness Gym',portal_slug:'fitness-gym',status:'ACTIVE'}],search:'?key=foreign-token'});p.context.location.pathname=pathname;await p.get('app').init();
-  assert.equal(p.get('app').currentTenantId,'gym-a');assert.equal(p.element('header-gym-name').innerText,'Fitness Gym');assert.deepEqual(p.calls[0].filters,[['portal_slug','fitness-gym']]);assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing,portal_slug');assert.equal(p.calls.length,1);
+  assert.equal(p.get('app').currentTenantId,'gym-a');assert.equal(p.element('header-gym-name').innerText,'Fitness Gym');assert.deepEqual(p.calls[0].filters,[['portal_slug','fitness-gym']]);assert.equal(p.calls[0].fields,'id,gym_name,token,logo,status,pricing,accent_color,portal_slug');assert.equal(p.calls.length,1);
  }
 });
 test('unknown friendly URL fails closed without a cached or first-gym fallback',async()=>{

@@ -12,13 +12,13 @@
    clearTimer();const dialog=node('dialog');
    if(resolvePending)finish(false);
    const warning=mode==='warning',confirm=mode==='confirm';
-   dialog.style.borderColor=warning?'#f43f5e':'var(--brand-primary)';
-   dialog.style.boxShadow=warning?'0 0 32px rgba(244,63,94,.2)':'0 0 32px var(--brand-primary-glow)';
+   dialog.style.borderColor=warning?'#f43f5e':'#10b981';
+   dialog.style.boxShadow=warning?'0 0 32px rgba(244,63,94,.2)':'0 0 32px rgba(16,185,129,.2)';
    node('title').textContent=warning?'Please check':confirm?'Confirm your pass':'Success';
-   node('title').style.color=node('icon').style.color=warning?'#fb7185':'var(--brand-primary)';
+   node('title').style.color=node('icon').style.color=warning?'#fb7185':'#10b981';
    node('icon').className='fa-solid '+(warning?'fa-circle-exclamation':confirm?'fa-wallet':'fa-circle-check')+' text-4xl';
    node('message').textContent=String(message);
-   node('confirm').style.background=warning?'#f43f5e':'var(--brand-primary)';
+   node('confirm').style.background=warning?'#f43f5e':'#10b981';
    node('cancel').hidden=!confirm;node('confirm').textContent=confirm?'Confirm':'Close';
    node('cancel').onclick=()=>finish(false);node('confirm').onclick=()=>finish(confirm);
    dialog.oncancel=event=>{event.preventDefault();finish(false);};

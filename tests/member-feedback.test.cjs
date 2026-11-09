@@ -16,3 +16,5 @@ test('purchase confirmation requires confirmation and cancellation resolves fals
  const accept=app.confirmAction('Buy pass?');node('member-feedback-confirm').onclick();assert.equal(await accept,true);
  const escape=app.confirmAction('Buy pass?');node('member-feedback-dialog').oncancel({preventDefault(){}});assert.equal(await escape,false);
 });
+
+test('confirmation and success retain green rather than inheriting a gym preset',async()=>{const {app,node,expire}=setup();const result=app.confirmAction('Buy pass?');assert.equal(node('member-feedback-dialog').style.borderColor,'#10b981');assert.equal(node('member-feedback-confirm').style.background,'#10b981');node('member-feedback-cancel').onclick();assert.equal(await result,false);app.showAlert('Saved',true);assert.equal(node('member-feedback-dialog').style.borderColor,'#10b981');expire();assert.equal(node('member-feedback-dialog').open,false);});

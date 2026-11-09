@@ -81,3 +81,7 @@ After confirmed 045, manually run `supabase/manual/pilot_topup_reviews_ui.sql` o
 ### 047: Optimized profile images and gym app icons
 
 After confirmed 046, manually run **all** of `supabase/manual/optimized_profile_images.sql` once (identical to numbered 047), then deploy the matching frontend. Adds public gym-image and private member-image buckets, a private reference/cleanup registry, tenant/role-scoped Storage policies, image replacement guards and a wrapper around the existing profile-restore engine. Existing image text columns hold short file references; no public views or table columns need to change. Existing Base64 pictures remain readable until replaced. No financial/history records are rewritten, no Edge Function deployment is required, and no SQL is run against Supabase by the agent. See [image rollout and acceptance](../../docs/optimized-profile-images.md). Do not rerun 035–046. Run 047 as a complete transaction, not a highlighted tail section.
+
+### 050: Revenue Today authorization-lock compatibility
+
+After existing 046, manually run `supabase/manual/revenue_today_lock_compatibility.sql` once (identical numbered 050 review copy). Marks only `iv_revenue_today(text)` VOLATILE so PostgREST allows the existing staff permission row lock. The function body, permissions, sales calculation and records are unchanged. No earlier SQL needs rerunning. See [held appearance/revenue rollout](../../docs/held-appearance-revenue-rollout.md). No live SQL executed by the agent.
