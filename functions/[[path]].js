@@ -16,7 +16,7 @@ export async function onRequest(context){
   const scope=provider?'/_provider/':'/g/'+encodeURIComponent(id)+'/';
   const manifest={id:scope,name:provider?'Iron Vault Admin':name,short_name:provider?'Vault Admin':name.slice(0,24),
    start_url:provider?scope+'index':scope+'login?key='+encodeURIComponent(key),scope,display:'standalone',
-   background_color:'#090d16',theme_color:'#10b981',lang:'en',
+   background_color:'#090d16',theme_color:provider?'#0f172a':'#10b981',lang:'en',
    icons:[192,512].map(size=>({src:'/assets/app-icons/gym-'+size+'.png',sizes:size+'x'+size,type:'image/png',purpose:'any maskable'}))};
   const image=incoming.searchParams.get('image');
   if(!provider&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(image||'')){

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
     <title>Iron Vault Super Admin Master Control</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -800,11 +801,8 @@
 
             copyToClipboard: function(text, btnElement) {
                 navigator.clipboard.writeText(text).then(() => {
-                    const originalHTML = btnElement.innerHTML;
-                    btnElement.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> Copied';
                     btnElement.classList.add('bg-emerald-500/20', 'text-emerald-300');
                     setTimeout(() => {
-                        btnElement.innerHTML = originalHTML;
                         btnElement.classList.remove('bg-emerald-500/20', 'text-emerald-300');
                     }, 2000);
                 }).catch(err => {
