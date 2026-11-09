@@ -411,8 +411,9 @@
       const feedback=element('p',completed+'.'+(action!=='cancel_request'&&period?.start_date?' Period: '+period.start_date+' – '+period.end_date+'.':'')+' The status below has been refreshed.','iv-sub-success');feedback.setAttribute('role','status');dialog?.querySelector('header')?.after(feedback);
       return result;
     }
-    function masterControls(target,data){
+    function masterControls(target,data,pilotOnly=false){
       if(kind!=='master')return;
+      if(pilotOnly&&data.periods.some(p=>p.kind==='paid'))return;
       const section=element('section');
       section.appendChild(element('h3','Provider approvals','iv-sub-heading'));
       const activation=check('I verified this gym business is eligible for its first pilot and reviewed the setup requirements.');
@@ -428,6 +429,7 @@
       activate.disabled=!activation.input.checked||data.pilot_used||!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready;
       activation.input.addEventListener('change',()=>{activate.disabled=!activation.input.checked||!data.accepted||!data.gym_documents_ready||!data.platform_documents_ready;});
       if(!data.pilot_used){section.append(activation.wrap,activate);section.appendChild(element('p',!data.accepted?'Waiting for the owner to accept the applicable agreement.':!data.gym_documents_ready||!data.platform_documents_ready?'Publish the required gym and platform documents before activation.':'Confirm eligibility above to activate the pilot.','iv-sub-muted'));}
+      if(pilotOnly){if(!data.pilot_used)target.appendChild(section);return;}
       for(const r of data.requests.filter(r=>!r.approved_at&&!r.cancelled_at)){
         const verification=data.verifications?.find(v=>v.request_id===r.id);
         const card=element('article',null,'iv-sub-notice');
@@ -487,17 +489,19 @@
       const view=tabs(target,[['overview','My Plan'],['documents','Agreements'],['history','History']],initial);
       target.querySelector('[role=tablist]').classList.add('iv-plan-tabs');
       const overview=view.sections.get('overview'),current=element('section',null,'iv-sub-current-plan');overview.appendChild(current);summary(current,data);
+      const managed=data.management_version===48&&root.IronVaultSubscriptionManagement;
       if(data.state.status==='setup')setupChecklist(overview,data,()=>view.show('documents'));
-      else if(data.is_owner){
+      else if(data.is_owner&&!managed){
         if(data.next_plan)overview.appendChild(element('p','Next plan: '+planName(data.next_plan)+' — payment approval is required.'));
         if(!data.accepted)overview.appendChild(button('Review service documents',()=>view.show('documents'),'primary'));
         else if(data.current_version)planControls(overview,data,version=>{view.show('documents');const select=view.sections.get('documents').querySelector('select');if(select){select.value=version;select.dispatchEvent(new Event('change'));}});
       }
-      masterControls(overview,data);
+      masterControls(overview,data,!!managed);
       renderDocs(view.sections.get('documents'),data);
-      for(const period of data.periods.filter(p=>p.start_date>data.today))overview.appendChild(element('p','Scheduled: '+planName(period.plan)+' · '+period.start_date+' – '+period.end_date+' · '+money(period.amount),'iv-sub-notice'));
+      if(!managed)for(const period of data.periods.filter(p=>p.start_date>data.today))overview.appendChild(element('p','Scheduled: '+planName(period.plan)+' · '+period.start_date+' – '+period.end_date+' · '+money(period.amount),'iv-sub-notice'));
 
       const archive=view.sections.get('history');history(archive,data);
+      if(managed){if(!data.accepted)overview.appendChild(button('Review service documents',()=>view.show('documents'),'primary'));await managed.render({target:overview,history:archive,data,provider:kind==='master',client,onRefresh:async()=>{if(kind==='master')await app.refreshProviderConsole?.();await openBilling(tenant);}});}
       if(!data.periods.length&&!data.requests.length&&!data.events.length)archive.appendChild(element('p','Your subscription history will appear after activation.'));
       if(data.is_owner)archive.appendChild(button('Download records',()=>{const url=root.URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download='IronVault-subscription-'+data.tenant_id+'.json';a.click();root.setTimeout(()=>root.URL.revokeObjectURL(url),1000);}));
     }
