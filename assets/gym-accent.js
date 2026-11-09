@@ -1,4 +1,4 @@
-/* Super Admin owns the saved accent; previews never alter another gym or status colors. */
+/* Apply the saved gym palette; owner presets and provider custom colors share this path. */
 (function(root){
  'use strict';
  const DEFAULT='#10b981';
@@ -11,6 +11,8 @@
  }
  function apply(value){
   const c=color(value),s=root.document.documentElement.style;
+  root.document.documentElement.setAttribute?.('data-gym-palette',c);
+  const meta=root.document.querySelector?.('meta[name="theme-color"]');if(meta)meta.content=c;
   s.setProperty('--brand-primary',c);s.setProperty('--brand-primary-glow',c+'33');s.setProperty('--brand-ink',ink(c));
  }
  function installAdmin(app){

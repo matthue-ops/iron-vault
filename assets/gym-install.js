@@ -83,7 +83,7 @@
    const changed=current?.id!==next.id;if(changed)reset();current=next;const d=root.document;
    let manifest=d.getElementById('gym-app-manifest');if(!manifest){manifest=d.createElement('link');manifest.id='gym-app-manifest';manifest.rel='manifest';d.head.append(manifest);}
    if(manifest.getAttribute('href')!==next.manifest)manifest.href=next.manifest;
-   for(const [name,content]of [['theme-color','#10b981'],['mobile-web-app-capable','yes'],['apple-mobile-web-app-capable','yes'],['apple-mobile-web-app-title',next.name]]){
+   for(const [name,content]of [['theme-color',root.document.documentElement?.getAttribute?.('data-gym-palette')||'#10b981'],['mobile-web-app-capable','yes'],['apple-mobile-web-app-capable','yes'],['apple-mobile-web-app-title',next.name]]){
     let node=d.querySelector('meta[name="'+name+'"]');if(!node){node=d.createElement('meta');node.name=name;d.head.append(node);}node.content=content;
    }
    let icon=d.querySelector('link[rel="apple-touch-icon"]');if(!icon){icon=d.createElement('link');icon.rel='apple-touch-icon';d.head.append(icon);}icon.href=next.icon;
