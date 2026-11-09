@@ -1,0 +1,5 @@
+/* Generate temporary browser-test CSS from the same Tailwind 3 runtime family used by the app. */
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
+const cli=process.env.TAILWIND_CLI||require.resolve('tailwindcss/lib/cli.js'),folder=fs.mkdtempSync(path.join(os.tmpdir(),'iv-phone-css-')),input=path.join(folder,'input.css'),config=path.join(folder,'config.cjs');
+fs.writeFileSync(input,'@tailwind base;\n@tailwind components;\n@tailwind utilities;\n');fs.writeFileSync(config,'module.exports='+JSON.stringify({content:[path.resolve('gym/*.html'),path.resolve('assets/*.js')],theme:{extend:{colors:{emerald:{500:'var(--brand-primary)',600:'var(--brand-primary)',700:'var(--brand-primary)'}}}}})+';');
+try{const result=spawnSync(process.execPath,[cli,'-i',input,'-c',config,'-o',process.env.PHONE_TEST_CSS||'/tmp/iv-admin-tailwind.css'],{stdio:'inherit'});process.exitCode=result.status??1;}finally{fs.rmSync(folder,{recursive:true,force:true});}

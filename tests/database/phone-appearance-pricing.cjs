@@ -1,0 +1,31 @@
+/* Local embedded PostgreSQL fixtures only. No Supabase connection. */
+const {PGlite}=require(process.env.PGLITE_MODULE||'@electric-sql/pglite'),fs=require('node:fs'),assert=require('node:assert/strict');
+const baseline=fs.readFileSync('supabase/migrations/202611010012_scoped_application_data.sql','utf8'),color=fs.readFileSync('supabase/migrations/202611040028_gym_accent_colors.sql','utf8');
+function extract(s,name){const start=s.indexOf('FUNCTION '+name+'(');assert(start>=0);return 'CREATE OR REPLACE '+s.slice(start,s.indexOf('$fn$;',start)+6);}
+(async()=>{const db=new PGlite();try{await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;
+ CREATE SCHEMA auth;CREATE SCHEMA ironvault_private;GRANT USAGE ON SCHEMA auth TO authenticated;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ CREATE TABLE public.owners(id text PRIMARY KEY,gym_name text,owner_name text,logo text,status text,pricing jsonb,accent_color text DEFAULT '#10b981');
+ CREATE TABLE public.iv_user_roles(user_id uuid,tenant_id text,role text,enabled boolean DEFAULT true,disabled_at timestamptz,pricing_allowed boolean DEFAULT false);
+ CREATE TABLE ironvault_private.gym_subscriptions(tenant_id text PRIMARY KEY,owner_id uuid);
+ CREATE FUNCTION ironvault_private.subscription_super(p_actor uuid DEFAULT auth.uid()) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$SELECT EXISTS(SELECT 1 FROM public.iv_user_roles WHERE user_id=p_actor AND role='super_admin' AND tenant_id IS NULL AND enabled AND disabled_at IS NULL)$$;
+ CREATE FUNCTION public.iv_can_access(t text,roles text[] DEFAULT ARRAY['owner','staff']) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$SELECT ironvault_private.subscription_super() OR EXISTS(SELECT 1 FROM public.iv_user_roles WHERE user_id=auth.uid() AND tenant_id=t AND role=ANY(roles) AND enabled AND disabled_at IS NULL)$$;
+ CREATE FUNCTION public.iv_staff_pricing(t text,p jsonb) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$BEGIN IF NOT ironvault_private.subscription_super() AND NOT EXISTS(SELECT 1 FROM public.iv_user_roles WHERE user_id=auth.uid() AND tenant_id=t AND enabled AND (role='owner' OR role='staff' AND pricing_allowed)) THEN RAISE EXCEPTION 'Not permitted';END IF;UPDATE public.owners SET pricing=p WHERE id=t;END$$;
+ CREATE FUNCTION public.iv_profile_images(text,jsonb) RETURNS jsonb LANGUAGE sql AS $$SELECT '{}'::jsonb$$;
+ CREATE FUNCTION public.iv_restore_profiles(p_gyms jsonb,p_members jsonb) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$BEGIN PERFORM set_config('test.restore_delegated','yes',false);PERFORM public.iv_save_gym_settings(p_gyms);END$$;
+ `);await db.exec(extract(baseline,'public.iv_save_gym_settings'));await db.exec(extract(color,'public.iv_set_gym_accent'));
+ const users={provider:'11111111-1111-4111-8111-111111111111',owner:'22222222-2222-4222-8222-222222222222',other:'33333333-3333-4333-8333-333333333333',staff:'44444444-4444-4444-8444-444444444444'},prices={day:100,week:700,month:2500,studentDiscount:20,seniorDiscount:20};
+ await db.query("INSERT INTO public.owners(id,gym_name,owner_name,logo,status,pricing) VALUES('a','Gym A','Owner A','','ACTIVE',$1),('b','Gym B','Owner B','','ACTIVE',$1)",[JSON.stringify(prices)]);
+ for(const [role,id]of Object.entries(users))await db.query('INSERT INTO public.iv_user_roles(user_id,tenant_id,role,pricing_allowed) VALUES($1,$2,$3,$4)',[id,role==='provider'?null:role==='other'?'b':'a',role==='provider'?'super_admin':role==='other'?'owner':role,role==='staff']);
+ await db.query("INSERT INTO ironvault_private.gym_subscriptions VALUES('a',$1),('b',$2)",[users.owner,users.other]);await db.exec(fs.readFileSync('supabase/manual/phone_appearance_pricing.sql','utf8'));
+ async function actor(name){await db.exec('RESET ROLE');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[users[name]||'']);await db.exec(name==='anon'?'SET ROLE anon':'SET ROLE authenticated');}
+ async function rpc(name,args,casts){return db.query('SELECT public.'+name+'('+args.map((_,i)=>'$'+(i+1)+(casts?.[i]||'')).join(',')+') AS value',args.map(a=>typeof a==='object'?JSON.stringify(a):a));}
+ async function row(){await db.exec('RESET ROLE');return (await db.query("SELECT * FROM public.owners WHERE id='a'")).rows[0];}
+ await actor('owner');assert.equal((await rpc('iv_set_gym_preset',['a','blue'])).rows[0].value,'#60a5fa');await assert.rejects(()=>rpc('iv_set_gym_preset',['b','blue']),/required/);await assert.rejects(()=>rpc('iv_set_gym_preset',['a','#ffffff']),/five/);await assert.rejects(()=>rpc('iv_set_gym_accent',['a','#ffffff']),/Super Admin/);
+ await actor('staff');await assert.rejects(()=>rpc('iv_set_gym_preset',['a','blue']),/required/);await rpc('iv_staff_pricing',['a',{...prices,day:120}]);assert.equal((await row()).pricing.day,120);
+ await actor('provider');await rpc('iv_set_gym_preset',['a','violet']);await rpc('iv_set_gym_accent',['a','#123456']);await rpc('iv_save_gym_settings',[[{id:'a',gym_name:'New name'}]]);assert.equal((await row()).gym_name,'New name');await actor('provider');await assert.rejects(()=>rpc('iv_save_gym_settings',[[{id:'a',pricing:{...prices,day:999}}]]),/view-only/);await assert.rejects(()=>rpc('iv_staff_pricing',['a',prices]),/view-only/);
+ await rpc('iv_restore_profiles',[[{id:'a',gym_name:'Restored name',pricing:prices}],[]]);const restored=await row();assert.equal(restored.pricing.day,120);assert.equal(restored.gym_name,'Restored name');assert.equal((await db.query("SELECT current_setting('test.restore_delegated') AS flag")).rows[0].flag,'yes');
+ await actor('owner');await rpc('iv_save_gym_settings',[[{id:'a',pricing:{...prices,day:130}}]]);assert.equal((await row()).pricing.day,130);
+ await actor('anon');await assert.rejects(()=>rpc('iv_set_gym_preset',['a','emerald']),/permission denied/);
+ console.log('049: owner/provider presets, arbitrary-color/staff/wrong-gym denial, provider read-only rates, permitted staff/owner pricing and preserved profile restore passed.');
+}finally{await db.close();}})().catch(e=>{console.error(e);process.exitCode=1});

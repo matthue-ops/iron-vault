@@ -11,7 +11,7 @@
   for(const [key,label] of [['unread','Unread'],['status','Pinned / Status'],['read','Read']]){const button=make('button',label+' ('+groups[key].length+')');button.type='button';button.setAttribute('aria-pressed',String(selected===key));button.onclick=()=>{target.dataset.noticeView=key;render(target,rows,{onRead,onOpen});};nav.append(button);}target.append(nav);
   const feedback=make('p');feedback.setAttribute('role','status');target.append(feedback);
   const list=make('div');target.append(list);const ordered=[...groups[selected]].sort((a,b)=>Date.parse(b.starts_at||b.available_at||0)-Date.parse(a.starts_at||a.available_at||0));
-  if(!ordered.length)list.append(make('p','No notifications in this view.'));
+  if(!ordered.length){const empty=make('p',selected==='unread'?'You’re all caught up':'No notifications in this view.');empty.className='iv-notice-empty';list.append(empty);}
   for(const row of ordered){const article=make('article');article.className='iv-notice-card';article.append(make('h3',row.title),make('p',row.body||row.message),make('small',(status(row)?'Pinned / current status · ':'')+(row.unread?'Unread':'Read')));
    const instant=row.starts_at||row.available_at;if(Number.isFinite(Date.parse(instant)))article.append(make('small',new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(instant))+' · Philippine time'));
    if(!row.kind&&row.ends_at&&Number.isFinite(Date.parse(row.ends_at))&&!String(row.ends_at).startsWith('9999'))article.append(make('small','Until '+new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(new Date(row.ends_at))));

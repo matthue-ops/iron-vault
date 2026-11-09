@@ -57,6 +57,7 @@
   function merge(current,changes){const next=new Map((current||[]).map(r=>[r.id,r]));for(const change of changes){if(change.row)next.set(change.id,change.row);else next.delete(change.id);}return Array.from(next.values());}
   function branding(owner){
    if(kind==='member'){
+    root.IronVaultGymAccent?.apply(owner.accentColor);
     node('header-gym-name').innerText=owner.gymName;node('page-title').innerText=owner.gymName+' - Member Profile';
     if(owner.pricing)root._facilityPricing={...owner.pricing};
    }else if(kind==='admin'){
