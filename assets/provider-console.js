@@ -10,6 +10,7 @@
   const menu=element('details',null,'provider-menu'),summary=element('summary');summary.setAttribute('aria-label','Provider menu');const bars=element('i');bars.className='fa-solid fa-bars';bars.setAttribute('aria-hidden','true');summary.appendChild(bars);
   const cleanupAction=button('Remove test service PDFs',()=>run(cleanup));
   const choices=element('div',null,'provider-menu-panel');choices.append(button('Platform Legal Details',()=>app.openLegalSettings()),button('Service Agreement Settings',()=>run(serviceEditor)),button('Tenant announcements',()=>run(announcements)),cleanupAction);
+  if(root.IronVaultSubscriptionManagement)choices.append(button('Pending subscriptions',()=>root.IronVaultSubscriptionManagement.queue(client,openBilling)),button('Payment options',()=>root.IronVaultSubscriptionManagement.paymentMethods(client)),button('Subscription reports',()=>root.IronVaultSubscriptionManagement.reports(client)));
   const logout=d.getElementById('btn-super-logout');if(logout)choices.appendChild(logout);
   menu.append(summary,choices);controls.append(bell,menu);d.querySelector('body>header>div')?.appendChild(controls);
   d.addEventListener('click',event=>{if(!menu.contains(event.target)||event.target.closest('.provider-menu-panel button'))menu.open=false;});d.addEventListener('keydown',event=>{if(event.key==='Escape')menu.open=false;});
