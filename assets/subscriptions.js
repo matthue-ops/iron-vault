@@ -249,6 +249,7 @@
         }
         );
         if(!current())return;
+        app.phoneSubscriptionState=value;app.renderPhoneSubscription?.(value);
         gate(value);
         if(value.is_owner){
           const data=await call('iv_subscription_portal',{
@@ -271,6 +272,7 @@
       }
       catch(e){
         if(!current())return;
+        app.phoneSubscriptionState=null;app.renderPhoneSubscription?.(null);
         gate({
           status:'unavailable',operations:false,is_owner:app.authenticatedRole?.role==='owner'
         }

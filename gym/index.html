@@ -83,6 +83,7 @@
 <link rel="stylesheet" href="/assets/gym-install.css">
 <script src="/assets/gym-install.js"></script>
 <script src="/assets/session-scopes.js"></script>
+<link rel="stylesheet" href="../assets/phone-interface.css">
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -1485,6 +1486,9 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script>IronVaultGymProfile.install(indexApp,supabaseClient);</script>
 <script>IronVaultProfileImages.install(indexApp,supabaseClient,'master');</script>
 <script>IronVaultGymInstall.configureProvider();</script>
+<script src="../assets/phone-interface.js"></script>
+<script src="../assets/gym-appearance.js"></script>
+<script>IronVaultPhoneInterface.installMaster(indexApp,supabaseClient);IronVaultGymAppearance.install(indexApp,supabaseClient,'master');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

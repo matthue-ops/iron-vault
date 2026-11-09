@@ -4,7 +4,7 @@
  function install(app,client){
   if(!root.matchMedia)return;
   const d=root.document,media=root.matchMedia('(max-width:639px)'),value=d.getElementById('stat-revenue'),label=value?.previousElementSibling;if(!value||!label)return;
-  const R=root.IronVaultReports;let generation=0,busy=false,last=0,loadedDay='',identity='',timer=null,cached='—',attemptDay='',signedOut=false;
+  const R=root.IronVaultReports;let generation=0,busy=false,last=0,loadedDay='',identity='',timer=null,inFlightGeneration=null,queued=false,cached='—',attemptDay='',signedOut=false;
   function currentKey(){return [app.currentTenantId,app.authenticatedRole?.user_id,app.authenticatedRole?.role].join(':');}
   function reset(){generation++;last=0;loadedDay='';identity='';attemptDay='';cached='—';value.textContent='—';value.removeAttribute('title');}
   async function refresh(force=false){
@@ -12,8 +12,9 @@
    const day=R.date(new Date()),key=currentKey();if(key!==identity){reset();identity=key;}
    label.textContent='Revenue Today';label.title='Membership sales today, Philippine time. Cash and wallet pass payments; wallet top-ups are not added again.';
    if(loadedDay!==day)value.textContent='…';
-   if(busy||(!force&&day===attemptDay&&Date.now()-last<60000))return;attemptDay=day;last=Date.now();
-   const stamp=generation,tenant=app.currentTenantId;busy=true;
+   if(busy){if(inFlightGeneration!==generation)queued=true;return;}
+   if(!force&&day===attemptDay&&Date.now()-last<60000)return;attemptDay=day;last=Date.now();
+   const stamp=generation,tenant=app.currentTenantId;busy=true;inFlightGeneration=stamp;
    try{
     const before=await root.IronVaultAuth.requireRole(client,{roles:['owner','staff'],tenantId:tenant});
     if(before.user_id!==app.authenticatedRole.user_id)throw Error('Account changed.');
@@ -24,7 +25,7 @@
     const result={grossSales:R.cents(data.amount)};
     cached=R.money(result.grossSales);value.textContent=cached;value.style.fontSize=cached.length>12?'11px':cached.length>9?'13px':'16px';value.title='Membership sales for '+day+' · Philippine time';loadedDay=day;last=Date.now();
    }catch(error){if(stamp===generation&&currentKey()===key){cached='—';value.textContent=cached;value.title=error.message;loadedDay='';last=Date.now();}}
-   finally{busy=false;}
+   finally{busy=false;inFlightGeneration=null;if(queued){queued=false;if(!signedOut)void refresh(true);}}
   }
   const stats=app.updateStats;app.updateStats=function(){const result=stats.apply(this,arguments);label.textContent='Revenue Today';value.textContent=loadedDay===R.date(new Date())?cached:'—';void refresh();return result;};
   const financial=app.refreshFinancialReportAccess;app.refreshFinancialReportAccess=async function(){const allowed=await financial.apply(this,arguments);if(allowed||app.staffPermissions?.revenue_today===true)void refresh();else reset();return allowed;};

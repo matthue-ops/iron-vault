@@ -95,6 +95,7 @@
 <script src="/assets/profile-images.js"></script>
 <script src="/assets/session-scopes.js"></script>
 <link rel="stylesheet" href="../assets/scanner-screen.css">
+<link rel="stylesheet" href="../assets/phone-interface.css">
 </head>
 <body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
@@ -2596,6 +2597,10 @@ adminApp.logoutAdmin=async function(){
 <script src="../assets/staff-access.js"></script>
 <script>IronVaultStaffAccess.installAdmin(adminApp,supabaseClient,{createPasswordVerifier:()=>window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'ironvault-password-check'}})});</script>
 <script>IronVaultProfileImages.install(adminApp,supabaseClient,'admin');</script>
+<script src="../assets/phone-interface.js"></script>
+<script src="../assets/gym-profile.js"></script>
+<script src="../assets/gym-appearance.js"></script>
+<script>IronVaultPhoneInterface.installAdmin(adminApp,supabaseClient);IronVaultGymAppearance.install(adminApp,supabaseClient,'admin');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

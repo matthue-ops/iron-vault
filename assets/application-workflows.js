@@ -169,8 +169,7 @@
      const prepared=file?await root.IronVaultProfileImages.prepare(file,'gym'):null;
      const email=value('edit-owner-email').trim().toLowerCase();let pending=false;
      if(email!==gym.email.toLowerCase()){await root.IronVaultBranchAuth.invoke(client,'iv-branch-auth',{action:'admin_email_change',tenant_id:id,new_email:email});pending=true;}
-     await root.IronVaultData.saveGyms(client,[{id,gymName:value('edit-gym-name').trim(),ownerName:value('edit-owner-name').trim(),logo,
-      pricing:{day:Number(value('edit-price-day')),week:Number(value('edit-price-week')),month:Number(value('edit-price-month')),studentDiscount:Number(value('edit-discount-student')),seniorDiscount:Number(value('edit-discount-senior'))}}]);
+     await root.IronVaultData.saveGyms(client,[{id,gymName:value('edit-gym-name').trim(),ownerName:value('edit-owner-name').trim(),logo}]);
      let note='';if(prepared){try{const image=await root.IronVaultProfileImages.save(client,{kind:'gym',tenantId:id,expected:logo,prepared});if(image.cleanupPending)note=' Previous image cleanup will retry later.';}catch(error){note=' Settings saved, but the logo was not confirmed. Refresh and retry the logo if needed. '+error.message;}}
      await this.loadData();this.renderDashboard();this.closeEditModal();root.alert((pending?'Gym saved. Confirm both addresses to finish the owner email change.':'Gym settings saved.')+note);
     }catch(error){root.alert(error.message);}finally{this.gymSettingsBusy=false;if(button)button.disabled=false;}
