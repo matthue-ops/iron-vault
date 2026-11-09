@@ -26,3 +26,32 @@ html[data-gym-palette] [class~="hover:bg-emerald-500/30"]:hover{background-color
 html[data-gym-palette] [class~="hover:border-emerald-500"]:hover{border-color:var(--brand-primary)!important}
 html[data-gym-palette] [class~="hover:border-emerald-500/40"]:hover{border-color:color-mix(in srgb,var(--brand-primary) 40%,transparent)!important}
 html[data-gym-palette] [class~="hover:text-emerald-300"]:hover,html[data-gym-palette] [class~="hover:text-emerald-400"]:hover{color:color-mix(in srgb,var(--brand-primary),white 25%)!important}
+
+/* Login tabs keep their existing switch handlers and keyboard behavior. */
+.login-role-tabs{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:5px}
+.login-role-tabs #tab-btn-signin{order:1}.login-role-tabs #tab-btn-signup{order:2}.login-role-tabs #tab-btn-admin{order:3;min-width:44px;padding-inline:6px}
+.login-role-tabs button{min-height:44px;min-width:0}
+html[data-gym-palette] .login-background>div{background-color:var(--brand-primary)!important}
+html[data-gym-palette] #btn-submit-admin{background:var(--brand-primary)!important;color:var(--brand-ink)!important}
+html[data-gym-palette] .login-role-tabs [class*="bg-[var(--brand-primary)]"]{color:var(--brand-ink)!important}
+/* Staff management controls are decorative, not warnings. */
+html[data-gym-palette] #staff-signup-modal .bg-amber-500{background-color:var(--brand-primary)!important;color:var(--brand-ink)!important}
+html[data-gym-palette] #staff-signup-modal .bg-amber-500:hover{background-color:color-mix(in srgb,var(--brand-primary),white 12%)!important}
+html[data-gym-palette] #staff-signup-modal [class~="bg-amber-500/10"]{background-color:color-mix(in srgb,var(--brand-primary) 10%,transparent)!important}
+html[data-gym-palette] #staff-signup-modal [class~="border-amber-500/30"]{border-color:color-mix(in srgb,var(--brand-primary) 30%,transparent)!important}
+html[data-gym-palette] #staff-signup-modal .text-amber-400{color:var(--brand-primary)!important}
+/* Subscription navigation/cards are ordinary themed UI. */
+html[data-gym-palette] .iv-sub-tabs [aria-selected=true]{background:color-mix(in srgb,var(--brand-primary) 20%,#101a28);color:color-mix(in srgb,var(--brand-primary),white 25%);border-color:var(--brand-primary)}
+html[data-gym-palette] .iv-sub-banner,html[data-gym-palette] .iv-sub-readable h4{color:color-mix(in srgb,var(--brand-primary),white 25%)}
+html[data-gym-palette] .iv-sub-step[data-complete=true]{border-color:var(--brand-primary)}
+html[data-gym-palette] .iv-sub-actions button.primary,html[data-gym-palette] .iv-sub-dialog button.primary{background:var(--brand-primary);color:var(--brand-ink)}
+html[data-gym-palette] .iv-sub-current-plan{background:color-mix(in srgb,var(--brand-primary) 10%,#101a28)!important;border-color:color-mix(in srgb,var(--brand-primary) 45%,#334155)!important}
+html[data-gym-palette] .iv-sub-current-plan .iv-sub-banner{color:color-mix(in srgb,var(--brand-primary),white 25%)!important}
+/* Red warning/error and green confirmation/success windows never inherit presets. */
+html[data-gym-palette] #admin-feedback-dialog[data-mode=confirm]{border-color:#10b981;box-shadow:0 0 32px #10b98133}
+html[data-gym-palette] #admin-feedback-dialog[data-mode=confirm] #admin-feedback-icon{color:#34d399}
+html[data-gym-palette] #admin-feedback-dialog[data-mode=confirm] #admin-feedback-confirm{background:#10b981;color:#022c22}
+html[data-gym-palette] #form-alert[class~="bg-emerald-500/10"]{background-color:#10b9811a!important;border-color:#10b9814d!important;color:#6ee7b7!important}
+html[data-gym-palette] #form-alert .text-emerald-400{color:#34d399!important}
+html[data-gym-palette] #qr-accepted-window>div{border-color:#10b981!important;box-shadow:0 0 32px #10b98133!important}
+html[data-gym-palette] #qr-accepted-window #entry-success-title,html[data-gym-palette] #qr-accepted-window i{color:#34d399!important}

@@ -83,11 +83,13 @@
 <link rel="stylesheet" href="/assets/gym-install.css">
 <script src="/assets/gym-install.js"></script>
 <script src="/assets/session-scopes.js"></script>
+<link rel="stylesheet" href="../assets/gym-palette.css">
+<script src="../assets/gym-accent.js"></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
 
     <!-- BACKGROUND GLOW EFFECTS -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="login-background fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="bg-glow-orb absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-35 bg-emerald-500"></div>
         <div class="bg-glow-orb absolute top-1/2 -right-32 w-96 h-96 rounded-full blur-3xl opacity-20 bg-blue-500"></div>
     </div>
@@ -126,15 +128,15 @@
             <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
                 
                 <!-- TAB SWITCHER -->
-                <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/90 flex gap-1 mb-6 shadow-inner text-xs font-semibold">
+                <div class="login-role-tabs bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/90 flex gap-1 mb-6 shadow-inner text-xs font-semibold">
                     <button id="tab-btn-signin" onclick="app.switchTab('SIGNIN')" class="flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 font-bold shadow-md">
                         <i class="fa-solid fa-user-check"></i> Member
                     </button>
-                    <button id="tab-btn-admin" onclick="app.switchTab('ADMIN')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-user-shield"></i> Admin / Staff
-                    </button>
                     <button id="tab-btn-signup" onclick="app.switchTab('SIGNUP')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-user-plus"></i> Join
+                    </button>
+                    <button id="tab-btn-admin" title="Admin / Staff" aria-label="Admin / Staff" onclick="app.switchTab('ADMIN')" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-user-shield" aria-hidden="true"></i><span class="sr-only">Admin / Staff</span>
                     </button>
                 </div>
 
@@ -378,7 +380,7 @@
 
                 let loadedOwners = [];
                 try {
-                    const query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing'+(portalSlug?',portal_slug':''));
+                    const query=supabaseClient.from('owners').select('id,gym_name,token,logo,status,pricing,accent_color'+(portalSlug?',portal_slug':''));
                     const {data,error}=(portalSlug||keyParam||gymParam)
                         ? await (portalSlug?query.eq('portal_slug',portalSlug):keyParam?query.eq('token',keyParam):query.eq('id',gymParam.toUpperCase()))
                         : {data:[],error:null};
@@ -388,7 +390,7 @@
                             gymName: o.gym_name,
                             portalSlug: o.portal_slug,
                             token: o.token,
-                            logo: o.logo,
+                            logo: o.logo, accentColor:o.accent_color,
                             status: o.status,
                             pricing: o.pricing,
                         }));
@@ -408,6 +410,7 @@
                 if (matched) {
                     this.currentTenantId = matched.id;
                     this.matchedOwnerRecord = matched;
+                    IronVaultGymAccent.apply(matched.accentColor);
                     window.IronVaultSessionScopes.rememberGym(matched);
                     window.IronVaultGymInstall?.configure(matched, {offer:true});
                     for(const id of ['signin-identifier','signin-password','btn-submit-signin','admin-login-email','admin-login-password','btn-submit-admin','signup-name','signup-email','signup-phone','signup-password','btn-submit-signup']){
@@ -431,7 +434,7 @@
                         headerImg.classList.remove('hidden');
                         headerIcon.classList.add('hidden');
 
-                        applyDynamicThemeFromLogo(matched.logo);
+                        // Saved appearance is authoritative; do not sample the logo.
                     }
                     return;
                 }
@@ -492,7 +495,7 @@
                     btnSignIn.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
                     formSignIn.classList.remove('hidden');
                 } else if (tab === 'ADMIN') {
-                    btnAdmin.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 font-bold shadow-md";
+                    btnAdmin.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
                     formAdmin.classList.remove('hidden');
                 } else {
                     btnSignUp.className = "flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 bg-[var(--brand-primary)] text-slate-950 font-bold shadow-md";
