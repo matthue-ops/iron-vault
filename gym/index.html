@@ -1490,6 +1490,10 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script src="../assets/phone-interface.js"></script>
 <script src="../assets/gym-appearance.js"></script>
 <script>IronVaultPhoneInterface.installMaster(indexApp,supabaseClient);IronVaultGymAppearance.install(indexApp,supabaseClient,'master');</script>
+<link rel="stylesheet" href="../assets/gym-usage.css">
+<script src="../assets/gym-usage-view.js"></script>
+<script src="../assets/gym-usage.js"></script>
+<script>IronVaultGymUsage.install(indexApp,supabaseClient,'master');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>
