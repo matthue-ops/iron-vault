@@ -2598,6 +2598,11 @@ adminApp.logoutAdmin=async function(){
 <script src="../assets/staff-access.js"></script>
 <script>IronVaultStaffAccess.installAdmin(adminApp,supabaseClient,{createPasswordVerifier:()=>window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'ironvault-password-check'}})});</script>
 <script>IronVaultProfileImages.install(adminApp,supabaseClient,'admin');</script>
+<script src="../assets/gym-portals.js"></script>
+<script src="../assets/vendor/qrcode.min.js"></script>
+<link rel="stylesheet" href="../assets/gym-portal-qr.css">
+<script src="../assets/gym-portal-qr.js"></script>
+<script>IronVaultGymPortalQR.install(adminApp,supabaseClient);</script>
 <script src="../assets/phone-interface.js"></script>
 <script src="../assets/gym-profile.js"></script>
 <script src="../assets/gym-appearance.js"></script>
