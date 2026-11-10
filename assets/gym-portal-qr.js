@@ -4,7 +4,7 @@
  function install(app,client){
   const d=root.document;if(!d.querySelector)return;const menu=d.querySelector('#admin-account-menu .admin-menu-panel');if(!menu)return;
   const make=(tag,text,cls)=>{const e=d.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
-  const entry=make('button','Gym Portal QR');entry.id='btn-gym-portal-qr';entry.type='button';menu.insertBefore(entry,menu.lastElementChild);
+  const entry=make('button');const icon=make('i',undefined,'fa-solid fa-qrcode');icon.setAttribute('aria-hidden','true');entry.append(icon,make('span','Gym Portal QR'));entry.id='btn-gym-portal-qr';entry.type='button';menu.insertBefore(entry,menu.lastElementChild);
   const dialog=make('dialog',undefined,'gym-portal-qr');dialog.setAttribute('aria-labelledby','gym-portal-qr-title');const header=make('header'),title=make('h2','Gym Portal QR');title.id='gym-portal-qr-title';const close=make('button','✕');close.type='button';close.setAttribute('aria-label','Close gym portal QR');close.onclick=()=>dialog.close();header.append(title,close);
   const name=make('h3'),help=make('p','Scan to open this gym’s public login and join page. This is not a member entry pass.'),image=make('img'),link=make('p',undefined,'gym-portal-qr-url'),status=make('p'),actions=make('div',undefined,'gym-portal-qr-actions');image.alt='Gym public portal QR';status.setAttribute('role','status');
   const copy=make('button','Copy link'),download=make('button','Download PNG'),print=make('button','Print QR');for(const b of [copy,download,print])b.type='button';actions.append(copy,download,print);dialog.append(header,name,help,image,link,actions,status);d.body.append(dialog);
