@@ -1122,6 +1122,9 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 <script src="../assets/phone-interface.js"></script>
 <script src="../assets/gym-accent.js"></script>
 <script>window.applyDynamicThemeFromLogo=function(){};IronVaultPhoneInterface.installMember(profileApp,supabaseClient);</script>
+<link rel="stylesheet" href="../assets/entry-verification.css">
+<script src="../assets/entry-verification.js"></script>
+<script>IronVaultEntryVerification.installCard(profileApp,supabaseClient,'member');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

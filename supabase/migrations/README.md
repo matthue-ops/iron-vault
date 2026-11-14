@@ -85,3 +85,7 @@ After confirmed 046, manually run **all** of `supabase/manual/optimized_profile_
 ### 050: Revenue Today authorization-lock compatibility
 
 After existing 046, manually run `supabase/manual/revenue_today_lock_compatibility.sql` once (identical numbered 050 review copy). Marks only `iv_revenue_today(text)` VOLATILE so PostgREST allows the existing staff permission row lock. The function body, permissions, sales calculation and records are unchanged. No earlier SQL needs rerunning. See [held appearance/revenue rollout](../../docs/held-appearance-revenue-rollout.md). No live SQL executed by the agent.
+
+### 054: Permanent member QR and unified entry approval
+
+After confirmed 053 and prerequisites, manually run the entire `supabase/manual/permanent_qr_verification.sql` once (identical to numbered 054), then deploy the matching frontend and refresh reception tabs. Creates private permanent credentials for existing/new members, read-only QR verification/lookup and atomic explicit approval. Card/generated/manual entry share the existing daily allowance; payments, balances, membership expiry and reporting rules are unchanged. The legacy direct daily-redemption API refuses automatic entry after this migration, so coordinate deployment. See [Stage 1 release order and validation](../../docs/permanent-qr-stage1.md). No live SQL executed by the agent; do not run both copies or reapply prior migrations.
