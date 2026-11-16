@@ -6,6 +6,7 @@
  function shell(title){const d=make('dialog');d.className='iv-entry-dialog';const h=make('h2',title);h.id='iv-entry-title-'+Math.random().toString(36).slice(2);d.setAttribute('aria-labelledby',h.id);d.append(h);root.document.body.append(d);return d;}
  function photoReference(value){return /^(iv-photo:[0-9a-f-]{36}|data:image\/(jpeg|png|webp);base64,|https:\/\/)/i.test(value||'');}
  function installCard(app,client,kind){
+  if(root.IronVaultPhysicalIDs)return root.IronVaultPhysicalIDs.install(app,client,kind);
   if(!root.document.querySelector)return;
   const d=shell('Member QR'),text=make('p'),qr=make('div'),status=make('p'),close=make('button','Close');qr.className='iv-member-qr';close.type='button';d.append(text,qr,status,close);let serial=0;
   function clear(){serial++;qr.replaceChildren();text.textContent='';status.textContent='';}

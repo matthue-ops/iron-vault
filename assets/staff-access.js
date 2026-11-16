@@ -1,7 +1,7 @@
 /* Menu visibility follows scoped server grants. Every protected API checks authority again. */
 (function(root){
  'use strict';
- const definitions=[['manual_checkin','Manual Check-In'],['revenue_today','Revenue Today'],['reports_read','Reports & Analytics'],['reports_export','Export / print reports'],['announcements_manage','Manage announcements'],['pricing_manage','Membership Pricing'],['subscription_read','Subscription · view only'],['refund_request','Request refunds / credit corrections'],['refund_approve','Approve refunds / credit corrections']];
+ const definitions=[['manual_checkin','Manual Check-In'],['revenue_today','Revenue Today'],['reports_read','Reports & Analytics'],['reports_export','Export / print reports'],['announcements_manage','Manage announcements'],['pricing_manage','Membership Pricing'],['subscription_read','Subscription · view only'],['refund_request','Request refunds / credit corrections'],['refund_approve','Approve refunds / credit corrections'],['physical_ids_manage','Physical IDs · manage requests'],['physical_ids_download','Physical IDs · download production files'],['physical_ids_replace','Physical IDs · replace lost cards (requires management)']];
  const make=(tag,text,cls)=>{const n=root.document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  async function exportAccess(app,client){
   const role=await app.ivRequireReport();if(role.role==='owner'||role.role==='super_admin')return;
@@ -76,12 +76,12 @@
    const ticket=++view.serial,stamp=epoch,tenant=app.currentTenantId,user=actor();let subscriptionRows=[],subscriptionError='';
    if(owner())try{subscriptionRows=await app.getSubscriptionNotices();}catch(_){subscriptionError='Subscription notices could not be loaded. Please retry.';}
    if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor()||!view.box.open||ticket!==view.serial)return;
-   const rows=[...(feedLoaded?feed.map(n=>({...n,noticeSource:'announcement'})):[]),...subscriptionRows];apply();view.status.textContent=[!feedLoaded?feedError:'',subscriptionError].filter(Boolean).join(' ');view.retry.hidden=!view.status.textContent;
+   const rows=[...(feedLoaded?feed.map(n=>({...n,noticeSource:n.noticeSource||'announcement',detailLabel:n.noticeSource==='physical_id'?'View Physical ID':n.detailLabel})):[]),...subscriptionRows];apply();view.status.textContent=[!feedLoaded?feedError:'',subscriptionError].filter(Boolean).join(' ');view.retry.hidden=!view.status.textContent;
    root.IronVaultNoticeViews.render(view.content,rows,{emptyMessage:view.status.textContent?'Some notifications are unavailable. Please retry.':undefined,onRead:async n=>{
     if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor())throw Error('Account changed.');
     if(n.noticeSource==='subscription')await app.readSubscriptionNotice(n);else await rpc('iv_account_announcements',{p_tenant:tenant,p_mode:'read',p_read:[{id:n.id,revision:n.revision}]});
     await refreshFeed();
-   },onOpen:async n=>{if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor())throw Error('Account changed.');if(n.noticeSource==='subscription'){await app.viewSubscriptionNotice(n);view.box.close();}}});
+   },onOpen:async n=>{if(stamp!==epoch||tenant!==app.currentTenantId||user!==actor())throw Error('Account changed.');if(n.noticeSource==='subscription'){await app.viewSubscriptionNotice(n);view.box.close();}else if(n.noticeSource==='physical_id'){view.box.close();await app.openPhysicalID(n.member_id);}}});
   }
   app.openAccountNotifications=async function(){
    if(notificationView?.box.open)return;

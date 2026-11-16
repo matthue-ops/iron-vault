@@ -89,3 +89,7 @@ After existing 046, manually run `supabase/manual/revenue_today_lock_compatibili
 ### 054: Permanent member QR and unified entry approval
 
 After confirmed 053 and prerequisites, manually run the entire `supabase/manual/permanent_qr_verification.sql` once (identical to numbered 054), then deploy the matching frontend and refresh reception tabs. Creates private permanent credentials for existing/new members, read-only QR verification/lookup and atomic explicit approval. Card/generated/manual entry share the existing daily allowance; payments, balances, membership expiry and reporting rules are unchanged. The legacy direct daily-redemption API refuses automatic entry after this migration, so coordinate deployment. See [Stage 1 release order and validation](../../docs/permanent-qr-stage1.md). No live SQL executed by the agent; do not run both copies or reapply prior migrations.
+
+## 055 — Physical membership IDs
+
+After confirmed Stage 1 `054`, manually run **only** `supabase/manual/physical_membership_ids.sql` (identical to `202611160055_physical_membership_ids.sql`) once, before the matching Stage 2 frontend. Adds private card version/replacement metadata, scoped requests/events/retries/notices, explicit staff permissions and in-memory production-download authorization. Existing tokens are preserved at installation; no balances, membership, payments or attendance are rewritten. Do not execute both copies or reapply. See [Stage 2 rollout and rollback limits](../../docs/physical-membership-ids-stage2.md). No SQL executed against Supabase by the agent.
