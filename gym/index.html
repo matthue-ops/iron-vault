@@ -921,7 +921,7 @@
                                     </span>
                                 </td>
                                 <td class="p-3 text-slate-400">${IronVaultData.escape(m.email)}</td>
-                                <td class="p-3"><button type="button" onclick="indexApp.sendMemberRecovery(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="text-xs text-amber-300 underline">Send recovery</button></td>
+                                <td class="p-3"><button type="button" onclick="indexApp.sendMemberRecovery(decodeURIComponent('${IronVaultData.argument(m.id)}'))" class="text-xs text-amber-300 underline">Send recovery</button> <button type="button" onclick="indexApp.openPhysicalID(decodeURIComponent('${IronVaultData.argument(m.id)}'),indexApp.currentInspectOwnerId)" class="text-xs text-emerald-300 underline">View Physical ID</button></td>
                                 <td class="p-3">${IronVaultData.escape(m.plan || 'Not Selected')}</td>
                                 <td class="p-3 font-mono font-bold text-emerald-400">₱${(m.walletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                                 <td class="p-3 text-slate-300">${m.lastScannedDate===today?'Entered':'Not entered'}</td>
@@ -1494,6 +1494,10 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script src="../assets/gym-usage-view.js"></script>
 <script src="../assets/gym-usage.js"></script>
 <script>IronVaultGymUsage.install(indexApp,supabaseClient,'master');</script>
+<link rel="stylesheet" href="../assets/physical-ids.css">
+<script src="../assets/physical-id-renderer.js"></script>
+<script src="../assets/physical-ids.js"></script>
+<script>IronVaultPhysicalIDs.install(indexApp,supabaseClient,'master');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

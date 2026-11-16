@@ -8,7 +8,7 @@
   const active=row=>Date.parse(row.starts_at)<=now()&&Date.parse(row.ends_at)>now();
   function clear(){epoch++;serial++;busy=false;items=[];identity=null;visible=false;bell.hidden=true;bell.setAttribute('data-unread','false');panel.hidden=true;el('member-notices-list').noticeVersion=(el('member-notices-list').noticeVersion||0)+1;el('member-notices-list').noticePending=null;el('member-notices-list').textContent='';el('member-notices-count').textContent='';if(timer)root.clearTimeout(timer);timer=null;}
   function text(tag,value,cls){const n=root.document.createElement(tag);n.textContent=value;n.className=cls||'';return n;}
-  function cards(target,rows){root.IronVaultNoticeViews.render(target,rows,{onRead:async row=>{const result=await fetchFeed('read',[{id:row.id,revision:row.revision}]);if(!result)throw Error('Account changed.');}});}
+  function cards(target,rows){root.IronVaultNoticeViews.render(target,rows.map(n=>({...n,detailLabel:n.noticeSource==='physical_id'?'View Physical ID':false})),{onOpen:async row=>{await verify();if(row.noticeSource==='physical_id'){app.closeMemberAnnouncements();await app.openPhysicalID();}},onRead:async row=>{const result=await fetchFeed('read',[{id:row.id,revision:row.revision}]);if(!result)throw Error('Account changed.');}});}
   function render(){items=items.filter(active);const unread=items.filter(r=>r.unread).length;el('member-notices-count').textContent=unread?String(unread):'';bell.setAttribute('data-unread',String(unread>0));bell.setAttribute('aria-label','Announcements'+(unread?', '+unread+' unread':''));
    app.renderLegalNotice?.(unread);
    if(visible)cards(el('member-notices-list'),items);
