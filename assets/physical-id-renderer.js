@@ -6,8 +6,11 @@
  function canvas(){const c=document.createElement('canvas');c.width=Math.round(W*S);c.height=Math.round(H*S);c.setAttribute('role','img');return c;}
  async function image(client,ref){
   if(!ref)return null;let blob;const p=root.IronVaultProfileImages;
+  const background=/^iv-background:([a-f0-9-]{36})$/.exec(ref);
+  if(background){const {data,error}=await client.storage.from('iv-card-backgrounds').download(background[1]+'/background');if(error||!data)throw Error('Background unavailable');blob=data;}
   const member=p?.photoPath(ref),gym=p?.gymPath(ref);
-  if(member||gym){const {data,error}=await client.storage.from(member?'iv-member-images':'iv-gym-images').download(member||gym);if(error||!data)throw Error('Image unavailable');blob=data;}
+  if(background){}
+  else if(member||gym){const {data,error}=await client.storage.from(member?'iv-member-images':'iv-gym-images').download(member||gym);if(error||!data)throw Error('Image unavailable');blob=data;}
   else if(/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=\s]+$/i.test(ref)&&ref.length<1100000){blob=await (await fetch(ref)).blob();}
   else throw Error('Upload the image through the gym/member profile before production');
   if(blob.size>8*1024*1024)throw Error('Image too large');
@@ -30,22 +33,26 @@
   try{photo=await image(client,m.photo);if(!photo)issues.push('Member photo required');}catch(_){issues.push('Member photo unavailable — upload or retry before production');}
   try{logo=await image(client,g.logo);if(!logo)issues.push('Gym logo required');}catch(_){issues.push('Gym logo unavailable — upload or retry before production');}
   for(const [value,label] of [[m.name,'Member name'],[m.display_code,'Member number'],[g.name,'Gym name'],[g.address,'Gym address'],[g.email||g.phone,'Gym contact']])if(!String(value||'').trim())issues.push(label+' required');
-  const accent=/^#[0-9a-f]{6}$/i.test(g.accent||'')?g.accent:'#0f766e';
-  for(const c of [front,back]){const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=accent;ctx.fillRect(2.5*S,2.5*S,80.6*S,1.2*S);}
-  const f=front.getContext('2d');f.fillStyle='#111827';
+  const design=data.design||{},colour=(value,fallback)=>/^#[0-9a-f]{6}$/i.test(value||'')?value:fallback,accent=colour(design.accent,colour(g.accent,'#0f766e')),primary=colour(design.primary,accent),dark=design.tone==='dark'||design.template==='premium';
+  const ink=dark?'#ffffff':'#111827',muted=dark?'#e2e8f0':'#334155';
+  for(const c of [front,back]){const ctx=c.getContext('2d'),side=c===front?'front':'back';ctx.fillStyle=dark?'#101827':'#ffffff';ctx.fillRect(0,0,c.width,c.height);
+   if(design[side+'_background']){let bg;try{bg=await image(client,'iv-background:'+design[side+'_background']);const factor=Math.max(c.width/bg.width,c.height/bg.height),x=(c.width-bg.width*factor)*(Number(design[side+'_x']??50)/100),y=(c.height-bg.height*factor)*(Number(design[side+'_y']??50)/100);ctx.drawImage(bg,x,y,bg.width*factor,bg.height*factor);if(factor>2)issues.push(side+' background is below recommended 300 DPI');ctx.fillStyle=dark?'#101827':'#ffffff';ctx.globalAlpha=Math.max(.85,Number(design[side+'_overlay']??85)/100);ctx.fillRect(0,0,c.width,c.height);ctx.globalAlpha=1;}catch(_){issues.push(side+' background unavailable — refresh or reset before production');}finally{bg?.close();}}
+   ctx.fillStyle=primary;if(design.template==='modern')ctx.fillRect(0,0,c.width,3.7*S);else ctx.fillRect(2.5*S,2.5*S,80.6*S,1.2*S);
+   if(design.template==='premium'){ctx.save();ctx.strokeStyle=accent;ctx.globalAlpha=.12;for(let x=-c.height;x<c.width;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+c.height,c.height);ctx.stroke();}ctx.restore();}ctx.fillStyle=accent;ctx.fillRect(2.5*S,3.5*S,15*S,.5*S);}
+  const f=front.getContext('2d');f.fillStyle=ink;
   if(logo)fitImage(f,logo,3.5,5,9,9);else{text(f,'Logo required',3.5,5,10,10,7);}
   if(!text(f,g.name||'Gym name required',15,5,66,6,12,9,true))issues.push('Gym name does not fit the card');
-  f.fillStyle='#475569';text(f,'MEMBERSHIP CARD',15,12,66,4,8);f.fillStyle='#111827';
-  if(photo)fitImage(f,photo,3.5,20,20,20,true);else{f.fillStyle='#f1f5f9';f.fillRect(3.5*S,20*S,20*S,20*S);f.fillStyle='#111827';text(f,'Photo required',4.5,26,18,10,8);}
-  if(photo&&Math.min(photo.width,photo.height)<236)issues.push('Member photo is below the recommended 300 DPI at print size');
+  f.fillStyle=muted;text(f,'MEMBERSHIP CARD',15,12,66,4,8);f.fillStyle=ink;
+  if(photo)fitImage(f,photo,3.5,design.template==='modern'?19:20,design.template==='modern'?21.5:20,design.template==='modern'?21.5:20,true);else{f.fillStyle=dark?'#1e293b':'#f1f5f9';f.fillRect(3.5*S,20*S,20*S,20*S);f.fillStyle=ink;text(f,'Photo required',4.5,26,18,10,8);}
+  if(photo&&Math.min(photo.width,photo.height)<(design.template==='modern'?254:236))issues.push('Member photo is below the recommended 300 DPI at print size');
   if(!text(f,m.name||'Member name required',26,19,28,15,11,9,true))issues.push('Member name does not fit the card');
-  f.fillStyle='#475569';text(f,'Member no.',26,35,28,3,7);f.fillStyle='#111827';if(!text(f,m.display_code||'Number required',26,38,28,5,9,8,true))issues.push('Member number does not fit');
-  qr(f,matrix);f.fillStyle='#334155';if(!text(f,g.address||'Gym address required',3.5,45,78.5,6,7,7))issues.push('Gym address does not fit the front; review the public address');
-  const b=back.getContext('2d');b.fillStyle='#111827';text(b,'Found this card?',3.5,7,78.5,6,13,13,true);
+  f.fillStyle=muted;text(f,'Member no.',26,35,28,3,7);f.fillStyle=ink;if(!text(f,m.display_code||'Number required',26,38,28,5,9,8,true))issues.push('Member number does not fit');
+  qr(f,matrix);f.fillStyle=muted;if(!text(f,g.address||'Gym address required',3.5,45,78.5,6,7,7))issues.push('Gym address does not fit the front; review the public address');
+  const b=back.getContext('2d');b.fillStyle=ink;text(b,'Found this card?',3.5,7,78.5,6,13,13,true);
   if(!text(b,'Please return it to '+(g.name||'[Gym name]')+'.',3.5,14,78.5,8,10,9,true))issues.push('Return instructions do not fit');
   if(!text(b,g.address||'Gym address required',3.5,24,78.5,7,8,7))issues.push('Gym address does not fit the back');
   if(!text(b,[g.phone,g.email].filter(Boolean).join(' · ')||'Gym contact required',3.5,32,78.5,6,8,7))issues.push('Gym contact information does not fit');
-  b.fillStyle='#334155';if(!text(b,'For the named member only. Entry requires a valid pass and staff verification. If lost, report this card to the gym immediately.',3.5,40,78.5,10,8,7))issues.push('Card instructions do not fit');
+  b.fillStyle=muted;if(!text(b,'For the named member only. Entry requires a valid pass and staff verification. If lost, report this card to the gym immediately.',3.5,40,78.5,10,8,7))issues.push('Card instructions do not fit');
   photo?.close();logo?.close();front.setAttribute('aria-label','Physical ID front for '+m.name);back.setAttribute('aria-label','Physical ID back');
   return {front,back,matrix,issues:[...new Set(issues)],destroy(){for(const c of [front,back]){c.width=0;c.height=0;}}};
  }

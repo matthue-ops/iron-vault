@@ -97,3 +97,7 @@ After confirmed Stage 1 `054`, manually run **only** `supabase/manual/physical_m
 ## 056 — Simplified Physical ID workflow
 
 After confirmed `055`, manually run **only** `supabase/manual/physical_id_workflow.sql` once (identical to `202611180056_physical_id_workflow.sql`), then release the matching Stage 3 frontend. Adds the pending replacement request state, immediate member-loss revocation without auto-issuance, authorized exactly-once replacement, independent audited downloads and explicit provider production requests. Existing credentials remain unchanged at installation. No finances, membership or attendance are rewritten. Do not execute both copies or restore revoked QR tokens on rollback. See [Stage 3 workflow and rollout](../../docs/physical-id-workflow-stage3.md). No SQL executed against Supabase by the agent.
+
+### 057 — Physical ID appearance
+
+After manually confirming 056, execute `supabase/manual/physical_id_appearance.sql` once, then deploy the Stage 4 frontend and refresh tabs. The numbered migration `202611180057_physical_id_appearance.sql` is identical; execute one copy only. Adds private per-gym designs/backgrounds, owner editing and design-aware export validation. No credential rotation or business-record rewrite. See `docs/physical-id-appearance-stage4.md` for storage retention, print proofing and rollback limitations.
