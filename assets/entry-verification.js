@@ -91,7 +91,7 @@
    }catch(error){if(current.ticket===serial&&!closed){pending=null;d.close();app.showScanResult(false,'ENTRY NOT CONFIRMED',error.message+' Scan again to check status before retrying.');tone('error');}}
    finally{release();busy=false;app.isProcessingScan=false;if(!closed&&current.ticket===serial)resume();}
   };
-  const search=root.document.getElementById('roster-search');if(search){const b=make('button','Scan Member Card');b.type='button';b.className='iv-card-open';b.onclick=()=>app.openMemberCardLookup();search.parentElement.after(b);}
+  const search=root.document.getElementById('roster-search');if(search){const b=make('button');b.id='member-card-search-scan';b.type='button';b.className='member-card-scan';b.setAttribute('aria-label','Scan member card to find member');b.title='Scan member card to find member — no entry recorded';b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8V3h5m8 0h5v5M3 16v5h5m8 0h5v-5M7 7h3v3H7zm7 0h3v3h-3zM7 14h3v3H7zm7 0h1v1h2v2h-3z"/></svg>';b.onclick=()=>app.openMemberCardLookup();search.parentElement.classList.add('member-search-box');search.parentElement.append(b);}
   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'||event==='SIGNED_IN'){closed=true;reset();busy=false;app.isProcessingScan=false;originalClose.call(app);}});
   root.addEventListener('pagehide',()=>{closed=true;reset();audio?.close?.();audio=null;});
  }
