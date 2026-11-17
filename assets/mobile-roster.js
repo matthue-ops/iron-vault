@@ -13,7 +13,7 @@
     return '<button type="button" class="mobile-member-row" data-member-id="'+escape(m.id)+'" aria-label="'+escape('View '+m.name+' '+(m.displayCode||m.id))+'">'+
      '<span class="mobile-member-heading"><strong>'+escape(m.name)+'</strong><span class="mobile-member-active">ACTIVE</span></span>'+
      '<span class="mobile-member-meta">'+escape(m.displayCode||m.id)+' · '+escape(m.plan||'Not Selected')+'</span>'+
-     '<span class="mobile-member-bottom"><span>'+escape(app.calculateDaysLeft(m.expirationDate))+' · <span class="'+(entered?'mobile-member-entered':'mobile-member-waiting')+'">'+(entered?'Entered today':'Not entered')+'</span></span><span aria-hidden="true">›</span></span></button>';
+     '<span class="mobile-member-bottom"><span>'+escape(app.rosterActiveFilter==='expiring'&&app.rosterExpiryLabel?app.rosterExpiryLabel(m):app.calculateDaysLeft(m.expirationDate))+' · <span class="'+(entered?'mobile-member-entered':'mobile-member-waiting')+'">'+(entered?'Entered today':'Not entered')+'</span></span><span aria-hidden="true">›</span></span></button>';
    }).join('')||'<p class="mobile-roster-empty">No matching active members.</p>';
    page=Math.min(page,Math.max(0,Math.ceil(members.length/5)-1));previous.disabled=page===0;next.disabled=(page+1)*5>=members.length;counter.textContent=members.length?'Showing '+(page*5+1)+'–'+Math.min(page*5+5,members.length)+' of '+members.length:'No matching members';
    const expand=d.getElementById('roster-expansion');
@@ -22,7 +22,7 @@
   }
   const original=app.renderRoster;
   app.renderRoster=function(list){
-   const nextKey=JSON.stringify([this.currentTenantId,d.getElementById('roster-search').value,this.rosterActiveFilter]);
+   const nextKey=JSON.stringify([this.currentTenantId,d.getElementById('roster-search').value,this.rosterActiveFilter,this.rosterExpiryDays]);
    if(nextKey!==key){this.rosterExpanded=false;page=0;key=nextKey;}
    page=Math.min(page,Math.max(0,Math.ceil(list.filter(m=>m.status==='ACTIVE').length/5)-1));
    const result=original.apply(this,arguments);
