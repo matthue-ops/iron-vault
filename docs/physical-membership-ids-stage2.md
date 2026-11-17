@@ -1,5 +1,7 @@
 # Physical membership IDs — Stage 2
 
+> The revised lost-card and direct-download workflow is documented in [Stage 3](physical-id-workflow-stage3.md), with manual migration 056. This document describes the original 055 workflow. Do not rerun 055 to apply Stage 3.
+
 ## Base and scope
 
 Implemented on `feat/physical-ids-stage2`, based on main `ba26c97` (PR #65 merging Stage 1 commit `83a368e`). Stage 1 is present in this checkout. **Its installation in your Supabase database has not been confirmed.** No SQL has been executed against Supabase, and nothing has been merged or deployed by this work.
