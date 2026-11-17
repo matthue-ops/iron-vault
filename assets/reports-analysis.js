@@ -1,10 +1,11 @@
 (function(root){
  'use strict';
+ const dayFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}),hourFormat=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',hourCycle:'h23'});
  const kinds={topup:'Wallet top-up',plan_cash:'Pass paid in cash',plan_wallet:'Pass paid from wallet',refund_cash:'Cash refund',refund_wallet:'Refund to wallet',wallet_correction:'Wallet correction out',wallet_correction_in:'Wallet correction in'};
  function cents(value){const match=/^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(value??0));if(!match)return null;return (match[1]?-1n:1n)*(BigInt(match[2])*100n+BigInt((match[3]||'').padEnd(2,'0')));}
  function money(value){if(value===null)return 'Unavailable';const n=typeof value==='bigint'?value:cents(value);if(n===null)return 'Unavailable';const absolute=n<0n?-n:n;return (n<0n?'-':'')+'₱'+(absolute/100n).toLocaleString('en-PH')+'.'+String(absolute%100n).padStart(2,'0');}
  function walletAfter(row){const value=row?.wallet_after;if(value===null||value===undefined||!['number','string'].includes(typeof value))return 'Unavailable';const amount=cents(value);return amount===null||amount<0n?'Unavailable':money(amount);}
- function date(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const get=k=>parts.find(p=>p.type===k).value;return get('year')+'-'+get('month')+'-'+get('day');}
+ function date(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const parts=dayFormat.formatToParts(d);const get=k=>parts.find(p=>p.type===k).value;return get('year')+'-'+get('month')+'-'+get('day');}
  function validDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;const d=new Date(value+'T00:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===value;}
  function validPass(member,today=date(new Date())){const expiry=member.expiration_date??member.expirationDate;return member.status==='ACTIVE'&&['1-Day Pass','1-Week Pass','1-Month Unlimited'].includes(member.plan)&&validDate(expiry)&&expiry>=today;}
  function expiryLabel(member,today=date(new Date())){
@@ -60,7 +61,7 @@
    if(row.kind==='plan_cash'||row.kind==='plan_wallet')day.sales+=amount;
   }
   const hours=Array(24).fill(0);let qr=0,manual=0;
-  for(const row of attendance){dayFor(date(row.created_at)).visits++;const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',hourCycle:'h23'}).format(new Date(row.created_at)));hours[hour]++;if(row.method==='qr')qr++;if(row.method==='manual')manual++;}
+  for(const row of attendance){dayFor(date(row.created_at)).visits++;const hour=Number(hourFormat.format(new Date(row.created_at)));hours[hour]++;if(row.method==='qr')qr++;if(row.method==='manual')manual++;}
   let wallet=0n;for(const member of members){const amount=cents(member.wallet_balance??member.walletBalance);if(amount===null||amount<0n)invalid++;else wallet+=amount;}
   const future=new Date(today+'T00:00:00Z');future.setUTCDate(future.getUTCDate()+7);const nextWeek=future.toISOString().slice(0,10);
   const valid=m=>validPass(m,today);

@@ -41,7 +41,7 @@
    }
   }
   app.phoneReportChanged=update;
-  const render=app.ivRender;app.ivRender=async function(start,end){const result=await render.apply(this,arguments);if(!d.body.classList.contains('iv-auth-pending')||this.ivFinance){period={start,end};update();if(media.matches)node('phone-date-range').open=false;}return result;};
+  const render=app.ivRender;app.ivRender=async function(start,end){const request=this.ivRequest,result=await render.apply(this,arguments),view=this.ivGetReportView?.();if(request===this.ivRequest&&(!this.ivGetReportView||view?.start===start&&view?.end===end)&&(!d.body.classList.contains('iv-auth-pending')||this.ivFinance)){period={start,end};update();if(media.matches)node('phone-date-range').open=false;}return result;};
   const change=app.onDateFilterChange;app.onDateFilterChange=function(){if(media.matches&&!applying)return;return change.apply(this,arguments);};
   node('phone-date-apply').onclick=async()=>{applying=true;try{await app.onDateFilterChange();}finally{applying=false;}};
   const quick=app.setQuickRange;app.setQuickRange=async function(){applying=true;try{return await quick.apply(this,arguments);}finally{applying=false;}};
@@ -50,7 +50,7 @@
   function decorate(){for(const body of ['financial-tbody','attendance-tbody','audit-tbody'])for(const row of node(body).rows){if(row.querySelector('.phone-row-toggle')||row.cells.length<2)continue;const key=body+':'+[...row.cells].map(c=>c.textContent).join('|');const button=make('button','Details','phone-row-toggle');button.type='button';function state(){const open=expanded.has(key);row.classList.toggle('phone-row-expanded',open);button.setAttribute('aria-expanded',String(open));button.textContent=open?'Less':'Details';}button.onclick=()=>{expanded.has(key)?expanded.delete(key):expanded.add(key);state();};row.cells[1].appendChild(button);state();}}
   const observer=new root.MutationObserver(decorate);for(const body of ['financial-tbody','attendance-tbody','audit-tbody'])observer.observe(node(body),{childList:true});decorate();
   const clear=app.ivClear;app.ivClear=function(){expanded.clear();period=null;const result=clear.apply(this,arguments);update();return result;};
-  media.addEventListener('change',()=>app.switchTab(app.currentTab));update();
+  media.addEventListener('change',()=>{if(app.ivRefreshReportLayout)app.ivRefreshReportLayout();else app.switchTab(app.currentTab);});update();
  }
  root.IronVaultPhoneReports={prepare,install};
 })(globalThis);

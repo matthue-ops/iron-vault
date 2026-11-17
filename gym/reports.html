@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">Reports & Analytics</title>
+    <style>
+      #report-loading{display:none}body.iv-auth-pending #report-loading{display:grid;visibility:visible;position:fixed;inset:0;place-content:center;gap:12px;padding:24px;background:#090d16;color:#e2e8f0;font:14px/1.6 system-ui,sans-serif;text-align:center;z-index:1000}
+      #report-loading strong{font-size:20px}#report-loading p{color:#94a3b8}#report-loading .report-loading-line{width:64px;height:3px;margin:auto;border-radius:4px;background:#10b981;animation:report-loading-pulse 1.2s ease-in-out infinite alternate}
+      @keyframes report-loading-pulse{to{opacity:.35;transform:scaleX(.6)}}@media(prefers-reduced-motion:reduce){#report-loading .report-loading-line{animation:none}}@media print{#report-loading{display:none!important}}
+    </style>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -106,7 +111,8 @@
 <link rel="stylesheet" href="../assets/phone-interface.css">
 <link rel="stylesheet" href="../assets/gym-palette.css">
 </head>
-<body class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<body aria-busy="true" class="iv-auth-pending text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden relative">
+<section id="report-loading" role="status" aria-live="polite" aria-atomic="true"><span class="report-loading-line" aria-hidden="true"></span><strong>Loading reports</strong><p id="report-loading-message">Checking access and preparing your report…</p></section>
 
     <!-- TOP HEADER / NAV BAR -->
     <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 py-3 no-print">
@@ -373,8 +379,9 @@
             currentTab: 'financial',
 
             init: async function() {
-                document.body?.classList.add('iv-auth-pending');
+                document.body?.classList.add('iv-auth-pending');document.body?.setAttribute('aria-busy','true');
                 this.ivClear();
+                this.ivSetLoading('Checking report access…');
                 try {
                     this.authenticatedRole=await ivRequireRole(['owner','staff','super_admin']);
                     const params=new URLSearchParams(location.search);
@@ -613,9 +620,7 @@
             }
         };
 
-        window.onload = function() {
-            reportsApp.init();
-        };
+        window.addEventListener('DOMContentLoaded',()=>reportsApp.init(),{once:true});
     </script>
 <script>
 
@@ -629,6 +634,7 @@ async function ivRequireRole(roles, tenant){
 }
 
 reportsApp.ivMode='activity';
+reportsApp.ivSetLoading=function(message){const status=document.getElementById('report-loading-message');if(status)status.textContent=message;};
 reportsApp.ivClear=function(){
  this.ivRequest=(this.ivRequest||0)+1;
  this.ivActors=[];this.ivFinance=[];this.ivPurchases=[];this.ivAttendance=[];this.ivActivity=[];this.ivSessions=[];
@@ -639,7 +645,7 @@ reportsApp.ivClear=function(){
 };
 reportsApp.ivDeny=function(error){
  this.ivRequest=(this.ivRequest||0)+1;
- this.ivClear();document.body?.classList.add('iv-auth-pending');
+ this.ivClear();document.body?.classList.add('iv-auth-pending');document.body?.setAttribute('aria-busy','true');this.ivSetLoading('Report access is unavailable. Returning to sign-in…');
  IronVaultAuth.clearState(sessionStorage,localStorage);
  alert(error.code==='AUTH_REQUIRED'?'Your session has ended. Please sign in again.':'Access unavailable: '+error.message);
  if(IronVaultSessionScopes.metadata(supabaseClient)?.kind==='provider'){location.replace(location.pathname.startsWith('/_provider/')?'index.html':'/gym/index.html');return;}
@@ -683,14 +689,16 @@ reportsApp.ivRender=async function(start,end){
 };
 reportsApp.filterAndRenderReport=async function(start,end){
  const request=(this.ivRequest||0)+1;this.ivRequest=request;
- document.body?.classList.add('iv-auth-pending');
+ document.body?.classList.add('iv-auth-pending');document.body?.setAttribute('aria-busy','true');this.ivSetLoading('Loading report data…');
  try{
   const result=await this.ivLoadLogs(start,end);
   if(request!==this.ivRequest)return;
   [this.ivFinance,this.ivAttendance,this.ivActivity,this.ivSessions]=result.logs;
   this.ivActors=result.actors;this.ivPurchases=result.purchases;this.branchMembers=result.members;this.allMembers=result.members;
+  this.ivSetLoading('Preparing your report…');
   await this.ivRender(start,end);
-  document.body?.classList.remove('iv-auth-pending');
+  if(request!==this.ivRequest)return;
+  document.body?.classList.remove('iv-auth-pending');document.body?.setAttribute('aria-busy','false');
  }catch(error){if(request===this.ivRequest)this.ivDeny(error);}
 };
 reportsApp.printReport=async function(){try{await this.ivRequireReport();window.print();}catch(error){this.ivDeny(error);}};
