@@ -93,3 +93,7 @@ After confirmed 053 and prerequisites, manually run the entire `supabase/manual/
 ## 055 — Physical membership IDs
 
 After confirmed Stage 1 `054`, manually run **only** `supabase/manual/physical_membership_ids.sql` (identical to `202611160055_physical_membership_ids.sql`) once, before the matching Stage 2 frontend. Adds private card version/replacement metadata, scoped requests/events/retries/notices, explicit staff permissions and in-memory production-download authorization. Existing tokens are preserved at installation; no balances, membership, payments or attendance are rewritten. Do not execute both copies or reapply. See [Stage 2 rollout and rollback limits](../../docs/physical-membership-ids-stage2.md). No SQL executed against Supabase by the agent.
+
+## 056 — Simplified Physical ID workflow
+
+After confirmed `055`, manually run **only** `supabase/manual/physical_id_workflow.sql` once (identical to `202611180056_physical_id_workflow.sql`), then release the matching Stage 3 frontend. Adds the pending replacement request state, immediate member-loss revocation without auto-issuance, authorized exactly-once replacement, independent audited downloads and explicit provider production requests. Existing credentials remain unchanged at installation. No finances, membership or attendance are rewritten. Do not execute both copies or restore revoked QR tokens on rollback. See [Stage 3 workflow and rollout](../../docs/physical-id-workflow-stage3.md). No SQL executed against Supabase by the agent.
