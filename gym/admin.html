@@ -2624,6 +2624,9 @@ adminApp.logoutAdmin=async function(){
 <link rel="stylesheet" href="../assets/membership-plans.css">
 <script src="../assets/membership-plans.js"></script>
 <script>IronVaultMembershipPlans.install(adminApp,supabaseClient,'admin');</script>
+<link rel="stylesheet" href="/assets/gym-registration.css">
+<script src="/assets/gym-owner-onboarding.js"></script>
+<script>IronVaultGymOwnerOnboarding.install(adminApp,supabaseClient,'admin',{url:SUPABASE_URL,key:SUPABASE_ANON_KEY});</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

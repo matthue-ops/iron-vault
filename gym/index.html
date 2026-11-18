@@ -1500,6 +1500,9 @@ indexApp.handleInspectAddStaff = async function(event) {
 <script>IronVaultPhysicalIDs.install(indexApp,supabaseClient,'master');</script>
 <script src="../assets/owner-recovery.js"></script>
 <script>IronVaultOwnerRecovery.install(indexApp,supabaseClient);</script>
+<link rel="stylesheet" href="/assets/gym-registration.css">
+<script src="/assets/gym-owner-onboarding.js"></script>
+<script>IronVaultGymOwnerOnboarding.install(indexApp,supabaseClient,'master',{url:SUPABASE_URL,key:SUPABASE_ANON_KEY});</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

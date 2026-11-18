@@ -109,3 +109,7 @@ After confirmed 057, manually execute `supabase/manual/provider_design_qr_owner_
 ### 059 — Custom gym membership plans
 
 After confirmed 058, manually run `supabase/manual/custom_membership_plans.sql` once, then deploy the reviewed Stage 6 frontend and refresh tabs. The numbered 059 migration is identical: do not execute both. Adds private catalogue/purchased snapshots and narrowly extends quotes, active-pass protection, eligibility, QR verification and member status notices for custom plans. Existing financial writes, receipt replay, discounts, top-up reviews, approvals and built-in plans are retained. No Edge update is required for this stage. Read `docs/custom-membership-plans-stage6.md` before rollout or rollback, especially after custom passes have been sold.
+
+### 060–061 — Universal gym registration and shared-owner branches
+
+After confirmed 059, manually run `supabase/manual/universal_gym_registration.sql` (060), then `supabase/manual/shared_owner_branches.sql` (061). Each is identical to its numbered migration; run one copy of each only. Then deploy new `iv-gym-registration` and update `iv-branch-auth` from their generated Dashboard files, both JWT OFF (public actions plus server-verified authenticated actions), before deploying the reviewed frontend. Existing identities/roles/business records are preserved; new gyms are Live/setup-only and no pilot starts automatically. See `docs/gym-registration-stage7.md` for exact access/session design, email/recovery/purge compatibility, acceptance checks and rollback limits.

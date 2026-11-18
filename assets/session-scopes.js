@@ -19,6 +19,11 @@
   const client=sdk.createClient(url,key,{auth:{storageKey:scope.storageKey||'iv-auth-bootstrap:v1:'+(++bootstrap),persistSession:persistent,autoRefreshToken:persistent,detectSessionInUrl:false}});
   clients.set(client,Object.freeze(scope));return client;
  }
+ function createGymClient(sdk,url,key,gym){
+  if(!valid(gym?.id))throw Error('A valid gym is required.');
+  rememberGym(gym);const scope={kind:'gym',gymId:gym.id,realm:'gym:'+gym.id,storageKey:PREFIX+new URL(url).host+':gym:'+gym.id};
+  const client=sdk.createClient(url,key,{auth:{storageKey:scope.storageKey,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});clients.set(client,Object.freeze(scope));return client;
+ }
  function rememberGym(gym){
   if(!valid(gym?.id)||!valid(gym?.token))return;
   try{root.localStorage?.setItem(ALIAS+gym.token,gym.id);}catch(_){/* Scoped URLs do not depend on aliases/storage being available. */}
@@ -32,6 +37,6 @@
   root.location.replace(url.pathname+url.search+url.hash);return true;
  }
  function metadata(client){return clients.get(client)||null;}
- const api=Object.freeze({createClient,context,rememberGym,handoff,metadata});root.IronVaultSessionScopes=api;
+ const api=Object.freeze({createClient,createGymClient,context,rememberGym,handoff,metadata});root.IronVaultSessionScopes=api;
  if(typeof module==='object'&&module.exports)module.exports=api;
 })(globalThis);

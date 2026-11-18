@@ -22,3 +22,7 @@ verify_jwt = true
 # Scheduled worker checks its own private secret and rejects browser origins.
 [functions.iv-provider-reminders]
 verify_jwt = false
+
+# Public registration/login; authenticated branch/provider actions validate getUser and SQL authority.
+[functions.iv-gym-registration]
+verify_jwt = false

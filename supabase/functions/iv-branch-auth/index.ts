@@ -1,3 +1,4 @@
+import {sharedOwnerCredential,ownerBranchSession} from '../_shared/owner-access.ts';
 import {ensurePrivateIdentifier} from '../_shared/identity.ts';
 import {serve,actor,role,admin,publicClient,rpc,digest,limit,sendMail,sendVerification,mailReady,site} from '../_shared/runtime.ts';
 import {provision} from '../_shared/provision.ts';
@@ -25,7 +26,7 @@ serve(async(req,input)=>{
    const pending=await rpc('iv_owner_contact_recovery',{p_action:'inspect',p_data:{token_hash:hash}});
    if(pending.status!=='confirmed'){
     // Replace old recovery tokens without delivering one to the lost inbox.
-    const authEmail=await ensurePrivateIdentifier(pending.user_id);
+    const credential=await sharedOwnerCredential(pending.user_id);const authEmail=await ensurePrivateIdentifier(credential?.account_user||pending.user_id);
     const {data,error}=await admin.auth.admin.generateLink({type:'recovery',email:authEmail});if(error||!data.properties?.hashed_token)throw Error('Operation could not be completed.');
     await rpc('iv_owner_contact_recovery',{p_action:'confirm',p_data:{token_hash:hash}});
    }
@@ -40,16 +41,18 @@ serve(async(req,input)=>{
   if(!['owner','staff'].includes(r.role)||!r.tenant_id)throw Error('Not authorized.');
   await limit('own-recovery:'+user.id,5,3600);
   const info=await rpc('iv_branch_account_details',{p_user:user.id});
+  const shared=r.role==='owner'?await sharedOwnerCredential(user.id):null;
   const {data:gym,error:badGym}=await admin.from('owners').select('id,token,status').eq('id',r.tenant_id).single();
   if(badGym||!gym||gym.status!=='ACTIVE'||!info.email)throw Error('Not authorized.');
   if(!mailReady())throw Error('Email delivery is not configured.');
-  const authEmail=await ensurePrivateIdentifier(user.id);
+  const authEmail=await ensurePrivateIdentifier(shared?.account_user||user.id);
   const {data,error}=await admin.auth.admin.generateLink({type:'recovery',email:authEmail});
   if(error||!data.properties?.hashed_token)throw Error('Email delivery failed.');
   // Recheck authorization before sending; no caller-supplied recipient is used.
   const after=await role(user.id);if(after.tenant_id!==r.tenant_id||after.role!==r.role)throw Error('Not authorized.');
-  const link=site+'/gym/login.html?key='+encodeURIComponent(gym.token)+'#iv_recovery='+encodeURIComponent(data.properties.hashed_token);
-  await sendMail(info.email,'Reset your gym account password',link);
+  if(shared){const current=await sharedOwnerCredential(user.id);if(!current||current.account_user!==shared.account_user||current.email!==shared.email)throw Error('Not authorized.');}
+  const link=shared?site+'/gym/owner-recovery.html?gym='+encodeURIComponent(gym.id)+'&key='+encodeURIComponent(gym.token)+'#iv_owner_recovery='+encodeURIComponent(data.properties.hashed_token):site+'/gym/login.html?key='+encodeURIComponent(gym.token)+'#iv_recovery='+encodeURIComponent(data.properties.hashed_token);
+  await sendMail(shared?.email||info.email,'Reset your gym account password',link);
   return {ok:true,message:'Password reset instructions were sent to your account email.'};
  }
  if(action==='email_change')return changeContact(req,input);
@@ -80,6 +83,8 @@ serve(async(req,input)=>{
   if(!Array.isArray(rows)||rows.length!==1)throw Error('Invalid request.');
   const info=await rpc('iv_branch_account_details',{p_user:rows[0].user_id});
   const password=String(input.password||'');if(password.length<1||password.length>128)throw Error('Invalid request.');
+  const shared=rows[0].role==='owner'?await sharedOwnerCredential(rows[0].user_id):null;
+  if(shared){const proof=await publicClient().auth.signInWithPassword({email:shared.auth_email,password});if(proof.error||proof.data?.user?.id!==shared.account_user)throw Error('Invalid request.');return ownerBranchSession(shared.account_user,gym.id);}
   const {data,error}=await publicClient().auth.signInWithPassword({email:info.auth_email,password});
   if(error||!data.session)throw Error('Invalid request.');
   await ensurePrivateIdentifier(rows[0].user_id);
@@ -94,11 +99,13 @@ serve(async(req,input)=>{
    if(!mailReady())return {ok:true,message};
    const info=await rpc('iv_branch_account_details',{p_user:rows[0].user_id});
    if(!info.email)return {ok:true,message};
-   const authEmail=await ensurePrivateIdentifier(rows[0].user_id);
+   const shared=info.role==='owner'?await sharedOwnerCredential(rows[0].user_id):null;
+   const authEmail=await ensurePrivateIdentifier(shared?.account_user||rows[0].user_id);
    const {data,error}=await admin.auth.admin.generateLink({type:'recovery',email:authEmail});
    if(error||!data.properties?.hashed_token)throw Error('Email delivery failed.');
-   const link=site+'/gym/memberlogin.html?key='+encodeURIComponent(gym.token)+'#iv_recovery='+encodeURIComponent(data.properties.hashed_token);
-   await sendMail(info.email,'Reset your '+String(info.gym_name).replace(/[\r\n]/g,' ')+' gym password',link);
+   if(shared){const current=await sharedOwnerCredential(rows[0].user_id);if(!current||current.account_user!==shared.account_user||current.email!==shared.email)throw Error('Not authorized.');}
+   const link=shared?site+'/gym/owner-recovery.html?gym='+encodeURIComponent(gym.id)+'&key='+encodeURIComponent(gym.token)+'#iv_owner_recovery='+encodeURIComponent(data.properties.hashed_token):site+'/gym/memberlogin.html?key='+encodeURIComponent(gym.token)+'#iv_recovery='+encodeURIComponent(data.properties.hashed_token);
+   await sendMail(shared?.email||info.email,'Reset your '+String(info.gym_name).replace(/[\r\n]/g,' ')+' gym password',link);
   }
  }catch(_){console.error('Branch email delivery failed; inspect provider configuration.');}
  return {ok:true,message};
