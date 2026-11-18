@@ -1128,6 +1128,9 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 <link rel="stylesheet" href="../assets/entry-verification.css">
 <script src="../assets/entry-verification.js"></script>
 <script>IronVaultEntryVerification.installCard(profileApp,supabaseClient,'member');</script>
+<link rel="stylesheet" href="../assets/membership-plans.css">
+<script src="../assets/membership-plans.js"></script>
+<script>IronVaultMembershipPlans.install(profileApp,supabaseClient,'member');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>
