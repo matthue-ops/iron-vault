@@ -1740,7 +1740,7 @@
                         } else {
                             scanStatusText = '<span class="text-amber-400 font-medium">0 scans used • Hasnt entered</span>';
                         }
-                    } else if (planName === '1-Week Pass' || planName === '1-Month Unlimited') {
+                    } else if (planName === '1-Week Pass' || planName === '1-Month Unlimited' || planName.startsWith('Custom · ')) {
                         const used = usedScans;
                         if (isCheckedInToday) {
                             scanStatusText = `<span class="text-purple-400 font-medium">${used} scan${used === 1 ? '' : 's'} used • <span class="text-emerald-400 font-semibold">Checked in today</span></span>`;
@@ -2621,6 +2621,9 @@ adminApp.logoutAdmin=async function(){
 <link rel="stylesheet" href="../assets/member-list-tools.css">
 <script src="../assets/member-list-tools.js"></script>
 <script>IronVaultMemberListTools.install(adminApp,supabaseClient);</script>
+<link rel="stylesheet" href="../assets/membership-plans.css">
+<script src="../assets/membership-plans.js"></script>
+<script>IronVaultMembershipPlans.install(adminApp,supabaseClient,'admin');</script>
 <script defer src="/assets/offline-fallback.js"></script>
 </body>
 </html>

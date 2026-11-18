@@ -7,7 +7,7 @@
  function walletAfter(row){const value=row?.wallet_after;if(value===null||value===undefined||!['number','string'].includes(typeof value))return 'Unavailable';const amount=cents(value);return amount===null||amount<0n?'Unavailable':money(amount);}
  function date(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const parts=dayFormat.formatToParts(d);const get=k=>parts.find(p=>p.type===k).value;return get('year')+'-'+get('month')+'-'+get('day');}
  function validDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;const d=new Date(value+'T00:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===value;}
- function validPass(member,today=date(new Date())){const expiry=member.expiration_date??member.expirationDate;return member.status==='ACTIVE'&&['1-Day Pass','1-Week Pass','1-Month Unlimited'].includes(member.plan)&&validDate(expiry)&&expiry>=today;}
+ function validPass(member,today=date(new Date())){const expiry=member.expiration_date??member.expirationDate;return member.status==='ACTIVE'&&(['1-Day Pass','1-Week Pass','1-Month Unlimited'].includes(member.plan)||(typeof member.plan==='string'&&member.plan.startsWith('Custom · ')))&&validDate(expiry)&&expiry>=today;}
  function expiryLabel(member,today=date(new Date())){
   if(!member)return 'Profile unavailable';
   if(!member.plan||member.plan==='Not Selected')return 'No pass';

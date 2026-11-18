@@ -105,3 +105,7 @@ After manually confirming 056, execute `supabase/manual/physical_id_appearance.s
 ### 058 — Provider ID design, QR export and owner inbox recovery
 
 After confirmed 057, manually execute `supabase/manual/provider_design_qr_owner_recovery.sql` once (identical to numbered migration 058). Then update only the `iv-branch-auth` Edge function with the generated Dashboard source, preserving JWT OFF, and deploy the reviewed frontend. Adds provider shared design access, design-save audits, provider-only audited SVG/PNG QR downloads and a separate new-inbox-proof owner recovery flow. No password, QR, subscription or business-record changes occur on installation. See `docs/provider-stage5.md` for exact order, mail requirements, security history and rollback limitations.
+
+### 059 — Custom gym membership plans
+
+After confirmed 058, manually run `supabase/manual/custom_membership_plans.sql` once, then deploy the reviewed Stage 6 frontend and refresh tabs. The numbered 059 migration is identical: do not execute both. Adds private catalogue/purchased snapshots and narrowly extends quotes, active-pass protection, eligibility, QR verification and member status notices for custom plans. Existing financial writes, receipt replay, discounts, top-up reviews, approvals and built-in plans are retained. No Edge update is required for this stage. Read `docs/custom-membership-plans-stage6.md` before rollout or rollback, especially after custom passes have been sold.
