@@ -1,6 +1,6 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs'),vm=require('node:vm');const {stripTypeScriptTypes}=require('node:module');
 function load(file,injected={}){
- const context={Error,console:{error(){}},crypto,TextEncoder,TextDecoder,Uint8Array,URL,Request,Response,Set,JSON,Date,...injected};vm.createContext(context);
+ const context={sharedOwnerCredential:async()=>null,Error,console:{error(){}},crypto,TextEncoder,TextDecoder,Uint8Array,URL,Request,Response,Set,JSON,Date,...injected};vm.createContext(context);
  const source=stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip'}).replace(/^import .*?;\s*$/gm,'').replace(/^export /gm,'');
  vm.runInContext(source,context,{filename:file});return context;
 }

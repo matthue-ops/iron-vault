@@ -10,6 +10,11 @@
   const before=await root.IronVaultAuth.requireRole(client,options);
   const {data,error}=await client.auth.getUser();check();
   if(error||before.user_id!==userId||data?.user?.id!==userId||!data.user.email)throw Error('Sign in again before changing your password.');
+  if(before.role==='owner'){
+   const shared=await client.rpc('iv_owner_branches',{p_action:'list',p_data:{}});check();
+   if(shared.error&&!['42883','PGRST202'].includes(shared.error.code))throw Error('Owner account access could not be verified. Retry before changing the password.');
+   if(shared.data?.shared===true){const result=await client.functions.invoke('iv-gym-registration',{body:{action:'password',expected_user_id:userId,current_password:currentPassword,password}});check();if(result.error||result.data?.error||result.data?.ok!==true)throw Error(result.data?.error||'Password update was not confirmed.');return true;}
+  }
   if(typeof createVerifier!=='function')throw Error('Password change is unavailable. Use the email reset link.');
   // A non-persistent isolated session cannot log this browser back in after logout.
   const verifier=createVerifier();
