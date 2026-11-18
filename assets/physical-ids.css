@@ -2,3 +2,10 @@
 .iv-physical-cards figure{margin:0;min-width:0}.iv-physical-dialog h3{font-weight:700;margin:10px 0}.iv-physical-list>button{display:block;width:100%;text-align:left;margin:6px 0}
 
 .iv-physical-header h2{margin-right:auto}.iv-physical-header button{flex-shrink:0}.iv-physical-pending{padding:20px;border:1px solid #92400e;background:#451a0340;border-radius:12px}.iv-physical-request-status{padding:10px 0;color:#cbd5e1}.iv-physical-history{margin-top:18px;border-top:1px solid #334155}.iv-physical-primary-actions>button{min-height:44px}.iv-physical-open{display:inline-flex;align-items:center;gap:10px}.iv-physical-open i{margin:0}.iv-physical-history>section{overflow-wrap:anywhere}@media(max-height:500px) and (min-width:640px){.iv-physical-dialog{max-height:calc(100dvh - 16px);padding:14px}.iv-physical-header{margin-bottom:8px}}
+/* A single card remains proportional in portrait and landscape. */
+.iv-physical-cards{display:block;max-width:760px;margin:16px auto;touch-action:pan-y}
+.iv-physical-cards figure{margin:0}.iv-physical-cards figure[hidden]{display:none!important}
+.iv-physical-cards canvas{display:block;width:100%;height:auto;aspect-ratio:85.6/53.98}
+.iv-physical-dialog fieldset{border:1px solid #475569;border-radius:10px;padding:12px;margin:12px 0;min-width:0}
+.iv-physical-dialog label{display:block;margin:10px 0}.iv-physical-dialog input[type=range]{display:block;width:100%}
+@media (orientation:landscape) and (max-height:600px){.iv-physical-dialog{width:96vw;max-width:1100px}.iv-physical-cards{max-width:850px}}
