@@ -101,3 +101,7 @@ After confirmed `055`, manually run **only** `supabase/manual/physical_id_workfl
 ### 057 — Physical ID appearance
 
 After manually confirming 056, execute `supabase/manual/physical_id_appearance.sql` once, then deploy the Stage 4 frontend and refresh tabs. The numbered migration `202611180057_physical_id_appearance.sql` is identical; execute one copy only. Adds private per-gym designs/backgrounds, owner editing and design-aware export validation. No credential rotation or business-record rewrite. See `docs/physical-id-appearance-stage4.md` for storage retention, print proofing and rollback limitations.
+
+### 058 — Provider ID design, QR export and owner inbox recovery
+
+After confirmed 057, manually execute `supabase/manual/provider_design_qr_owner_recovery.sql` once (identical to numbered migration 058). Then update only the `iv-branch-auth` Edge function with the generated Dashboard source, preserving JWT OFF, and deploy the reviewed frontend. Adds provider shared design access, design-save audits, provider-only audited SVG/PNG QR downloads and a separate new-inbox-proof owner recovery flow. No password, QR, subscription or business-record changes occur on installation. See `docs/provider-stage5.md` for exact order, mail requirements, security history and rollback limitations.

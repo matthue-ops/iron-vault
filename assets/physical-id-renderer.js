@@ -71,5 +71,12 @@
   zip.file('PRINT-INSTRUCTIONS.txt','CR80 membership card: 85.60 × 53.98 mm. Front/back PNG: 600 DPI.\nLocal PDF: print at actual size (100%); disable fit-to-page. Production PDF: 3 mm white bleed and exact TrimBox.\nBoth sides have the same top edge; do not mirror. Test duplex alignment and scan a physical proof before a batch.\nThis is a gym membership card, not a government ID. No expiry is printed.\nFiles cannot be recalled; a revoked QR will no longer grant entry. A file download does not mark the card issued.\n');
   return zip.generateAsync({type:'blob'});
  }
- root.IronVaultPhysicalCard=Object.freeze({render,files,width:W,height:H,dpi:DPI,qr:QR});
+ async function qrFiles(payload){
+  if(!/^IVC1\|[0-9a-f-]{36}$/i.test(payload||''))throw Error('Current permanent QR unavailable');
+  await library('QRCode','qrcode.min.js');const holder=document.createElement('div'),code=new root.QRCode(holder,{text:payload,width:600,height:600,correctLevel:root.QRCode.CorrectLevel.H}),matrix=code._oQRCode,n=matrix.getModuleCount(),total=n+8,node=document.createElement('canvas');holder.replaceChildren();node.width=node.height=2048;const ctx=node.getContext('2d'),unit=Math.floor(2048/total),offset=Math.floor((2048-total*unit)/2);ctx.fillStyle='#fff';ctx.fillRect(0,0,2048,2048);ctx.fillStyle='#000';const paths=[];
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(matrix.isDark(y,x)){ctx.fillRect(offset+(x+4)*unit,offset+(y+4)*unit,unit,unit);paths.push('M'+(x+4)+' '+(y+4)+'h1v1h-1z');}
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 '+total+' '+total+'" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="white"/><path fill="black" d="'+paths.join('')+'"/></svg>';
+  try{const Zip=await library('JSZip','jszip.min.js'),zip=new Zip();zip.file('member-qr-2048.png',await png(node));zip.file('member-qr.svg',svg);zip.file('QR-PRINT-NOTES.txt','Current permanent gym membership QR. Keep the white area and four-module quiet zone. Do not crop, stretch, recolour or place a logo over the QR.\nUse a minimum 26 mm square QR area for this credential and scan a physical proof before production. Keep files private. Saved copies cannot be recalled; revocation makes this QR invalid. Downloading does not issue a card or record entry.\n');return await zip.generateAsync({type:'blob'});}finally{node.width=node.height=0;}
+ }
+ root.IronVaultPhysicalCard=Object.freeze({render,files,qrFiles,width:W,height:H,dpi:DPI,qr:QR});
 })(globalThis);

@@ -4,8 +4,33 @@ import {provision} from '../_shared/provision.ts';
 import {changeContact} from '../_shared/contact.ts';
 serve(async(req,input)=>{
  const action=String(input.action||'');
+ if(action==='provider_owner_recovery'){
+  const user=await actor(req),r=await role(user.id);
+  if(r.role!=='super_admin'||r.tenant_id!==null)throw Error('Not authorized.');
+  if(input.identity_verified!==true||!mailReady())throw Error(input.identity_verified!==true?'Invalid request.':'Email delivery is not configured.');
+  const requestId=String(input.request_id||'');if(!/^[0-9a-f-]{36}$/i.test(requestId))throw Error('Invalid request.');
+  await limit('provider-owner-recovery:'+user.id,5,3600);
+  const token=crypto.randomUUID()+crypto.randomUUID();
+  const prepared=await rpc('iv_owner_contact_recovery',{p_action:'prepare',p_data:{actor_id:user.id,tenant_id:String(input.tenant_id||''),request_id:requestId,new_email:String(input.new_email||''),reason:String(input.reason||''),identity_verified:true,token_hash:await digest(token)}});
+  if(prepared.status==='confirmed')return {ok:true,message:'This owner email recovery was already confirmed. The owner can use Forgot Password.'};
+  const after=await role(user.id);if(after.role!=='super_admin'||after.tenant_id!==null)throw Error('Not authorized.');
+  await sendMail(prepared.email,'Confirm your recovered gym owner email',site+'/gym/login.html?key='+encodeURIComponent(prepared.gym_token)+'#iv_verify='+encodeURIComponent('OR1|'+token));
+  return {ok:true,message:'Confirmation sent to the new email. The owner must confirm it, then use Forgot Password. No password or account access was changed.'};
+ }
  if(action==='confirm'){
-  const token=String(input.token||'');if(!/^[0-9a-f-]{72}$/i.test(token))throw Error('Invalid request.');
+  const token=String(input.token||'');
+  if(token.startsWith('OR1|')){
+   const secret=token.slice(4);if(!/^[0-9a-f-]{72}$/i.test(secret))throw Error('Invalid request.');
+   const hash=await digest(secret);await limit('owner-contact-confirm:'+hash,5,3600);
+   const pending=await rpc('iv_owner_contact_recovery',{p_action:'inspect',p_data:{token_hash:hash}});
+   if(pending.status!=='confirmed'){
+    // Replace old recovery tokens without delivering one to the lost inbox.
+    const authEmail=await ensurePrivateIdentifier(pending.user_id);
+    const {data,error}=await admin.auth.admin.generateLink({type:'recovery',email:authEmail});if(error||!data.properties?.hashed_token)throw Error('Operation could not be completed.');
+    await rpc('iv_owner_contact_recovery',{p_action:'confirm',p_data:{token_hash:hash}});
+   }
+   return {ok:true,message:'Your new owner email is confirmed. Use Forgot Password with this address to choose a new password. Existing access restrictions still apply.'};
+  }if(!/^[0-9a-f-]{72}$/i.test(token))throw Error('Invalid request.');
   await limit('confirmation:'+await digest(token),3,3600);
   const complete=await rpc('iv_confirm_email_action',{p_hash:await digest(token)});
   return {ok:true,message:complete?'Email verified. You can sign in when the gym is active; new member registrations may still need approval.':'This address is confirmed. Confirm the other email address to finish the change.'};
